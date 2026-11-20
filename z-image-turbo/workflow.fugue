@@ -144,19 +144,22 @@
         "resource": "fugue/vae",
         "hash": "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38",
         "name": "ae.safetensors",
-        "source": "https://huggingface.co/Comfy-Org/Z-Image-Turbo/resolve/main/split_files/vae/ae.safetensors"
+        "source": "https://huggingface.co/Comfy-Org/Z-Image-Turbo/resolve/main/split_files/vae/ae.safetensors",
+        "size": 335304388
       },
       {
         "resource": "fugue/text-encoder",
         "hash": "sha256:eed555233267a33c7e8ee31682762cc7751b3f6d224039086e0e846f05fffa5d",
         "name": "Qwen3-4B-Q8_0.gguf",
-        "source": "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q8_0.gguf"
+        "source": "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q8_0.gguf",
+        "size": 4280405792
       },
       {
         "resource": "fugue/diffusion-model",
         "hash": "sha256:f163d60b0eb427469510b8226243d196574a18139a2e40c017409cfbda95ecfe",
         "name": "z-image-turbo-Q8_0.gguf",
-        "source": "https://huggingface.co/unsloth/Z-Image-Turbo-GGUF/resolve/main/z-image-turbo-Q8_0.gguf"
+        "source": "https://huggingface.co/unsloth/Z-Image-Turbo-GGUF/resolve/main/z-image-turbo-Q8_0.gguf",
+        "size": 7224707136
       }
     ]
   }
