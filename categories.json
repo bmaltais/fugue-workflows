@@ -1,0 +1,16 @@
+{
+  "categories": [
+    {
+      "id": "image",
+      "title": "Text to image"
+    },
+    {
+      "id": "edit",
+      "title": "Image editing"
+    },
+    {
+      "id": "text",
+      "title": "Text"
+    }
+  ]
+}

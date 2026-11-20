@@ -1,0 +1,9 @@
+{
+  "title": "Text to image, any provider",
+  "description": "The simplest workflow: a prompt, a size and Generate Image, served by any provider with an image model (omarchy-local-ai, a DGX).",
+  "category": "image",
+  "tags": [
+    "Text to image",
+    "Provider"
+  ]
+}

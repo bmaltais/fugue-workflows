@@ -1,0 +1,163 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "decode": {
+        "inputs": {
+          "latent": {
+            "from": "sample.latent"
+          }
+        },
+        "type": "fugue/vae-decode",
+        "version": "1.0.0"
+      },
+      "encode": {
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "prompt": "a lighthouse on a cliff at sunset, oil painting"
+        },
+        "type": "fugue/text-encode",
+        "version": "1.0.0"
+      },
+      "models": {
+        "inputs": {
+          "diffusion_model": {
+            "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+            "name": "flux-2-klein-9b-Q8_0.gguf",
+            "resource": "fugue/diffusion-model"
+          },
+          "text_encoder": {
+            "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+            "name": "Qwen3-8B-Q8_0.gguf",
+            "resource": "fugue/text-encoder"
+          },
+          "vae": {
+            "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+            "name": "flux2-vae.safetensors",
+            "resource": "fugue/vae"
+          }
+        },
+        "type": "fugue/load-models",
+        "version": "1.0.0"
+      },
+      "preview": {
+        "inputs": {
+          "value": {
+            "from": "decode.image"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "sample": {
+        "inputs": {
+          "conditioning": {
+            "from": "encode.conditioning"
+          },
+          "guidance": 1,
+          "latent": {
+            "from": "size.latent"
+          },
+          "model": {
+            "from": "models.model"
+          },
+          "seed": {
+            "auto": "random"
+          },
+          "steps": 4
+        },
+        "type": "fugue/sampler",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "image": {
+            "from": "decode.image"
+          },
+          "name": "flux2-klein-9b"
+        },
+        "type": "fugue/save-image",
+        "version": "1.0.0"
+      },
+      "size": {
+        "inputs": {
+          "height": 1024,
+          "width": 1024
+        },
+        "type": "fugue/empty-latent",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "decode": {
+        "pos": [
+          1020,
+          0
+        ]
+      },
+      "encode": {
+        "pos": [
+          340,
+          0
+        ]
+      },
+      "models": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "preview": {
+        "pos": [
+          1360,
+          0
+        ]
+      },
+      "sample": {
+        "pos": [
+          680,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          1360,
+          320
+        ]
+      },
+      "size": {
+        "pos": [
+          340,
+          300
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "resource": "fugue/text-encoder",
+        "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+        "name": "Qwen3-8B-Q8_0.gguf",
+        "source": "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q8_0.gguf"
+      },
+      {
+        "resource": "fugue/diffusion-model",
+        "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+        "name": "flux-2-klein-9b-Q8_0.gguf",
+        "source": "https://huggingface.co/unsloth/FLUX.2-klein-9B-GGUF/resolve/main/flux-2-klein-9b-Q8_0.gguf"
+      },
+      {
+        "resource": "fugue/vae",
+        "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+        "name": "flux2-vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/main/split_files/vae/flux2-vae.safetensors"
+      }
+    ]
+  }
+}

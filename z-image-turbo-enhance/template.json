@@ -1,0 +1,10 @@
+{
+  "title": "Z-Image Turbo, prompt enhanced",
+  "description": "A short idea, written out as a full photo prompt by a text model (Enhance Prompt), then made by Z-Image Turbo. Needs a text model served by omarchy-local-ai.",
+  "category": "image",
+  "tags": [
+    "Z-Image",
+    "Enhance Prompt",
+    "Text to image"
+  ]
+}

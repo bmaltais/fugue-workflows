@@ -1,0 +1,9 @@
+{
+  "title": "Enhance Prompt, then generate",
+  "description": "A text model turns a short idea into a detailed prompt, which Generate Image makes with whatever image model a provider offers.",
+  "category": "text",
+  "tags": [
+    "Enhance Prompt",
+    "Text model"
+  ]
+}

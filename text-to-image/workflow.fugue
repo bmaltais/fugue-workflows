@@ -1,0 +1,128 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "generate": {
+        "inputs": {
+          "height": {
+            "from": "size.height"
+          },
+          "prompt": {
+            "from": "prompt.text"
+          },
+          "seed": {
+            "auto": "random"
+          },
+          "width": {
+            "from": "size.width"
+          }
+        },
+        "type": "fugue/generate-image",
+        "version": "1.0.0"
+      },
+      "preview": {
+        "inputs": {
+          "value": {
+            "from": "generate.image"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "prompt": {
+        "inputs": {
+          "a": {
+            "from": "subject.text"
+          },
+          "b": {
+            "from": "style.text"
+          },
+          "separator": ", "
+        },
+        "type": "fugue/text-concat",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "image": {
+            "from": "generate.image"
+          },
+          "name": "lighthouse"
+        },
+        "type": "fugue/save-image",
+        "version": "1.0.0"
+      },
+      "size": {
+        "inputs": {
+          "aspect": "3:2",
+          "megapixels": 1
+        },
+        "type": "fugue/image-size",
+        "version": "1.0.0"
+      },
+      "style": {
+        "inputs": {
+          "text": "oil painting, stormy sky, dramatic light"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "subject": {
+        "inputs": {
+          "text": "a lighthouse on a cliff"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "generate": {
+        "pos": [
+          660,
+          0
+        ]
+      },
+      "preview": {
+        "pos": [
+          1060,
+          0
+        ]
+      },
+      "prompt": {
+        "pos": [
+          320,
+          80
+        ]
+      },
+      "save": {
+        "pos": [
+          1060,
+          360
+        ]
+      },
+      "size": {
+        "pos": [
+          320,
+          320
+        ]
+      },
+      "style": {
+        "pos": [
+          0,
+          220
+        ]
+      },
+      "subject": {
+        "pos": [
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}

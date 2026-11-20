@@ -1,0 +1,115 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "enhance": {
+        "inputs": {
+          "prompt": "a fox asleep in the snow",
+          "seed": {
+            "auto": "random"
+          },
+          "style": "detailed"
+        },
+        "type": "fugue/enhance-prompt",
+        "version": "1.0.0"
+      },
+      "generate": {
+        "inputs": {
+          "height": {
+            "from": "size.height"
+          },
+          "prompt": {
+            "from": "enhance.text"
+          },
+          "seed": {
+            "auto": "random"
+          },
+          "width": {
+            "from": "size.width"
+          }
+        },
+        "type": "fugue/generate-image",
+        "version": "1.0.0"
+      },
+      "preview": {
+        "inputs": {
+          "value": {
+            "from": "generate.image"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "prompt": {
+        "inputs": {
+          "value": {
+            "from": "enhance.text"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "image": {
+            "from": "generate.image"
+          },
+          "name": "fox"
+        },
+        "type": "fugue/save-image",
+        "version": "1.0.0"
+      },
+      "size": {
+        "inputs": {
+          "aspect": "3:2",
+          "megapixels": 1
+        },
+        "type": "fugue/image-size",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "enhance": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "generate": {
+        "pos": [
+          360,
+          120
+        ]
+      },
+      "preview": {
+        "pos": [
+          720,
+          0
+        ]
+      },
+      "prompt": {
+        "pos": [
+          360,
+          -120
+        ]
+      },
+      "save": {
+        "pos": [
+          720,
+          360
+        ]
+      },
+      "size": {
+        "pos": [
+          0,
+          360
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}

@@ -1,0 +1,73 @@
+name: Check
+
+# Every template: its shape (bin/check), then Fugue's own reading of it against Fugue's main
+# branch: `fugue template list` with no warnings, and every workflow validates. Fugue is a
+# private repo; FUGUE_DEPLOY_KEY is a read-only deploy key of it.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  shape:
+    name: Template shape
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bin/check
+
+  fugue:
+    name: Fugue reads every template
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Install git and ssh for the checkouts
+        run: pacman -Syu --noconfirm --needed git openssh python
+
+      - uses: actions/checkout@v4
+        with:
+          path: templates
+
+      - name: Check out Fugue's main branch
+        env:
+          KEY: ${{ secrets.FUGUE_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh && printf '%s\n' "$KEY" > ~/.ssh/fugue && chmod 600 ~/.ssh/fugue
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/fugue -o IdentitiesOnly=yes" git clone --depth 1 git@github.com:bmaltais/fugue.git fugue
+
+      - name: Install Fugue's build dependencies
+        run: |
+          source fugue/packaging/PKGBUILD
+          deps=("${depends[@]}" "${makedepends[@]}")
+          wanted=()
+          for dep in "${deps[@]%%[<>=]*}"; do [[ $dep == cuda ]] || wanted+=("$dep"); done
+          pacman -S --noconfirm --needed base-devel cmake "${wanted[@]}"
+
+      - name: Build fugue
+        run: fugue/bin/build fugue
+
+      - name: Fugue lists every template, with no warnings
+        run: |
+          FUGUE_TEMPLATES=$PWD/templates fugue/build/fugue template list --json > list.json
+          python3 -c "
+          import json, sys
+          reply = json.load(open('list.json'))
+          for w in reply.get('warnings', []): print(w['message'], file=sys.stderr)
+          listed = len(reply['data']['templates'])
+          print(listed, 'templates listed')
+          sys.exit(1 if reply.get('warnings') or listed == 0 else 0)"
+
+      - name: Every workflow validates
+        run: |
+          status=0
+          for flow in templates/*/workflow.fugue; do
+            (cd "$(dirname "$flow")" && "$GITHUB_WORKSPACE/fugue/build/fugue" validate workflow.fugue >/dev/null) || { echo "invalid: $flow"; status=1; }
+          done
+          exit $status

@@ -1,0 +1,10 @@
+{
+  "title": "FLUX.2 Klein 9B base image edit",
+  "description": "The same edit with the undistilled base model: 20 steps and guidance 5, slower and more faithful to the prompt.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Image edit",
+    "Base"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "title": "FLUX.2 Klein 9B, two pictures",
+  "description": "Combine two pictures: the subject of one in the place of the other, both given to the model as references.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Image edit",
+    "References"
+  ]
+}

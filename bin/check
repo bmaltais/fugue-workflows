@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""The shape of every template, without Fugue: what CI checks first.
+
+Fugue checks the rest (its own reading of template.json, the node versions, the Load Image
+samples, and that each workflow compiles): `FUGUE_TEMPLATES=$PWD fugue template list --json`
+and `fugue validate`.
+"""
+import json
+import os
+import re
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SHA = re.compile(r"^sha256:[0-9a-f]{64}$")
+PREVIEWS = ("preview.webp", "preview.png", "preview.jpg")
+MAX_PREVIEW = 300 * 1024
+MAX_INPUT = 600 * 1024
+problems = []
+
+
+def load(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError) as e:
+        problems.append(f"{os.path.relpath(path, ROOT)}: {e}")
+        return None
+
+
+def handles(value, out):
+    if isinstance(value, dict):
+        if "resource" in value and "hash" in value:
+            out[value["hash"]] = value
+        for item in value.values():
+            handles(item, out)
+    elif isinstance(value, list):
+        for item in value:
+            handles(item, out)
+
+
+categories = load(os.path.join(ROOT, "categories.json")) or {}
+known = {c.get("id") for c in categories.get("categories", [])}
+
+count = 0
+for name in sorted(os.listdir(ROOT)):
+    folder = os.path.join(ROOT, name)
+    if name.startswith(".") or not os.path.isdir(folder) or name == "bin":
+        continue
+    count += 1
+    if not re.match(r"^[a-z0-9][a-z0-9-]*$", name):
+        problems.append(f"{name}: a template's folder name is lowercase letters, digits and dashes")
+    about = load(os.path.join(folder, "template.json"))
+    flow = load(os.path.join(folder, "workflow.fugue"))
+    if about is not None:
+        for key in ("title", "description", "category"):
+            if not isinstance(about.get(key), str) or not about[key].strip():
+                problems.append(f"{name}/template.json: needs a {key}")
+        if about.get("category") not in known:
+            problems.append(f"{name}/template.json: category {about.get('category')!r} is not in categories.json")
+        if not isinstance(about.get("tags", []), list):
+            problems.append(f"{name}/template.json: tags is a list")
+    preview = next((p for p in PREVIEWS if os.path.isfile(os.path.join(folder, p))), None)
+    if not preview:
+        problems.append(f"{name}: needs a preview ({', '.join(PREVIEWS)})")
+    elif os.path.getsize(os.path.join(folder, preview)) > MAX_PREVIEW:
+        problems.append(f"{name}/{preview}: over {MAX_PREVIEW // 1024} KB")
+    inputs = os.path.join(folder, "inputs")
+    if os.path.isdir(inputs):
+        for f in os.listdir(inputs):
+            if os.path.getsize(os.path.join(inputs, f)) > MAX_INPUT:
+                problems.append(f"{name}/inputs/{f}: over {MAX_INPUT // 1024} KB")
+    if flow is None:
+        continue
+    used = {}
+    handles(flow.get("graph", {}), used)
+    handles(flow.get("groups", {}), used)
+    sources = {m.get("hash"): m.get("source") for m in flow.get("requires", {}).get("models", [])}
+    for digest, handle in sorted(used.items()):
+        label = handle.get("name", digest)
+        if not SHA.match(digest or ""):
+            problems.append(f"{name}: {label} has no sha256 hash")
+        source = sources.get(digest)
+        if not source:
+            problems.append(f"{name}: {label} has no source in requires.models")
+        elif not source.startswith("https://"):
+            problems.append(f"{name}: {label}'s source is not https")
+
+if count == 0:
+    problems.append("no templates")
+for problem in problems:
+    print(problem, file=sys.stderr)
+print(f"{count} templates, {len(problems)} problems")
+sys.exit(1 if problems else 0)

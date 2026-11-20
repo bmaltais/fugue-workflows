@@ -1,0 +1,9 @@
+{
+  "title": "FLUX.2 Klein 9B image edit",
+  "description": "Change a picture by saying what to change: the picture is scaled to 1 megapixel and given to the model as a reference. 4 steps.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Image edit"
+  ]
+}
