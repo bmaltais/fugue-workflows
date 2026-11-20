@@ -17,9 +17,10 @@ One folder per template; the folder's name is its id.
 
 - `category` is one of the ids in `categories.json`, which also orders the categories.
 - What a template needs is read from its workflow, never written twice:
-  - every model it names, by hash, with a `source` in the workflow's `requires.models`: an https
-    URL whose file has exactly that hash. Fugue says where to get a missing model and which
-    folder it goes in;
+  - every model it names, by hash, with a `source` and a `size` in the workflow's
+    `requires.models`: an https URL whose file has exactly that hash, and its bytes. Fugue
+    offers to download a missing model into the folder it goes in, and keeps it only when the
+    hash matches;
   - the node versions it was made with. A Fugue that lacks a built-in node, or has an older minor
     of it, does not list the template.
 - No models in this repo. Sample pictures are small JPEGs made with Fugue itself.
@@ -29,7 +30,8 @@ One folder per template; the folder's name is its id.
 1. Make the workflow in Fugue and save it. Put the pictures it loads in `<id>/inputs/` and point
    its Load Image nodes at `inputs/<name>`.
 2. Add `template.json` and a preview (about 768 px wide, WebP).
-3. Give each model in `requires.models` a `source`.
+3. Give each model in `requires.models` a `source` and a `size`. For a Hugging Face file,
+   `curl -sI <source>` shows both checks: `x-linked-size` and `x-linked-etag` (the sha256).
 4. Run `bin/check`, then `FUGUE_TEMPLATES=$PWD fugue template list` (no warnings) and
    `fugue validate <id>/workflow.fugue`.
 

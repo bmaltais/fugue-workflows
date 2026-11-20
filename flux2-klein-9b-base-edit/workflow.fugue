@@ -185,19 +185,22 @@
         "resource": "fugue/text-encoder",
         "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
         "name": "Qwen3-8B-Q8_0.gguf",
-        "source": "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q8_0.gguf"
+        "source": "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q8_0.gguf",
+        "size": 8709519168
       },
       {
         "resource": "fugue/diffusion-model",
         "hash": "sha256:0f625ee27883d25379e897ea7b4328ec13376455bf6c2159f3aef7a801c88f10",
         "name": "flux-2-klein-base-9b-Q8_0.gguf",
-        "source": "https://huggingface.co/unsloth/FLUX.2-klein-base-9B-GGUF/resolve/main/flux-2-klein-base-9b-Q8_0.gguf"
+        "source": "https://huggingface.co/unsloth/FLUX.2-klein-base-9B-GGUF/resolve/main/flux-2-klein-base-9b-Q8_0.gguf",
+        "size": 9978304800
       },
       {
         "resource": "fugue/vae",
         "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
         "name": "flux2-vae.safetensors",
-        "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/main/split_files/vae/flux2-vae.safetensors"
+        "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+        "size": 336213556
       }
     ]
   }

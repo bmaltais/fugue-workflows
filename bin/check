@@ -74,12 +74,15 @@ for name in sorted(os.listdir(ROOT)):
     used = {}
     handles(flow.get("graph", {}), used)
     handles(flow.get("groups", {}), used)
-    sources = {m.get("hash"): m.get("source") for m in flow.get("requires", {}).get("models", [])}
+    recorded = {m.get("hash"): m for m in flow.get("requires", {}).get("models", [])}
     for digest, handle in sorted(used.items()):
         label = handle.get("name", digest)
         if not SHA.match(digest or ""):
             problems.append(f"{name}: {label} has no sha256 hash")
-        source = sources.get(digest)
+        source = recorded.get(digest, {}).get("source")
+        size = recorded.get(digest, {}).get("size")
+        if not isinstance(size, int) or isinstance(size, bool) or size <= 0:
+            problems.append(f"{name}: {label} has no size (its bytes) in requires.models")
         if not source:
             problems.append(f"{name}: {label} has no source in requires.models")
         elif not source.startswith("https://"):
