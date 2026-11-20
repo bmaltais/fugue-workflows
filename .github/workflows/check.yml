@@ -40,7 +40,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh && printf '%s\n' "$KEY" > ~/.ssh/fugue && chmod 600 ~/.ssh/fugue
           ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
-          GIT_SSH_COMMAND="ssh -i ~/.ssh/fugue -o IdentitiesOnly=yes" git clone --depth 1 git@github.com:bmaltais/fugue.git fugue
+          GIT_SSH_COMMAND="ssh -i $HOME/.ssh/fugue -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" git clone --depth 1 git@github.com:bmaltais/fugue.git fugue
 
       - name: Install Fugue's build dependencies
         run: |
