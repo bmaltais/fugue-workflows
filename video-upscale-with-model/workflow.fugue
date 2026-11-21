@@ -1,0 +1,71 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "load": {
+        "inputs": {
+          "file": "inputs/ramen-pan.mp4"
+        },
+        "type": "fugue/load-video",
+        "version": "1.0.0"
+      },
+      "model": {
+        "inputs": {
+          "model": {
+            "hash": "sha256:37f9a931c215f040aa6d50f711f2cb115f713c46df1d0d6469a8bd7bfe9a60bb",
+            "name": "RealESRGAN_x4plus.safetensors",
+            "resource": "fugue/upscale-model"
+          },
+          "video": {
+            "from": "load.video"
+          }
+        },
+        "type": "fugue/upscale-video-with-model",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "name": "upscaled",
+          "video": {
+            "from": "model.video"
+          }
+        },
+        "type": "fugue/save-video",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "load": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "model": {
+        "pos": [
+          400,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          800,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "models": [
+      {
+        "hash": "sha256:37f9a931c215f040aa6d50f711f2cb115f713c46df1d0d6469a8bd7bfe9a60bb",
+        "name": "RealESRGAN_x4plus.safetensors",
+        "resource": "fugue/upscale-model",
+        "size": 66857836,
+        "source": "https://huggingface.co/Comfy-Org/Real-ESRGAN_repackaged/resolve/5fd49b7b278836f48af63ecd314d0f98ab336105/RealESRGAN_x4plus.safetensors"
+      }
+    ]
+  }
+}

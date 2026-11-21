@@ -1,0 +1,10 @@
+{
+  "title": "Upscale a video with a model",
+  "description": "Makes a video four times bigger with Real-ESRGAN, which draws in the detail a plain resize cannot. The frames go through the model a chunk at a time, and the sound and the length are kept. It is slow, about a frame a second at 480p on a good card. Pick the video in Load Video, or the upscale model in the model input (Load Upscale Model lists more to download).",
+  "category": "upscale",
+  "tags": [
+    "Upscale",
+    "Video",
+    "Real-ESRGAN"
+  ]
+}
