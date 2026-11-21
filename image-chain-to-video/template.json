@@ -1,0 +1,9 @@
+{
+  "title": "Image, then video",
+  "description": "An image model makes the first frame, then the video model brings it to life for five seconds: two models, one run.",
+  "category": "video",
+  "tags": [
+    "Image to video",
+    "Chain"
+  ]
+}

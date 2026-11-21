@@ -1,0 +1,132 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "subject": {
+        "inputs": {
+          "text": "a lighthouse on a cliff at dusk, waves crashing, dramatic sky, photo"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "motion": {
+        "inputs": {
+          "text": "waves crash against the cliff, clouds drift, the lighthouse beam sweeps across the water"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "size": {
+        "inputs": {
+          "aspect": "16:9",
+          "megapixels": 0.5,
+          "multiple": 32
+        },
+        "type": "fugue/image-size",
+        "version": "1.0.0"
+      },
+      "image": {
+        "inputs": {
+          "prompt": {
+            "from": "subject.text"
+          },
+          "width": {
+            "from": "size.width"
+          },
+          "height": {
+            "from": "size.height"
+          },
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/generate-image",
+        "version": "1.0.0"
+      },
+      "first": {
+        "inputs": {
+          "value": {
+            "from": "image.image"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "video": {
+        "inputs": {
+          "prompt": {
+            "from": "motion.text"
+          },
+          "image": {
+            "from": "image.image"
+          },
+          "duration": 5,
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/generate-video",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "video": {
+            "from": "video.video"
+          },
+          "name": "lighthouse"
+        },
+        "type": "fugue/save-video",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "subject": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "motion": {
+        "pos": [
+          0,
+          220
+        ]
+      },
+      "size": {
+        "pos": [
+          0,
+          440
+        ]
+      },
+      "image": {
+        "pos": [
+          380,
+          0
+        ]
+      },
+      "first": {
+        "pos": [
+          760,
+          0
+        ]
+      },
+      "video": {
+        "pos": [
+          760,
+          300
+        ]
+      },
+      "save": {
+        "pos": [
+          1160,
+          300
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "frame": {
+        "inputs": {
+          "file": "inputs/fox.jpg"
+        },
+        "type": "fugue/load-image",
+        "version": "1.0.0"
+      },
+      "prompt": {
+        "inputs": {
+          "text": "the fox looks up and trots away through the snow"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "video": {
+        "inputs": {
+          "prompt": {
+            "from": "prompt.text"
+          },
+          "image": {
+            "from": "frame.image"
+          },
+          "duration": 3,
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/generate-video",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "video": {
+            "from": "video.video"
+          },
+          "name": "fox-animated"
+        },
+        "type": "fugue/save-video",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "frame": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "prompt": {
+        "pos": [
+          0,
+          420
+        ]
+      },
+      "video": {
+        "pos": [
+          400,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          800,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}

@@ -9,6 +9,10 @@
       "title": "Image editing"
     },
     {
+      "id": "video",
+      "title": "Video"
+    },
+    {
       "id": "text",
       "title": "Text"
     }

@@ -1,0 +1,9 @@
+{
+  "title": "Text to video",
+  "description": "A short clip from a prompt on the video model a provider offers (MiniMax H3 on a DGX, say), saved as an MP4.",
+  "category": "video",
+  "tags": [
+    "Text to video",
+    "Save Video"
+  ]
+}
