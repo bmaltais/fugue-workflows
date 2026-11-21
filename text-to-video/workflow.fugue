@@ -1,0 +1,83 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "prompt": {
+        "inputs": {
+          "text": "a red fox walking through fresh snow at sunrise, soft light, cinematic"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "size": {
+        "inputs": {
+          "aspect": "16:9",
+          "megapixels": 0.25,
+          "multiple": 32
+        },
+        "type": "fugue/image-size",
+        "version": "1.0.0"
+      },
+      "video": {
+        "inputs": {
+          "prompt": {
+            "from": "prompt.text"
+          },
+          "duration": 3,
+          "width": {
+            "from": "size.width"
+          },
+          "height": {
+            "from": "size.height"
+          },
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/generate-video",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "video": {
+            "from": "video.video"
+          },
+          "name": "fox"
+        },
+        "type": "fugue/save-video",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "prompt": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "size": {
+        "pos": [
+          0,
+          300
+        ]
+      },
+      "video": {
+        "pos": [
+          360,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          760,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}

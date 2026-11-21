@@ -1,0 +1,9 @@
+{
+  "title": "Image to video",
+  "description": "Animates a picture: it becomes the first frame of the clip, and the prompt says what happens next.",
+  "category": "video",
+  "tags": [
+    "Image to video",
+    "First frame"
+  ]
+}
