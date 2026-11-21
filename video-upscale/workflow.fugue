@@ -1,0 +1,55 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "load": {
+        "inputs": {"file": "inputs/mandelbrot.mp4"},
+        "type": "fugue/load-video",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "name": "upscaled",
+          "video": {
+            "from": "up.video"
+          }
+        },
+        "type": "fugue/save-video",
+        "version": "1.0.0"
+      },
+      "up": {
+        "inputs": {
+          "method": "lanczos",
+          "scale": 2,
+          "video": {
+            "from": "load.video"
+          }
+        },
+        "type": "fugue/upscale-video",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "load": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          800,
+          0
+        ]
+      },
+      "up": {
+        "pos": [
+          400,
+          0
+        ]
+      }
+    }
+  }
+}

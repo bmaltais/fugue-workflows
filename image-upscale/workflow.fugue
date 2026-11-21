@@ -1,0 +1,106 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "compare": {
+        "inputs": {
+          "a": {
+            "from": "plain.image"
+          },
+          "b": {
+            "from": "model.image"
+          }
+        },
+        "type": "fugue/compare-images",
+        "version": "1.0.0"
+      },
+      "load": {
+        "inputs": {
+          "file": "inputs/ramen.jpg"
+        },
+        "type": "fugue/load-image",
+        "version": "1.0.0"
+      },
+      "model": {
+        "inputs": {
+          "image": {
+            "from": "load.image"
+          },
+          "model": {
+            "hash": "sha256:37f9a931c215f040aa6d50f711f2cb115f713c46df1d0d6469a8bd7bfe9a60bb",
+            "name": "RealESRGAN_x4plus.safetensors",
+            "resource": "fugue/upscale-model"
+          }
+        },
+        "type": "fugue/upscale-with-model",
+        "version": "1.0.0"
+      },
+      "plain": {
+        "inputs": {
+          "image": {
+            "from": "load.image"
+          },
+          "method": "lanczos",
+          "scale": 4
+        },
+        "type": "fugue/upscale-image",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "image": {
+            "from": "model.image"
+          },
+          "name": "upscaled"
+        },
+        "type": "fugue/save-image",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "compare": {
+        "pos": [
+          800,
+          0
+        ]
+      },
+      "load": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "model": {
+        "pos": [
+          400,
+          260
+        ]
+      },
+      "plain": {
+        "pos": [
+          400,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          800,
+          420
+        ]
+      }
+    }
+  },
+  "requires": {
+    "models": [
+      {
+        "hash": "sha256:37f9a931c215f040aa6d50f711f2cb115f713c46df1d0d6469a8bd7bfe9a60bb",
+        "name": "RealESRGAN_x4plus.safetensors",
+        "resource": "fugue/upscale-model",
+        "size": 66857836,
+        "source": "https://huggingface.co/Comfy-Org/Real-ESRGAN_repackaged/resolve/5fd49b7b278836f48af63ecd314d0f98ab336105/RealESRGAN_x4plus.safetensors"
+      }
+    ]
+  }
+}

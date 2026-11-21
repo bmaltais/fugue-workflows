@@ -1,0 +1,10 @@
+{
+  "title": "Upscale an image",
+  "description": "Makes a picture four times bigger two ways, side by side: plain Lanczos resampling, and Real-ESRGAN, which draws in the detail. Swap the picture, or the upscale model in the model input (Load Upscale Model lists more to download).",
+  "category": "upscale",
+  "tags": [
+    "Upscale",
+    "Real-ESRGAN",
+    "Compare"
+  ]
+}
