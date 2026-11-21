@@ -13,6 +13,10 @@
       "title": "Video"
     },
     {
+      "id": "upscale",
+      "title": "Upscaling"
+    },
+    {
       "id": "text",
       "title": "Text"
     }

@@ -1,0 +1,9 @@
+{
+  "title": "Upscale a video",
+  "description": "Makes a video twice as big, frame by frame, with ffmpeg's resampling: no model, no GPU, and the sound and the length are kept. Pick the video in Load Video.",
+  "category": "upscale",
+  "tags": [
+    "Upscale",
+    "Video"
+  ]
+}
