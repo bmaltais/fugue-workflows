@@ -1,8 +1,7 @@
 name: Check
 
 # Every template: its shape (bin/check), then Fugue's own reading of it against Fugue's main
-# branch: `fugue template list` with no warnings, and every workflow validates. Fugue is a
-# private repo; FUGUE_DEPLOY_KEY is a read-only deploy key of it.
+# branch: `fugue template list` with no warnings, and every workflow validates.
 on:
   pull_request:
   push:
@@ -27,20 +26,15 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: Install git and ssh for the checkouts
-        run: pacman -Syu --noconfirm --needed git openssh python
+      - name: Install git for the checkouts
+        run: pacman -Syu --noconfirm --needed git python
 
       - uses: actions/checkout@v4
         with:
           path: templates
 
       - name: Check out Fugue's main branch
-        env:
-          KEY: ${{ secrets.FUGUE_DEPLOY_KEY }}
-        run: |
-          mkdir -p ~/.ssh && printf '%s\n' "$KEY" > ~/.ssh/fugue && chmod 600 ~/.ssh/fugue
-          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
-          GIT_SSH_COMMAND="ssh -i $HOME/.ssh/fugue -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" git clone --depth 1 git@github.com:bmaltais/fugue.git fugue
+        run: git clone --depth 1 https://github.com/bmaltais/fugue.git fugue
 
       - name: Install Fugue's build dependencies
         run: |
