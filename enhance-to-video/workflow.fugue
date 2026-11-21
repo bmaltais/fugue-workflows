@@ -1,0 +1,118 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "prompt": {
+        "inputs": {
+          "text": "a lighthouse keeper climbing to the lamp at dusk"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "enhance": {
+        "type": "fugue/enhance-prompt",
+        "version": "1.1.0",
+        "inputs": {
+          "prompt": {
+            "from": "prompt.text"
+          },
+          "style": "minimax-video",
+          "duration": 3,
+          "seed": {
+            "auto": "random"
+          }
+        }
+      },
+      "show": {
+        "type": "fugue/preview",
+        "version": "1.0.0",
+        "inputs": {
+          "value": {
+            "from": "enhance.text"
+          }
+        }
+      },
+      "size": {
+        "inputs": {
+          "aspect": "16:9",
+          "megapixels": 0.25,
+          "multiple": 32
+        },
+        "type": "fugue/image-size",
+        "version": "1.0.0"
+      },
+      "video": {
+        "inputs": {
+          "prompt": {
+            "from": "enhance.text"
+          },
+          "duration": 3,
+          "width": {
+            "from": "size.width"
+          },
+          "height": {
+            "from": "size.height"
+          },
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/generate-video",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "video": {
+            "from": "video.video"
+          },
+          "name": "lighthouse"
+        },
+        "type": "fugue/save-video",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "prompt": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "enhance": {
+        "pos": [
+          360,
+          0
+        ]
+      },
+      "show": {
+        "pos": [
+          760,
+          0
+        ]
+      },
+      "size": {
+        "pos": [
+          360,
+          380
+        ]
+      },
+      "video": {
+        "pos": [
+          1160,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          1560,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}

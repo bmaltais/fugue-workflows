@@ -1,0 +1,10 @@
+{
+  "title": "Enhance a video idea, then generate",
+  "description": "A text model turns a short idea into a prompt in MiniMax H3's own layout (shots, camera, sound), which Generate Video makes into a short clip and Save Video writes as an MP4.",
+  "category": "video",
+  "tags": [
+    "Enhance Prompt",
+    "Text to video",
+    "Save Video"
+  ]
+}
