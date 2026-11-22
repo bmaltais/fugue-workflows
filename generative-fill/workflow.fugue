@@ -114,7 +114,6 @@
             "from": "region.stitch"
           },
           "blend": 16,
-          "candidate": true,
           "name": "Fill"
         }
       },
