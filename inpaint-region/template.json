@@ -1,0 +1,10 @@
+{
+  "title": "Inpaint: change a region",
+  "description": "Paint over a part of a picture and say what should be there: only the painted region is redrawn, at the model's full detail, and put back with a soft edge. 4 steps.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Inpaint",
+    "Mask"
+  ]
+}
