@@ -1,0 +1,12 @@
+{
+  "title": "Extend a song",
+  "description": "Make a song longer: new music added after it (or before it, with Seconds before), the song itself kept as it was. The sample is a short folk song made with ACE-Step; point Load Audio at your own file. One side at a time: chain two Extend Song nodes for an intro and an outro.",
+  "category": "audio",
+  "tags": [
+    "Extend",
+    "Outpaint",
+    "Longer",
+    "ACE-Step",
+    "Save Audio"
+  ]
+}
