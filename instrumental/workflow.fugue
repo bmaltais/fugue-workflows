@@ -1,0 +1,64 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "description": {
+        "inputs": {
+          "text": "ambient electronic, slow evolving synth pads, soft pulsing bass, light glassy arpeggios, spacious reverb, calm and focused, no vocals"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "song": {
+        "inputs": {
+          "prompt": {
+            "from": "description.text"
+          },
+          "instrumental": true,
+          "duration": 90,
+          "bpm": 80,
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/generate-song",
+        "version": "1.1.0"
+      },
+      "save": {
+        "inputs": {
+          "audio": {
+            "from": "song.audio"
+          },
+          "name": "instrumental"
+        },
+        "type": "fugue/save-audio",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "description": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "song": {
+        "pos": [
+          400,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          820,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}

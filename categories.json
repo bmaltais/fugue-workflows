@@ -13,6 +13,10 @@
       "title": "Video"
     },
     {
+      "id": "audio",
+      "title": "Music"
+    },
+    {
       "id": "upscale",
       "title": "Upscaling"
     },

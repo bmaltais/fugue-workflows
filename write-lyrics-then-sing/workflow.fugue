@@ -1,0 +1,112 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "idea": {
+        "inputs": {
+          "text": "a road trip with an old friend after years apart, hopeful and a little nostalgic"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "lyrics": {
+        "inputs": {
+          "prompt": {
+            "from": "idea.text"
+          },
+          "style": "lyrics",
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/enhance-prompt",
+        "version": "1.1.0"
+      },
+      "style": {
+        "inputs": {
+          "text": "upbeat indie pop, jangly electric guitars, driving drums, handclaps, warm male vocals, bright and sing-along, summer radio"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "song": {
+        "inputs": {
+          "prompt": {
+            "from": "style.text"
+          },
+          "lyrics": {
+            "from": "lyrics.text"
+          },
+          "duration": 90,
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/generate-song",
+        "version": "1.1.0"
+      },
+      "words": {
+        "inputs": {
+          "value": {
+            "from": "lyrics.text"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "audio": {
+            "from": "song.audio"
+          },
+          "name": "song"
+        },
+        "type": "fugue/save-audio",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "idea": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "style": {
+        "pos": [
+          0,
+          330
+        ]
+      },
+      "lyrics": {
+        "pos": [
+          400,
+          0
+        ]
+      },
+      "words": {
+        "pos": [
+          400,
+          620
+        ]
+      },
+      "song": {
+        "pos": [
+          880,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          1300,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}

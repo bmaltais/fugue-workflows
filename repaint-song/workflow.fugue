@@ -1,0 +1,65 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "song": {
+        "inputs": {
+          "file": "inputs/sample.mp3"
+        },
+        "type": "fugue/load-audio",
+        "version": "1.0.0"
+      },
+      "repaint": {
+        "inputs": {
+          "audio": {
+            "from": "song.audio"
+          },
+          "prompt": "bright jazz piano solo, lively and improvised",
+          "instrumental": true,
+          "start": 6,
+          "end": 12,
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/repaint-song",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "audio": {
+            "from": "repaint.audio"
+          },
+          "name": "repainted"
+        },
+        "type": "fugue/save-audio",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "song": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "repaint": {
+        "pos": [
+          400,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          820,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}

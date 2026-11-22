@@ -1,0 +1,11 @@
+{
+  "title": "Song for a picture",
+  "description": "A model looks at your picture and describes the music that suits it; the music model plays it. Swap the sample picture for your own.",
+  "category": "audio",
+  "tags": [
+    "Picture to song",
+    "Describe Image",
+    "ACE-Step",
+    "Save Audio"
+  ]
+}

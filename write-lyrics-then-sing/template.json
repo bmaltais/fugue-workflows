@@ -1,0 +1,12 @@
+{
+  "title": "Write lyrics, then sing",
+  "description": "Turn an idea into lyrics with a text model, check them in the preview, then have the music model sing them. Edit the lyrics in the Text node if you like.",
+  "category": "audio",
+  "tags": [
+    "Lyrics",
+    "Text to song",
+    "Enhance Prompt",
+    "ACE-Step",
+    "Save Audio"
+  ]
+}

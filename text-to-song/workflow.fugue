@@ -1,0 +1,93 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "description": {
+        "inputs": {
+          "text": "warm indie folk, fingerpicked acoustic guitar, soft brushed drums, upright bass, intimate female vocals, wistful and hopeful, lo-fi tape warmth"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "lyrics": {
+        "inputs": {
+          "text": ""
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "song": {
+        "inputs": {
+          "prompt": {
+            "from": "description.text"
+          },
+          "lyrics": {
+            "from": "lyrics.text"
+          },
+          "duration": 60,
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/generate-song",
+        "version": "1.1.0"
+      },
+      "words": {
+        "inputs": {
+          "value": {
+            "from": "song.lyrics"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "audio": {
+            "from": "song.audio"
+          },
+          "name": "song"
+        },
+        "type": "fugue/save-audio",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "description": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "lyrics": {
+        "pos": [
+          0,
+          330
+        ]
+      },
+      "song": {
+        "pos": [
+          400,
+          0
+        ]
+      },
+      "words": {
+        "pos": [
+          820,
+          330
+        ]
+      },
+      "save": {
+        "pos": [
+          820,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}

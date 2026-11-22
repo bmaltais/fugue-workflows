@@ -1,0 +1,12 @@
+{
+  "title": "Remix a song",
+  "description": "Play a song again in another style: a cover, a remix, a different genre. The sample is a short folk song made with ACE-Step; point Load Audio at your own file. Stay close keeps its tune and timing.",
+  "category": "audio",
+  "tags": [
+    "Remix",
+    "Cover",
+    "Style change",
+    "ACE-Step",
+    "Save Audio"
+  ]
+}

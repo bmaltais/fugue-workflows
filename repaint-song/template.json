@@ -1,0 +1,12 @@
+{
+  "title": "Repaint part of a song",
+  "description": "Redraw one stretch of a song and keep the rest: set From and To in seconds (0 for To is the end). The sample is a short folk song made with ACE-Step; point Load Audio at your own file.",
+  "category": "audio",
+  "tags": [
+    "Repaint",
+    "Edit",
+    "Inpaint",
+    "ACE-Step",
+    "Save Audio"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Text to song",
+  "description": "A song from a description on the music model a provider offers (ACE-Step on a DGX, say), saved as a FLAC. Leave the lyrics empty and the model writes them.",
+  "category": "audio",
+  "tags": [
+    "Text to song",
+    "ACE-Step",
+    "Save Audio"
+  ]
+}
