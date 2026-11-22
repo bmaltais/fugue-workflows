@@ -1,0 +1,130 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "song": {
+        "type": "fugue/load-audio",
+        "version": "1.0.0",
+        "inputs": {
+          "file": "inputs/sample.mp3"
+        }
+      },
+      "listen": {
+        "type": "fugue/describe-song",
+        "version": "1.0.0",
+        "inputs": {
+          "audio": {
+            "from": "song.audio"
+          }
+        }
+      },
+      "twist": {
+        "type": "fugue/text",
+        "version": "1.0.0",
+        "inputs": {
+          "text": "reimagined as bright electro-pop, punchy drums, shimmering synths"
+        }
+      },
+      "style": {
+        "type": "fugue/text-concat",
+        "version": "1.0.0",
+        "inputs": {
+          "a": {
+            "from": "listen.caption"
+          },
+          "b": {
+            "from": "twist.text"
+          },
+          "separator": ", "
+        }
+      },
+      "words": {
+        "type": "fugue/preview",
+        "version": "1.0.0",
+        "inputs": {
+          "value": {
+            "from": "listen.lyrics"
+          }
+        }
+      },
+      "remix": {
+        "type": "fugue/remix-song",
+        "version": "1.0.0",
+        "inputs": {
+          "audio": {
+            "from": "song.audio"
+          },
+          "prompt": {
+            "from": "style.text"
+          },
+          "lyrics": {
+            "from": "listen.lyrics"
+          },
+          "strength": 0.7,
+          "seed": {
+            "auto": "random"
+          }
+        }
+      },
+      "save": {
+        "type": "fugue/save-audio",
+        "version": "1.0.0",
+        "inputs": {
+          "audio": {
+            "from": "remix.audio"
+          },
+          "name": "song-from-a-song"
+        }
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "song": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "listen": {
+        "pos": [
+          400,
+          0
+        ]
+      },
+      "twist": {
+        "pos": [
+          400,
+          420
+        ]
+      },
+      "style": {
+        "pos": [
+          820,
+          0
+        ]
+      },
+      "words": {
+        "pos": [
+          820,
+          330
+        ]
+      },
+      "remix": {
+        "pos": [
+          1240,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          1660,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}

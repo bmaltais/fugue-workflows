@@ -1,0 +1,12 @@
+{
+  "title": "Song from a song",
+  "description": "Listen to a song, then make a new one from what the model heard: its description and lyrics, in a new style you write. The sample is a short folk song made with ACE-Step; point Load Audio at your own file. The lyrics the model hears are a draft: read them in the Preview and edit before they are sung.",
+  "category": "audio",
+  "tags": [
+    "Describe Song",
+    "Remix",
+    "Cover",
+    "ACE-Step",
+    "Save Audio"
+  ]
+}
