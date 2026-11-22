@@ -1,0 +1,10 @@
+{
+  "title": "Generative fill: fill a region of a canvas",
+  "description": "Pick a canvas and a rectangle, say what should be there: the region is redrawn at the model's full detail and kept as a candidate on the canvas, to compare and accept or drop. 4 steps.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Inpaint",
+    "Canvas"
+  ]
+}

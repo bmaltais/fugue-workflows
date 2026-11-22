@@ -1,0 +1,210 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "models": {
+        "inputs": {
+          "diffusion_model": {
+            "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+            "name": "flux-2-klein-9b-Q8_0.gguf",
+            "resource": "fugue/diffusion-model"
+          },
+          "text_encoder": {
+            "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+            "name": "Qwen3-8B-Q8_0.gguf",
+            "resource": "fugue/text-encoder"
+          },
+          "vae": {
+            "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+            "name": "flux2-vae.safetensors",
+            "resource": "fugue/vae"
+          }
+        },
+        "type": "fugue/load-models",
+        "version": "1.0.0"
+      },
+      "region": {
+        "type": "fugue/canvas-region",
+        "version": "1.0.0",
+        "inputs": {
+          "revision": "head",
+          "x": 256,
+          "y": 256,
+          "width": 512,
+          "height": 512,
+          "padding": 64,
+          "scale": 1,
+          "max_megapixels": 1,
+          "feather": 0,
+          "multiple": 16,
+          "canvas": ""
+        }
+      },
+      "encode": {
+        "type": "fugue/text-encode",
+        "version": "1.0.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "prompt": "A potted fern on the floor, in the same light.",
+          "references": [
+            {
+              "from": "region.image"
+            }
+          ]
+        }
+      },
+      "vae_encode": {
+        "type": "fugue/vae-encode",
+        "version": "1.1.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "image": {
+            "from": "region.image"
+          },
+          "mask": {
+            "from": "region.mask"
+          }
+        }
+      },
+      "sample": {
+        "type": "fugue/sampler",
+        "version": "1.0.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "conditioning": {
+            "from": "encode.conditioning"
+          },
+          "latent": {
+            "from": "vae_encode.latent"
+          },
+          "seed": {
+            "auto": "random"
+          },
+          "steps": 4,
+          "guidance": 1,
+          "denoise": 1
+        }
+      },
+      "decode": {
+        "type": "fugue/vae-decode",
+        "version": "1.0.0",
+        "inputs": {
+          "latent": {
+            "from": "sample.latent"
+          }
+        }
+      },
+      "write": {
+        "type": "fugue/canvas-write",
+        "version": "1.1.0",
+        "inputs": {
+          "canvas": {
+            "from": "region.canvas"
+          },
+          "image": {
+            "from": "decode.image"
+          },
+          "stitch": {
+            "from": "region.stitch"
+          },
+          "blend": 16,
+          "candidate": true,
+          "name": "Fill"
+        }
+      },
+      "preview": {
+        "type": "fugue/preview",
+        "version": "1.0.0",
+        "inputs": {
+          "value": {
+            "from": "decode.image"
+          }
+        }
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "models": {
+        "pos": [
+          0,
+          520
+        ]
+      },
+      "region": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "encode": {
+        "pos": [
+          380,
+          0
+        ]
+      },
+      "vae_encode": {
+        "pos": [
+          380,
+          300
+        ]
+      },
+      "sample": {
+        "pos": [
+          760,
+          0
+        ]
+      },
+      "decode": {
+        "pos": [
+          1100,
+          0
+        ]
+      },
+      "write": {
+        "pos": [
+          1440,
+          0
+        ]
+      },
+      "preview": {
+        "pos": [
+          1440,
+          300
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "resource": "fugue/text-encoder",
+        "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+        "name": "Qwen3-8B-Q8_0.gguf",
+        "source": "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q8_0.gguf",
+        "size": 8709519168
+      },
+      {
+        "resource": "fugue/diffusion-model",
+        "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+        "name": "flux-2-klein-9b-Q8_0.gguf",
+        "source": "https://huggingface.co/unsloth/FLUX.2-klein-9B-GGUF/resolve/main/flux-2-klein-9b-Q8_0.gguf",
+        "size": 10245691680
+      },
+      {
+        "resource": "fugue/vae",
+        "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+        "name": "flux2-vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+        "size": 336213556
+      }
+    ]
+  }
+}
