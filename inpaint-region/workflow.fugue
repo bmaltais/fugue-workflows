@@ -1,0 +1,302 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "load": {
+        "type": "fugue/load-image",
+        "version": "1.1.0",
+        "inputs": {
+          "file": "inputs/reading-nook.jpg",
+          "mask": "inputs/reading-nook-mask-6652e88f9a.png"
+        }
+      },
+      "models": {
+        "inputs": {
+          "diffusion_model": {
+            "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+            "name": "flux-2-klein-9b-Q8_0.gguf",
+            "resource": "fugue/diffusion-model"
+          },
+          "text_encoder": {
+            "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+            "name": "Qwen3-8B-Q8_0.gguf",
+            "resource": "fugue/text-encoder"
+          },
+          "vae": {
+            "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+            "name": "flux2-vae.safetensors",
+            "resource": "fugue/vae"
+          }
+        },
+        "type": "fugue/load-models",
+        "version": "1.0.0"
+      },
+      "inpaint": {
+        "type": "fugue/inpaint-crop-stitch",
+        "version": "1.0.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "image": {
+            "from": "load.image"
+          },
+          "mask": {
+            "from": "load.mask"
+          },
+          "prompt": "A mustard yellow velvet armchair with a soft cushion, in the same lamplight.",
+          "seed": {
+            "auto": "random"
+          },
+          "steps": 4,
+          "guidance": 1,
+          "denoise": 1,
+          "padding": 64,
+          "megapixels": 1,
+          "blend": 16
+        }
+      },
+      "preview": {
+        "type": "fugue/preview",
+        "version": "1.0.0",
+        "inputs": {
+          "value": {
+            "from": "inpaint.image"
+          }
+        }
+      },
+      "save": {
+        "type": "fugue/save-image",
+        "version": "1.0.0",
+        "inputs": {
+          "image": {
+            "from": "inpaint.image"
+          },
+          "name": "inpaint-region"
+        }
+      }
+    }
+  },
+  "groups": {
+    "fugue/inpaint-crop-stitch": {
+      "category": "Image/Mask",
+      "description": "Redraw the painted part of a picture at the model's full detail: cut a box around the mask, redraw it at about a megapixel, and put it back through a soft edge, so only the masked part changes.",
+      "inputs": [
+        {
+          "label": "Model",
+          "name": "model",
+          "targets": [
+            "encode.model",
+            "vae_encode.model",
+            "sample.model"
+          ]
+        },
+        {
+          "label": "Image",
+          "name": "image",
+          "targets": [
+            "crop.image"
+          ]
+        },
+        {
+          "label": "Mask",
+          "name": "mask",
+          "targets": [
+            "crop.mask"
+          ]
+        },
+        {
+          "label": "Prompt",
+          "name": "prompt",
+          "targets": [
+            "encode.prompt"
+          ]
+        },
+        {
+          "label": "Seed",
+          "name": "seed",
+          "targets": [
+            "sample.seed"
+          ]
+        },
+        {
+          "label": "Steps",
+          "name": "steps",
+          "targets": [
+            "sample.steps"
+          ]
+        },
+        {
+          "label": "Guidance",
+          "name": "guidance",
+          "targets": [
+            "sample.guidance"
+          ]
+        },
+        {
+          "label": "Denoise",
+          "name": "denoise",
+          "targets": [
+            "sample.denoise"
+          ]
+        },
+        {
+          "label": "Padding",
+          "name": "padding",
+          "section": "Crop",
+          "targets": [
+            "crop.padding"
+          ]
+        },
+        {
+          "label": "Megapixels",
+          "name": "megapixels",
+          "section": "Crop",
+          "targets": [
+            "crop.megapixels"
+          ]
+        },
+        {
+          "label": "Blend",
+          "name": "blend",
+          "section": "Crop",
+          "targets": [
+            "stitch.blend"
+          ]
+        }
+      ],
+      "name": "Inpaint (crop and stitch)",
+      "nodes": {
+        "crop": {
+          "inputs": {},
+          "type": "fugue/crop-to-mask",
+          "version": "1.0.0"
+        },
+        "decode": {
+          "inputs": {
+            "latent": {
+              "from": "sample.latent"
+            }
+          },
+          "type": "fugue/vae-decode",
+          "version": "1.0.0"
+        },
+        "encode": {
+          "inputs": {
+            "references": [
+              {
+                "from": "crop.image"
+              }
+            ]
+          },
+          "type": "fugue/text-encode",
+          "version": "1.0.0"
+        },
+        "sample": {
+          "inputs": {
+            "conditioning": {
+              "from": "encode.conditioning"
+            },
+            "latent": {
+              "from": "vae_encode.latent"
+            }
+          },
+          "type": "fugue/sampler",
+          "version": "1.0.0"
+        },
+        "stitch": {
+          "inputs": {
+            "image": {
+              "from": "decode.image"
+            },
+            "stitch": {
+              "from": "crop.stitch"
+            }
+          },
+          "type": "fugue/stitch",
+          "version": "1.0.0"
+        },
+        "vae_encode": {
+          "inputs": {
+            "image": {
+              "from": "crop.image"
+            },
+            "mask": {
+              "from": "crop.mask"
+            }
+          },
+          "type": "fugue/vae-encode",
+          "version": "1.1.0"
+        }
+      },
+      "outputs": [
+        {
+          "from": "stitch.image",
+          "label": "Image",
+          "name": "image"
+        }
+      ],
+      "version": "1.0.0"
+    }
+  },
+  "layout": {
+    "nodes": {
+      "load": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "models": {
+        "pos": [
+          0,
+          520
+        ]
+      },
+      "inpaint": {
+        "pos": [
+          380,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          760,
+          0
+        ]
+      },
+      "preview": {
+        "pos": [
+          1100,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "resource": "fugue/text-encoder",
+        "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+        "name": "Qwen3-8B-Q8_0.gguf",
+        "source": "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q8_0.gguf",
+        "size": 8709519168
+      },
+      {
+        "resource": "fugue/diffusion-model",
+        "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+        "name": "flux-2-klein-9b-Q8_0.gguf",
+        "source": "https://huggingface.co/unsloth/FLUX.2-klein-9B-GGUF/resolve/main/flux-2-klein-9b-Q8_0.gguf",
+        "size": 10245691680
+      },
+      {
+        "resource": "fugue/vae",
+        "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+        "name": "flux2-vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+        "size": 336213556
+      }
+    ]
+  }
+}
