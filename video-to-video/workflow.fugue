@@ -1,0 +1,216 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "src": {
+        "inputs": {
+          "file": "inputs/fox.mp4"
+        },
+        "type": "fugue/load-video",
+        "version": "1.0.0"
+      },
+      "prompt": {
+        "inputs": {
+          "text": "a red fox running through fresh snow at sunrise, soft golden light, cinematic"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "negative": {
+        "inputs": {
+          "text": "static, blurry, low quality, worst quality, jpeg artifacts, deformed, extra limbs"
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "models": {
+        "inputs": {
+          "diffusion_model": {
+            "hash": "sha256:55439a8ee4c56c609f1754581dafe4408dbffdc14d07c60f5921051794cd3c99",
+            "name": "Wan2.2-T2V-A14B-LowNoise-Q4_K_S.gguf",
+            "resource": "fugue/diffusion-model"
+          },
+          "high_noise_diffusion_model": {
+            "hash": "sha256:4943639d985db2aba0e6038daaca3cd244b6c86175d7ad8bf92182f4b2251bbf",
+            "name": "Wan2.2-T2V-A14B-HighNoise-Q4_K_S.gguf",
+            "resource": "fugue/diffusion-model"
+          },
+          "text_encoder": {
+            "hash": "sha256:c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68",
+            "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+            "resource": "fugue/text-encoder"
+          },
+          "vae": {
+            "hash": "sha256:2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b",
+            "name": "wan_2.1_vae.safetensors",
+            "resource": "fugue/vae"
+          }
+        },
+        "type": "fugue/load-models",
+        "version": "1.0.0"
+      },
+      "clip": {
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "video": {
+            "from": "src.video"
+          },
+          "frames": 33,
+          "fps": 16,
+          "width": 640,
+          "height": 384
+        },
+        "type": "fugue/vae-encode-video",
+        "version": "1.0.0"
+      },
+      "encode": {
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "prompt": {
+            "from": "prompt.text"
+          },
+          "negative_prompt": {
+            "from": "negative.text"
+          }
+        },
+        "type": "fugue/text-encode",
+        "version": "1.0.0"
+      },
+      "sample": {
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "conditioning": {
+            "from": "encode.conditioning"
+          },
+          "latent": {
+            "from": "clip.latent"
+          },
+          "denoise": 0.6,
+          "seed": {
+            "auto": "random"
+          },
+          "steps": 20,
+          "guidance": 3.5
+        },
+        "type": "fugue/sampler",
+        "version": "1.2.0"
+      },
+      "decode": {
+        "inputs": {
+          "latent": {
+            "from": "sample.latent"
+          }
+        },
+        "type": "fugue/vae-decode-video",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "video": {
+            "from": "decode.video"
+          },
+          "name": "fox-restyled"
+        },
+        "type": "fugue/save-video",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "src": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "prompt": {
+        "pos": [
+          0,
+          460
+        ]
+      },
+      "negative": {
+        "pos": [
+          0,
+          740
+        ]
+      },
+      "models": {
+        "pos": [
+          340,
+          0
+        ]
+      },
+      "clip": {
+        "pos": [
+          340,
+          520
+        ]
+      },
+      "encode": {
+        "pos": [
+          700,
+          0
+        ]
+      },
+      "sample": {
+        "pos": [
+          1040,
+          0
+        ]
+      },
+      "decode": {
+        "pos": [
+          1380,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          1720,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "resource": "fugue/text-encoder",
+        "hash": "sha256:c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68",
+        "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Wan-2.1/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+        "size": 6735906897
+      },
+      {
+        "resource": "fugue/vae",
+        "hash": "sha256:2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b",
+        "name": "wan_2.1_vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Wan-2.1/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
+        "size": 253815318
+      },
+      {
+        "resource": "fugue/diffusion-model",
+        "hash": "sha256:55439a8ee4c56c609f1754581dafe4408dbffdc14d07c60f5921051794cd3c99",
+        "name": "Wan2.2-T2V-A14B-LowNoise-Q4_K_S.gguf",
+        "source": "https://huggingface.co/QuantStack/Wan2.2-T2V-A14B-GGUF/resolve/main/LowNoise/Wan2.2-T2V-A14B-LowNoise-Q4_K_S.gguf",
+        "size": 8746512896
+      },
+      {
+        "resource": "fugue/diffusion-model",
+        "hash": "sha256:4943639d985db2aba0e6038daaca3cd244b6c86175d7ad8bf92182f4b2251bbf",
+        "name": "Wan2.2-T2V-A14B-HighNoise-Q4_K_S.gguf",
+        "source": "https://huggingface.co/QuantStack/Wan2.2-T2V-A14B-GGUF/resolve/main/HighNoise/Wan2.2-T2V-A14B-HighNoise-Q4_K_S.gguf",
+        "size": 8746512896
+      }
+    ]
+  }
+}

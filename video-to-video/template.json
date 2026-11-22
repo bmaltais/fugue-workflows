@@ -1,0 +1,10 @@
+{
+  "title": "Wan 2.2 video to video",
+  "description": "Restyles a clip on Wan 2.2 T2V A14B, split into stages: the clip is fitted to the model's size, rate and length (up to 33 frames at 16 fps), encoded, and redrawn by the prompt. Denoise sets how far it leaves the clip: low keeps the scene and motion, high gives the prompt more say. Needs a 24 GB card.",
+  "category": "video",
+  "tags": [
+    "Wan 2.2",
+    "Video to video",
+    "Restyle"
+  ]
+}
