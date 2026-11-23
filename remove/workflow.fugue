@@ -1,0 +1,269 @@
+{
+ "fugue": 1,
+ "action": {
+  "name": "Remove",
+  "description": "Takes away what is selected and fills the place from its surroundings.",
+  "glyph": "eraser",
+  "selection": "required",
+  "format": 1,
+  "region": "region",
+  "inputs": [
+   {
+    "role": "seed",
+    "targets": [
+     "sample.seed"
+    ]
+   },
+   {
+    "role": "strength",
+    "targets": [
+     "sample.denoise"
+    ],
+    "default": 1.0,
+    "min": 0.05,
+    "max": 1,
+    "section": "Advanced"
+   },
+   {
+    "role": "model",
+    "targets": [
+     "models.diffusion_model"
+    ],
+    "section": "Advanced"
+   },
+   {
+    "name": "steps",
+    "targets": [
+     "sample.steps"
+    ],
+    "label": "Steps",
+    "section": "Advanced"
+   }
+  ]
+ },
+ "graph": {
+  "nodes": {
+   "models": {
+    "type": "fugue/load-models",
+    "version": "1.0.0",
+    "inputs": {
+     "diffusion_model": {
+      "resource": "fugue/diffusion-model",
+      "name": "flux-2-klein-4b-Q8_0.gguf",
+      "hash": "sha256:24a812e8f9b640e21c784164ea48571d8017ca22873696f4badeeabb006d509c"
+     },
+     "text_encoder": {
+      "resource": "fugue/text-encoder",
+      "name": "Qwen3-4B-Q8_0.gguf",
+      "hash": "sha256:eed555233267a33c7e8ee31682762cc7751b3f6d224039086e0e846f05fffa5d"
+     },
+     "vae": {
+      "resource": "fugue/vae",
+      "name": "flux2-vae.safetensors",
+      "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5"
+     }
+    }
+   },
+   "region": {
+    "type": "fugue/canvas-region",
+    "version": "1.2.0",
+    "inputs": {
+     "canvas": "",
+     "revision": "head",
+     "x": 256,
+     "y": 256,
+     "width": 512,
+     "height": 512,
+     "padding": 128,
+     "scale": 1,
+     "max_megapixels": 1,
+     "feather": 0,
+     "multiple": 16
+    }
+   },
+   "prefill": {
+    "type": "fugue/fill-masked",
+    "version": "1.0.0",
+    "inputs": {
+     "image": {
+      "from": "region.image"
+     },
+     "mask": {
+      "from": "region.mask"
+     },
+     "mode": "blur"
+    }
+   },
+   "encode": {
+    "type": "fugue/text-encode",
+    "version": "1.0.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "prompt": "Remove the object and fill in what is behind it, matching the surroundings.",
+     "references": [
+      {
+       "from": "prefill.image"
+      }
+     ]
+    }
+   },
+   "vae_encode": {
+    "type": "fugue/vae-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "image": {
+      "from": "prefill.image"
+     },
+     "mask": {
+      "from": "region.mask"
+     }
+    }
+   },
+   "sample": {
+    "type": "fugue/sampler",
+    "version": "1.2.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "conditioning": {
+      "from": "encode.conditioning"
+     },
+     "latent": {
+      "from": "vae_encode.latent"
+     },
+     "seed": {
+      "auto": "random"
+     },
+     "steps": 4,
+     "guidance": 1,
+     "denoise": 1.0
+    }
+   },
+   "decode": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample.latent"
+     }
+    }
+   },
+   "write": {
+    "type": "fugue/canvas-write",
+    "version": "1.3.0",
+    "inputs": {
+     "canvas": {
+      "from": "region.canvas"
+     },
+     "image": {
+      "from": "decode.image"
+     },
+     "stitch": {
+      "from": "region.stitch"
+     },
+     "blend": 16,
+     "name": "Remove"
+    }
+   },
+   "preview": {
+    "type": "fugue/preview",
+    "version": "1.0.0",
+    "inputs": {
+     "value": {
+      "from": "decode.image"
+     }
+    }
+   }
+  }
+ },
+ "layout": {
+  "nodes": {
+   "models": {
+    "pos": [
+     0,
+     600
+    ]
+   },
+   "region": {
+    "pos": [
+     380,
+     0
+    ]
+   },
+   "prefill": {
+    "pos": [
+     760,
+     0
+    ]
+   },
+   "encode": {
+    "pos": [
+     1140,
+     0
+    ]
+   },
+   "vae_encode": {
+    "pos": [
+     1520,
+     0
+    ]
+   },
+   "sample": {
+    "pos": [
+     1900,
+     0
+    ]
+   },
+   "decode": {
+    "pos": [
+     2280,
+     0
+    ]
+   },
+   "write": {
+    "pos": [
+     2660,
+     0
+    ]
+   },
+   "preview": {
+    "pos": [
+     3040,
+     0
+    ]
+   }
+  }
+ },
+ "requires": {
+  "fugue": "0.1.0",
+  "models": [
+   {
+    "resource": "fugue/diffusion-model",
+    "hash": "sha256:24a812e8f9b640e21c784164ea48571d8017ca22873696f4badeeabb006d509c",
+    "name": "flux-2-klein-4b-Q8_0.gguf",
+    "source": "https://huggingface.co/unsloth/FLUX.2-klein-4B-GGUF/resolve/main/flux-2-klein-4b-Q8_0.gguf",
+    "size": 4300644928
+   },
+   {
+    "resource": "fugue/text-encoder",
+    "hash": "sha256:eed555233267a33c7e8ee31682762cc7751b3f6d224039086e0e846f05fffa5d",
+    "name": "Qwen3-4B-Q8_0.gguf",
+    "source": "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q8_0.gguf",
+    "size": 4280405792
+   },
+   {
+    "resource": "fugue/vae",
+    "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+    "name": "flux2-vae.safetensors",
+    "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+    "size": 336213556
+   }
+  ]
+ }
+}

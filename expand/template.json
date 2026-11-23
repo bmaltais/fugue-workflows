@@ -1,0 +1,11 @@
+{
+  "title": "Expand: grow a canvas and continue the picture",
+  "description": "A canvas action: pick a side and how far in the task bar; the canvas grows that way (one undo step, with the new area pre-filled from the edge pixels as a layer) and the picture is continued into the new border with its surroundings in view (FLUX.2 Klein 4B, 4 steps). Added as a new layer. The Canvas view's task bar lists it; open it here to edit the workflow.",
+  "category": "canvas",
+  "tags": [
+    "FLUX.2 Klein",
+    "Outpaint",
+    "Canvas",
+    "Canvas action"
+  ]
+}

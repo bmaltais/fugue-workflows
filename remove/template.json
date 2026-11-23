@@ -1,0 +1,11 @@
+{
+  "title": "Remove: take an object out of a canvas",
+  "description": "A canvas action: select an object on a canvas and it is taken out, the place filled from its surroundings (FLUX.2 Klein 4B, 4 steps; the selection is blurred into the surroundings first and a fixed instruction says to continue them). No prompt needed. It is added as a new layer with a soft-edged mask. For harder removals a LaMa pack can do the first fill. The Canvas view's task bar lists it; open it here to edit the workflow.",
+  "category": "canvas",
+  "tags": [
+    "FLUX.2 Klein",
+    "Inpaint",
+    "Canvas",
+    "Canvas action"
+  ]
+}
