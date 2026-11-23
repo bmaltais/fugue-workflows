@@ -2,125 +2,62 @@
   "fugue": 1,
   "graph": {
     "nodes": {
-      "brief": {
-        "inputs": {
-          "a": {
-            "from": "brief3.text"
-          },
-          "b": {
-            "from": "extra.text"
-          },
-          "separator": "\n\nEXTRA WISHES (may be empty):\n"
-        },
-        "type": "fugue/text-concat",
-        "version": "1.0.0"
-      },
-      "brief1": {
-        "inputs": {
-          "a": "SETTING OF IMAGE 1 (what is really there):",
-          "b": {
-            "from": "setting.text"
-          },
-          "separator": "\n"
-        },
-        "type": "fugue/text-concat",
-        "version": "1.0.0"
-      },
-      "brief2": {
-        "inputs": {
-          "a": {
-            "from": "brief1.text"
-          },
-          "b": {
-            "from": "pose.text"
-          },
-          "separator": "\n\nBODY POSE TO GIVE THE SUBJECT (taken from another photo):\n"
-        },
-        "type": "fugue/text-concat",
-        "version": "1.0.0"
-      },
-      "brief3": {
-        "inputs": {
-          "a": {
-            "from": "brief2.text"
-          },
-          "b": {
-            "from": "support.text"
-          },
-          "separator": "\n\nWHAT THAT POSE STANDS, SITS, LEANS OR STEPS ON IN THE OTHER PHOTO:\n"
-        },
-        "type": "fugue/text-concat",
-        "version": "1.0.0"
-      },
       "compare": {
         "inputs": {
           "a": {
             "from": "scale.image"
           },
           "b": {
-            "from": "decode.image"
+            "from": "edit.image"
           },
           "mode": "slider"
         },
         "type": "fugue/compare-images",
         "version": "1.0.0"
       },
-      "decode": {
+      "describe": {
         "inputs": {
-          "latent": {
-            "from": "sample.latent"
+          "picture1": {
+            "from": "scale.image"
+          },
+          "picture2": {
+            "from": "load2.image"
+          },
+          "seed": {
+            "from": "seed.value"
           }
         },
-        "type": "fugue/vae-decode",
+        "type": "local/describe-the-pictures",
         "version": "1.0.0"
       },
-      "encode": {
+      "edit": {
         "inputs": {
+          "instruction": {
+            "from": "write.instruction"
+          },
           "model": {
             "from": "models.model"
           },
-          "prompt": {
-            "from": "instruction.text"
+          "picture": {
+            "from": "scale.image"
           },
           "references": [
             {
               "from": "scale.image"
             }
-          ]
-        },
-        "type": "fugue/text-encode",
-        "version": "1.0.0"
-      },
-      "encode_ref": {
-        "inputs": {
-          "image": {
-            "from": "scale.image"
-          },
-          "model": {
-            "from": "models.model"
+          ],
+          "seed": {
+            "from": "seed.value"
           }
         },
-        "type": "fugue/vae-encode",
-        "version": "1.1.0"
+        "type": "local/edit-with-klein-9b",
+        "version": "1.0.0"
       },
       "extra": {
         "inputs": {
           "text": ""
         },
         "type": "fugue/text",
-        "version": "1.0.0"
-      },
-      "instruction": {
-        "inputs": {
-          "prompt": {
-            "from": "brief.text"
-          },
-          "seed": {
-            "from": "seed.value"
-          },
-          "system": "You write the instruction for an image editing model that gets image 1 and your text, and nothing else; it never sees any other photo. You are given blocks with headings: the setting of image 1, a body pose, what that pose relied on in another photo, and maybe extra wishes. Write one paragraph of at most 120 words, in the imperative, that starts with 'Edit image 1.' It must say, in this order: keep the setting exactly as it is (name its place, background, light and camera angle in a few words, from the setting block only); keep the subject's face, hair, age, clothes and shoes; change only the body pose to the given pose, described in plain words. Then make the pose fit the setting. For each thing the pose relied on, check the setting block: if the setting has that thing or something that does the same job (a step, a rock, a curb, a bench, a wall, a railing), say the body uses it; if it does not, say the body takes the same stance in a natural way on what the setting does offer (standing on the ground, sitting on the floor or on a nearby object that the setting block names), so that no limb floats in the air and nothing leans on air. Do not add any object, building or furniture that the setting block does not name, and never name another photo, image 2, or any prop the setting lacks and do not write the name of any missing object, not even to say it is absent (an editing model would draw it); write only what the body does on what the setting block names, for example 'plants the foot on the ground'. Apply any extra wishes. Answer with the instruction only."
-        },
-        "type": "fugue/text-generate",
         "version": "1.0.0"
       },
       "load": {
@@ -158,45 +95,10 @@
         "type": "fugue/load-models",
         "version": "1.0.0"
       },
-      "pose": {
-        "inputs": {
-          "image": {
-            "from": "load2.image"
-          },
-          "prompt": "Describe only the body pose in this photo.",
-          "seed": {
-            "from": "seed.value"
-          },
-          "system": "You describe body poses for an artist's pose chart. You see a photo. Answer with one paragraph of 2 or 3 plain sentences that say only how the body is arranged: which way it faces (front, side, three-quarter, from behind), where the weight is, what each leg and each arm does, where the hands are, how the torso leans, where the head turns and looks. Never mention who or what the person is (no dancer, woman, man), clothes, shoes, hair, face, colors, the setting or the background. Start with 'The body'."
-        },
-        "type": "fugue/text-generate",
-        "version": "1.0.0"
-      },
-      "sample": {
-        "inputs": {
-          "conditioning": {
-            "from": "encode.conditioning"
-          },
-          "guidance": 1,
-          "latent": {
-            "from": "encode_ref.latent"
-          },
-          "model": {
-            "from": "models.model"
-          },
-          "sampler": "euler",
-          "seed": {
-            "from": "seed.value"
-          },
-          "steps": 4
-        },
-        "type": "fugue/sampler",
-        "version": "1.0.0"
-      },
       "save": {
         "inputs": {
           "image": {
-            "from": "decode.image"
+            "from": "edit.image"
           },
           "name": "pose-from-description"
         },
@@ -221,24 +123,10 @@
         "type": "fugue/number",
         "version": "1.0.0"
       },
-      "setting": {
-        "inputs": {
-          "image": {
-            "from": "scale.image"
-          },
-          "prompt": "Describe only the setting of this photo, without its subject.",
-          "seed": {
-            "from": "seed.value"
-          },
-          "system": "You describe the setting of a photo for a set designer who will rebuild the place without the subject. You see a photo. Answer with one paragraph of 3 to 5 plain sentences about the place only: what kind of place it is, the background and the objects in it, the ground, the light (direction, softness, time of day, colors), the camera angle and distance, the mood and the photo style. Leave the main subject out completely: no person, animal or main object, no clothes, no face, no body, no pose, no age or gender. Describe the place as if it were empty. Start with 'The scene is'."
-        },
-        "type": "fugue/text-generate",
-        "version": "1.0.0"
-      },
       "show_instruction": {
         "inputs": {
           "value": {
-            "from": "instruction.text"
+            "from": "write.instruction"
           }
         },
         "type": "fugue/preview",
@@ -247,7 +135,7 @@
       "show_pose": {
         "inputs": {
           "value": {
-            "from": "pose.text"
+            "from": "describe.pose"
           }
         },
         "type": "fugue/preview",
@@ -256,7 +144,7 @@
       "show_setting": {
         "inputs": {
           "value": {
-            "from": "setting.text"
+            "from": "describe.setting"
           }
         },
         "type": "fugue/preview",
@@ -265,75 +153,515 @@
       "show_support": {
         "inputs": {
           "value": {
-            "from": "support.text"
+            "from": "describe.support"
           }
         },
         "type": "fugue/preview",
         "version": "1.0.0"
       },
-      "support": {
+      "write": {
         "inputs": {
-          "image": {
-            "from": "load2.image"
+          "extra": {
+            "from": "extra.text"
           },
-          "prompt": "List only what the body stands, sits, leans or steps on or against in this photo.",
+          "pose": {
+            "from": "describe.pose"
+          },
           "seed": {
             "from": "seed.value"
           },
-          "system": "You help an artist adapt a pose to another place. You see a photo of a person. Name only the objects and surfaces the body relies on: stairs or a step, a wall, a chair, a railing, a rock, a table, a ledge, a bar, a floor or the ground, and how the body uses each one (feet on the second step, back against the wall, one hand on the rail). One or two plain sentences. Never describe the person, clothes, face, colors or the rest of the background. If the body just stands on flat ground and touches nothing, answer exactly: None, the body stands on flat ground."
+          "setting": {
+            "from": "describe.setting"
+          },
+          "support": {
+            "from": "describe.support"
+          }
         },
-        "type": "fugue/text-generate",
+        "type": "local/write-the-edit-instruction",
         "version": "1.0.0"
       }
     }
   },
+  "groups": {
+    "local/describe-the-pictures": {
+      "category": "Text",
+      "description": "A language model that reads images writes three texts: picture 1's setting without its subject, picture 2's body pose without its person, and what picture 2's pose stands, sits or leans on. Each prompt is under Advanced.",
+      "inputs": [
+        {
+          "label": "Picture 1",
+          "name": "picture1",
+          "targets": [
+            "setting.image"
+          ]
+        },
+        {
+          "label": "Picture 2",
+          "name": "picture2",
+          "targets": [
+            "pose.image",
+            "support.image"
+          ]
+        },
+        {
+          "label": "Seed",
+          "name": "seed",
+          "targets": [
+            "setting.seed",
+            "pose.seed",
+            "support.seed"
+          ]
+        },
+        {
+          "label": "Setting: question",
+          "name": "setting_prompt",
+          "section": "Advanced",
+          "targets": [
+            "setting.prompt"
+          ]
+        },
+        {
+          "label": "Setting: instructions",
+          "name": "setting_system",
+          "section": "Advanced",
+          "targets": [
+            "setting.system"
+          ]
+        },
+        {
+          "label": "Pose: question",
+          "name": "pose_prompt",
+          "section": "Advanced",
+          "targets": [
+            "pose.prompt"
+          ]
+        },
+        {
+          "label": "Pose: instructions",
+          "name": "pose_system",
+          "section": "Advanced",
+          "targets": [
+            "pose.system"
+          ]
+        },
+        {
+          "label": "Support: question",
+          "name": "support_prompt",
+          "section": "Advanced",
+          "targets": [
+            "support.prompt"
+          ]
+        },
+        {
+          "label": "Support: instructions",
+          "name": "support_system",
+          "section": "Advanced",
+          "targets": [
+            "support.system"
+          ]
+        }
+      ],
+      "name": "Describe the pictures",
+      "nodes": {
+        "pose": {
+          "inputs": {
+            "prompt": "Describe only the body pose in this photo.",
+            "system": "You describe body poses for an artist's pose chart. You see a photo. Answer with one paragraph of 2 or 3 plain sentences that say only how the body is arranged: which way it faces (front, side, three-quarter, from behind), where the weight is, what each leg and each arm does, where the hands are, how the torso leans, where the head turns and looks. Never mention who or what the person is (no dancer, woman, man), clothes, shoes, hair, face, colors, the setting or the background. Start with 'The body'."
+          },
+          "type": "fugue/text-generate",
+          "version": "1.0.0"
+        },
+        "setting": {
+          "inputs": {
+            "prompt": "Describe only the setting of this photo, without its subject.",
+            "system": "You describe the setting of a photo for a set designer who will rebuild the place without the subject. You see a photo. Answer with one paragraph of 3 to 5 plain sentences about the place only: what kind of place it is, the background and the objects in it, the ground, the light (direction, softness, time of day, colors), the camera angle and distance, the mood and the photo style. Leave the main subject out completely: no person, animal or main object, no clothes, no face, no body, no pose, no age or gender. Describe the place as if it were empty. Start with 'The scene is'."
+          },
+          "type": "fugue/text-generate",
+          "version": "1.0.0"
+        },
+        "support": {
+          "inputs": {
+            "prompt": "List only what the body stands, sits, leans or steps on or against in this photo.",
+            "system": "You help an artist adapt a pose to another place. You see a photo of a person. Name only the objects and surfaces the body relies on: stairs or a step, a wall, a chair, a railing, a rock, a table, a ledge, a bar, a floor or the ground, and how the body uses each one (feet on the second step, back against the wall, one hand on the rail). One or two plain sentences. Never describe the person, clothes, face, colors or the rest of the background. If the body just stands on flat ground and touches nothing, answer exactly: None, the body stands on flat ground."
+          },
+          "type": "fugue/text-generate",
+          "version": "1.0.0"
+        }
+      },
+      "outputs": [
+        {
+          "from": "setting.text",
+          "label": "Setting",
+          "name": "setting"
+        },
+        {
+          "from": "pose.text",
+          "label": "Pose",
+          "name": "pose"
+        },
+        {
+          "from": "support.text",
+          "label": "Support",
+          "name": "support"
+        }
+      ],
+      "version": "1.0.0"
+    },
+    "local/edit-with-klein-9b": {
+      "category": "Image/Edit",
+      "description": "FLUX.2 Klein 9B edits picture 1 as told by the instruction: encodes the picture, samples in 4 steps and decodes. It never sees another picture.",
+      "inputs": [
+        {
+          "label": "Models",
+          "name": "model",
+          "targets": [
+            "encode_ref.model",
+            "encode.model",
+            "sample.model"
+          ]
+        },
+        {
+          "label": "Picture",
+          "name": "picture",
+          "targets": [
+            "encode_ref.image"
+          ]
+        },
+        {
+          "label": "Reference pictures",
+          "name": "references",
+          "targets": [
+            "encode.references"
+          ]
+        },
+        {
+          "label": "Instruction",
+          "name": "instruction",
+          "targets": [
+            "encode.prompt"
+          ]
+        },
+        {
+          "label": "Seed",
+          "name": "seed",
+          "targets": [
+            "sample.seed"
+          ]
+        },
+        {
+          "label": "Steps",
+          "name": "steps",
+          "section": "Advanced",
+          "targets": [
+            "sample.steps"
+          ]
+        },
+        {
+          "label": "Guidance",
+          "name": "guidance",
+          "section": "Advanced",
+          "targets": [
+            "sample.guidance"
+          ]
+        },
+        {
+          "label": "Sampler",
+          "name": "sampler",
+          "section": "Advanced",
+          "targets": [
+            "sample.sampler"
+          ]
+        }
+      ],
+      "name": "Edit with Klein 9B",
+      "nodes": {
+        "decode": {
+          "inputs": {
+            "latent": {
+              "from": "sample.latent"
+            }
+          },
+          "type": "fugue/vae-decode",
+          "version": "1.0.0"
+        },
+        "encode": {
+          "inputs": {},
+          "type": "fugue/text-encode",
+          "version": "1.0.0"
+        },
+        "encode_ref": {
+          "inputs": {},
+          "type": "fugue/vae-encode",
+          "version": "1.1.0"
+        },
+        "sample": {
+          "inputs": {
+            "conditioning": {
+              "from": "encode.conditioning"
+            },
+            "guidance": 1,
+            "latent": {
+              "from": "encode_ref.latent"
+            },
+            "sampler": "euler",
+            "steps": 4
+          },
+          "type": "fugue/sampler",
+          "version": "1.0.0"
+        }
+      },
+      "outputs": [
+        {
+          "from": "decode.image",
+          "label": "Image",
+          "name": "image"
+        }
+      ],
+      "version": "1.0.0"
+    },
+    "local/write-the-edit-instruction": {
+      "category": "Text",
+      "description": "A text-only language model joins the setting, the pose, what the pose relies on and your extra wishes into one edit instruction for an image editing model. The block headings and the model's instructions are under Advanced.",
+      "inputs": [
+        {
+          "label": "Setting",
+          "name": "setting",
+          "targets": [
+            "brief1.b"
+          ]
+        },
+        {
+          "label": "Pose",
+          "name": "pose",
+          "targets": [
+            "brief2.b"
+          ]
+        },
+        {
+          "label": "Support",
+          "name": "support",
+          "targets": [
+            "brief3.b"
+          ]
+        },
+        {
+          "label": "Extra instructions",
+          "name": "extra",
+          "targets": [
+            "brief.b"
+          ]
+        },
+        {
+          "label": "Seed",
+          "name": "seed",
+          "targets": [
+            "instruction.seed"
+          ]
+        },
+        {
+          "label": "Setting heading",
+          "name": "setting_heading",
+          "section": "Advanced",
+          "targets": [
+            "brief1.a"
+          ]
+        },
+        {
+          "label": "Pose heading",
+          "name": "pose_heading",
+          "section": "Advanced",
+          "targets": [
+            "brief2.separator"
+          ]
+        },
+        {
+          "label": "Support heading",
+          "name": "support_heading",
+          "section": "Advanced",
+          "targets": [
+            "brief3.separator"
+          ]
+        },
+        {
+          "label": "Extra heading",
+          "name": "extra_heading",
+          "section": "Advanced",
+          "targets": [
+            "brief.separator"
+          ]
+        },
+        {
+          "label": "Instructions",
+          "name": "system",
+          "section": "Advanced",
+          "targets": [
+            "instruction.system"
+          ]
+        }
+      ],
+      "name": "Write the edit instruction",
+      "nodes": {
+        "brief": {
+          "inputs": {
+            "a": {
+              "from": "brief3.text"
+            },
+            "separator": "\n\nEXTRA WISHES (may be empty):\n"
+          },
+          "type": "fugue/text-concat",
+          "version": "1.0.0"
+        },
+        "brief1": {
+          "inputs": {
+            "a": "SETTING OF IMAGE 1 (what is really there):",
+            "separator": "\n"
+          },
+          "type": "fugue/text-concat",
+          "version": "1.0.0"
+        },
+        "brief2": {
+          "inputs": {
+            "a": {
+              "from": "brief1.text"
+            },
+            "separator": "\n\nBODY POSE TO GIVE THE SUBJECT (taken from another photo):\n"
+          },
+          "type": "fugue/text-concat",
+          "version": "1.0.0"
+        },
+        "brief3": {
+          "inputs": {
+            "a": {
+              "from": "brief2.text"
+            },
+            "separator": "\n\nWHAT THAT POSE STANDS, SITS, LEANS OR STEPS ON IN THE OTHER PHOTO:\n"
+          },
+          "type": "fugue/text-concat",
+          "version": "1.0.0"
+        },
+        "instruction": {
+          "inputs": {
+            "prompt": {
+              "from": "brief.text"
+            },
+            "system": "You write the instruction for an image editing model that gets image 1 and your text, and nothing else; it never sees any other photo. You are given blocks with headings: the setting of image 1, a body pose, what that pose relied on in another photo, and maybe extra wishes. Write one paragraph of at most 120 words, in the imperative, that starts with 'Edit image 1.' It must say, in this order: keep the setting exactly as it is (name its place, background, light and camera angle in a few words, from the setting block only); keep the subject's face, hair, age, clothes and shoes; change only the body pose to the given pose, described in plain words. Then make the pose fit the setting. For each thing the pose relied on, check the setting block: if the setting has that thing or something that does the same job (a step, a rock, a curb, a bench, a wall, a railing), say the body uses it; if it does not, say the body takes the same stance in a natural way on what the setting does offer (standing on the ground, sitting on the floor or on a nearby object that the setting block names), so that no limb floats in the air and nothing leans on air. Do not add any object, building or furniture that the setting block does not name, and never name another photo, image 2, or any prop the setting lacks and do not write the name of any missing object, not even to say it is absent (an editing model would draw it); write only what the body does on what the setting block names, for example 'plants the foot on the ground'. Apply any extra wishes. Answer with the instruction only."
+          },
+          "type": "fugue/text-generate",
+          "version": "1.0.0"
+        }
+      },
+      "outputs": [
+        {
+          "from": "instruction.text",
+          "label": "Instruction",
+          "name": "instruction"
+        }
+      ],
+      "version": "1.0.0"
+    }
+  },
   "layout": {
+    "groups": {
+      "local/describe-the-pictures": {
+        "nodes": {
+          "pose": {
+            "pos": [
+              380,
+              0
+            ]
+          },
+          "setting": {
+            "pos": [
+              0,
+              0
+            ]
+          },
+          "support": {
+            "pos": [
+              760,
+              0
+            ]
+          }
+        }
+      },
+      "local/edit-with-klein-9b": {
+        "nodes": {
+          "decode": {
+            "pos": [
+              1140,
+              0
+            ]
+          },
+          "encode": {
+            "pos": [
+              380,
+              0
+            ]
+          },
+          "encode_ref": {
+            "pos": [
+              0,
+              0
+            ]
+          },
+          "sample": {
+            "pos": [
+              760,
+              0
+            ]
+          }
+        }
+      },
+      "local/write-the-edit-instruction": {
+        "nodes": {
+          "brief": {
+            "pos": [
+              1140,
+              0
+            ]
+          },
+          "brief1": {
+            "pos": [
+              0,
+              0
+            ]
+          },
+          "brief2": {
+            "pos": [
+              380,
+              0
+            ]
+          },
+          "brief3": {
+            "pos": [
+              760,
+              0
+            ]
+          },
+          "instruction": {
+            "pos": [
+              1520,
+              0
+            ]
+          }
+        }
+      }
+    },
     "nodes": {
-      "brief": {
-        "pos": [
-          2660,
-          460
-        ]
-      },
-      "brief1": {
-        "pos": [
-          1520,
-          460
-        ]
-      },
-      "brief2": {
-        "pos": [
-          1900,
-          460
-        ]
-      },
-      "brief3": {
-        "pos": [
-          2280,
-          460
-        ]
-      },
       "compare": {
         "pos": [
-          4560,
+          2660,
           0
         ]
       },
-      "decode": {
+      "describe": {
         "pos": [
-          4180,
-          0
+          760,
+          460
         ]
       },
-      "encode": {
+      "edit": {
         "pos": [
-          3420,
-          0
-        ]
-      },
-      "encode_ref": {
-        "pos": [
-          1520,
+          2280,
           0
         ]
       },
@@ -341,12 +669,6 @@
         "pos": [
           760,
           0
-        ]
-      },
-      "instruction": {
-        "pos": [
-          3040,
-          460
         ]
       },
       "load": {
@@ -367,21 +689,9 @@
           0
         ]
       },
-      "pose": {
-        "pos": [
-          760,
-          1380
-        ]
-      },
-      "sample": {
-        "pos": [
-          3800,
-          0
-        ]
-      },
       "save": {
         "pos": [
-          4560,
+          2660,
           920
         ]
       },
@@ -397,22 +707,16 @@
           0
         ]
       },
-      "setting": {
-        "pos": [
-          760,
-          460
-        ]
-      },
       "show_instruction": {
         "pos": [
-          3420,
+          1900,
           460
         ]
       },
       "show_pose": {
         "pos": [
           1140,
-          1380
+          920
         ]
       },
       "show_setting": {
@@ -424,20 +728,20 @@
       "show_support": {
         "pos": [
           1140,
-          1840
+          1380
         ]
       },
-      "support": {
+      "write": {
         "pos": [
-          760,
-          1840
+          1520,
+          460
         ]
       }
     },
     "view": {
       "center": [
-        2000,
-        900
+        1500,
+        700
       ],
       "zoom": 0.3
     }
