@@ -1,0 +1,12 @@
+{
+  "title": "Remove background: the subject of a layer, as its layer mask",
+  "description": "A canvas action: one click in the Canvas view's task bar keeps the subject of the current layer (BiRefNet) and hides the background with the layer's layer mask, so nothing is deleted: turn the mask off or paint it to bring parts back, and Undo takes it away. Select an area first to look for the subject only there. Needs the Remove Background pack, which the task bar offers to install, and a 224 MB model it offers to download. The Canvas view's task bar lists it; open it here to edit the workflow.",
+  "category": "canvas",
+  "tags": [
+    "Remove background",
+    "Cutout",
+    "Layer mask",
+    "Canvas",
+    "Canvas action"
+  ]
+}

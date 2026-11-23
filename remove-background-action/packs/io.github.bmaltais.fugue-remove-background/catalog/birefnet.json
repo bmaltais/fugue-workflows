@@ -1,0 +1,41 @@
+{
+  "catalog": 1,
+  "models": [
+    {
+      "id": "birefnet-general-swin-tiny",
+      "resource": "io.github.bmaltais.fugue-remove-background/birefnet-model",
+      "title": "BiRefNet general, Swin-T (small)",
+      "description": "Remove Background for most pictures; the smaller backbone, about 10 s on a CPU.",
+      "file": "BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx",
+      "url": "https://github.com/ZhengPeng7/BiRefNet/releases/download/v1/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx",
+      "size": 224005088,
+      "sha256": "5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333",
+      "architecture": "BiRefNet (Swin-T), 1024 x 1024",
+      "license": "MIT",
+      "license_url": "https://github.com/ZhengPeng7/BiRefNet/blob/main/LICENSE",
+      "commercial": true,
+      "attribution": true,
+      "author": "Zheng Peng et al. (BiRefNet)",
+      "source": "https://github.com/ZhengPeng7/BiRefNet/releases/tag/v1",
+      "tags": ["background", "subject", "onnx"]
+    },
+    {
+      "id": "birefnet-general",
+      "resource": "io.github.bmaltais.fugue-remove-background/birefnet-model",
+      "title": "BiRefNet general, Swin-L (best)",
+      "description": "Remove Background with the full-size backbone: finer edges, about 15 s on a CPU, 1 GB.",
+      "file": "BiRefNet-general-epoch_244.onnx",
+      "url": "https://github.com/ZhengPeng7/BiRefNet/releases/download/v1/BiRefNet-general-epoch_244.onnx",
+      "size": 972666916,
+      "sha256": "58f621f00f5d756097615970a88a791584600dcf7c45b18a0a6267535a1ebd3c",
+      "architecture": "BiRefNet (Swin-L), 1024 x 1024",
+      "license": "MIT",
+      "license_url": "https://github.com/ZhengPeng7/BiRefNet/blob/main/LICENSE",
+      "commercial": true,
+      "attribution": true,
+      "author": "Zheng Peng et al. (BiRefNet)",
+      "source": "https://github.com/ZhengPeng7/BiRefNet/releases/tag/v1",
+      "tags": ["background", "subject", "onnx"]
+    }
+  ]
+}
