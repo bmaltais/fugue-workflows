@@ -1,10 +1,11 @@
 {
-  "title": "Generative fill: fill a region of a canvas",
-  "description": "Pick a canvas and a rectangle, say what should be there: the region is redrawn at the model's full detail and added to the canvas as a new layer, to keep, hide or delete. 4 steps.",
-  "category": "edit",
+  "title": "Generative fill: redraw a selection of a canvas",
+  "description": "A canvas action: select an area of a canvas in the Canvas view, say what should be there, and the area is redrawn at the model's full detail (FLUX.2 Klein 4B, 4 steps) and added as a new layer with a soft-edged mask, to keep, hide or delete. The Canvas view's task bar lists it; open it here to edit the workflow.",
+  "category": "canvas",
   "tags": [
     "FLUX.2 Klein",
     "Inpaint",
-    "Canvas"
+    "Canvas",
+    "Canvas action"
   ]
 }
