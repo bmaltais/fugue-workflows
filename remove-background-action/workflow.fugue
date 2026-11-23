@@ -1,0 +1,142 @@
+{
+  "fugue": 1,
+  "action": {
+    "name": "Remove background",
+    "description": "Keeps the subject of the current layer and hides the background with its layer mask (BiRefNet). Nothing is deleted: turn the mask off or paint it to bring the background back.",
+    "glyph": "layers",
+    "selection": "optional",
+    "format": 1,
+    "region": "region",
+    "inputs": [
+      {
+        "role": "layer",
+        "targets": [
+          "region.layer",
+          "write.onto"
+        ]
+      },
+      {
+        "role": "model",
+        "targets": [
+          "find.model"
+        ],
+        "section": "Advanced"
+      },
+      {
+        "name": "threshold",
+        "targets": [
+          "find.threshold"
+        ],
+        "label": "Threshold",
+        "section": "Advanced"
+      }
+    ]
+  },
+  "graph": {
+    "nodes": {
+      "region": {
+        "type": "fugue/canvas-region",
+        "version": "1.4.0",
+        "inputs": {
+          "canvas": "",
+          "revision": "head",
+          "layer": "",
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "padding": 0,
+          "scale": 1,
+          "max_megapixels": 0,
+          "feather": 0,
+          "multiple": 1
+        }
+      },
+      "find": {
+        "type": "io.github.bmaltais.fugue-remove-background/remove-background",
+        "version": "1.0.1",
+        "inputs": {
+          "image": {
+            "from": "region.image"
+          },
+          "model": {
+            "hash": "sha256:5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333",
+            "name": "BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx",
+            "resource": "io.github.bmaltais.fugue-remove-background/birefnet-model"
+          }
+        }
+      },
+      "write": {
+        "type": "fugue/canvas-write",
+        "version": "1.6.0",
+        "inputs": {
+          "canvas": {
+            "from": "region.canvas"
+          },
+          "stitch": {
+            "from": "region.stitch"
+          },
+          "layer_mask": {
+            "from": "find.mask"
+          },
+          "onto": "",
+          "blend": 0
+        }
+      },
+      "preview": {
+        "type": "fugue/preview",
+        "version": "1.0.0",
+        "inputs": {
+          "value": {
+            "from": "find.mask"
+          }
+        }
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "region": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "find": {
+        "pos": [
+          380,
+          0
+        ]
+      },
+      "write": {
+        "pos": [
+          760,
+          0
+        ]
+      },
+      "preview": {
+        "pos": [
+          1140,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "hash": "sha256:5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333",
+        "name": "BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx",
+        "resource": "io.github.bmaltais.fugue-remove-background/birefnet-model",
+        "size": 224005088,
+        "source": "https://github.com/ZhengPeng7/BiRefNet/releases/download/v1/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx"
+      }
+    ],
+    "packs": {
+      "io.github.bmaltais.fugue-remove-background": {
+        "version": "1.1.0"
+      }
+    }
+  }
+}
