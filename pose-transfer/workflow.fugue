@@ -1,0 +1,397 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "compare_picture": {
+        "inputs": {
+          "a": {
+            "from": "scale.image"
+          },
+          "b": {
+            "from": "decode_picture.image"
+          },
+          "mode": "slider"
+        },
+        "type": "fugue/compare-images",
+        "version": "1.0.0"
+      },
+      "compare_words": {
+        "inputs": {
+          "a": {
+            "from": "scale.image"
+          },
+          "b": {
+            "from": "decode_words.image"
+          },
+          "mode": "slider"
+        },
+        "type": "fugue/compare-images",
+        "version": "1.0.0"
+      },
+      "decode_picture": {
+        "inputs": {
+          "latent": {
+            "from": "sample_picture.latent"
+          }
+        },
+        "type": "fugue/vae-decode",
+        "version": "1.0.0"
+      },
+      "decode_words": {
+        "inputs": {
+          "latent": {
+            "from": "sample_words.latent"
+          }
+        },
+        "type": "fugue/vae-decode",
+        "version": "1.0.0"
+      },
+      "encode_picture": {
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "prompt": {
+            "from": "prompt_picture.text"
+          },
+          "references": [
+            {
+              "from": "scale.image"
+            },
+            {
+              "from": "scale2.image"
+            }
+          ]
+        },
+        "type": "fugue/text-encode",
+        "version": "1.0.0"
+      },
+      "encode_words": {
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "prompt": {
+            "from": "prompt_words.text"
+          },
+          "references": [
+            {
+              "from": "scale.image"
+            }
+          ]
+        },
+        "type": "fugue/text-encode",
+        "version": "1.0.0"
+      },
+      "load": {
+        "inputs": {
+          "file": "inputs/woman-in-park.jpg"
+        },
+        "type": "fugue/load-image",
+        "version": "1.0.0"
+      },
+      "load2": {
+        "inputs": {
+          "file": "inputs/ballet-pose.jpg"
+        },
+        "type": "fugue/load-image",
+        "version": "1.0.0"
+      },
+      "models": {
+        "inputs": {
+          "diffusion_model": {
+            "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+            "name": "flux-2-klein-9b-Q8_0.gguf",
+            "resource": "fugue/diffusion-model"
+          },
+          "text_encoder": {
+            "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+            "name": "Qwen3-8B-Q8_0.gguf",
+            "resource": "fugue/text-encoder"
+          },
+          "vae": {
+            "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+            "name": "flux2-vae.safetensors",
+            "resource": "fugue/vae"
+          }
+        },
+        "type": "fugue/load-models",
+        "version": "1.0.0"
+      },
+      "pose": {
+        "inputs": {
+          "image": {
+            "from": "scale2.image"
+          },
+          "prompt": "Describe only the body pose in this photo.",
+          "seed": 1,
+          "system": "You describe body poses for an artist's pose chart. You see a photo. Answer with 2 or 3 plain sentences that say only how the body is arranged: where the weight is, what each leg and each arm does, how the torso leans, where the head turns and looks. Never mention who or what the person is (no dancer, woman, man), clothes, shoes, hair, face, colors, the setting or the background. Start with 'The body'."
+        },
+        "type": "fugue/text-generate",
+        "version": "1.0.0"
+      },
+      "prompt_picture": {
+        "inputs": {
+          "a": "Redraw image 1 with the same person: keep their face, hair, age, clothes, shoes and the background exactly as in image 1. Image 2 is a reference for the body pose only: do not copy its person, face, hair, clothes, shoes or background. The body pose, in words:",
+          "b": {
+            "from": "pose.text"
+          },
+          "separator": " "
+        },
+        "type": "fugue/text-concat",
+        "version": "1.0.0"
+      },
+      "prompt_words": {
+        "inputs": {
+          "a": "Keep the person in image 1 exactly as they are: the same face, hair, age, clothes, shoes and background. Change only the body pose, which is now:",
+          "b": {
+            "from": "pose.text"
+          },
+          "separator": " "
+        },
+        "type": "fugue/text-concat",
+        "version": "1.0.0"
+      },
+      "sample_picture": {
+        "inputs": {
+          "conditioning": {
+            "from": "encode_picture.conditioning"
+          },
+          "guidance": 1,
+          "latent": {
+            "from": "size.latent"
+          },
+          "model": {
+            "from": "models.model"
+          },
+          "sampler": "euler",
+          "seed": {
+            "auto": "random"
+          },
+          "steps": 4
+        },
+        "type": "fugue/sampler",
+        "version": "1.0.0"
+      },
+      "sample_words": {
+        "inputs": {
+          "conditioning": {
+            "from": "encode_words.conditioning"
+          },
+          "guidance": 1,
+          "latent": {
+            "from": "size.latent"
+          },
+          "model": {
+            "from": "models.model"
+          },
+          "sampler": "euler",
+          "seed": {
+            "auto": "random"
+          },
+          "steps": 4
+        },
+        "type": "fugue/sampler",
+        "version": "1.0.0"
+      },
+      "save_picture": {
+        "inputs": {
+          "image": {
+            "from": "decode_picture.image"
+          },
+          "name": "pose-transfer-picture"
+        },
+        "type": "fugue/save-image",
+        "version": "1.0.0"
+      },
+      "save_words": {
+        "inputs": {
+          "image": {
+            "from": "decode_words.image"
+          },
+          "name": "pose-transfer-words"
+        },
+        "type": "fugue/save-image",
+        "version": "1.0.0"
+      },
+      "scale": {
+        "inputs": {
+          "image": {
+            "from": "load.image"
+          },
+          "megapixels": 1,
+          "method": "lanczos"
+        },
+        "type": "fugue/resize-megapixels",
+        "version": "1.0.0"
+      },
+      "scale2": {
+        "inputs": {
+          "image": {
+            "from": "load2.image"
+          },
+          "megapixels": 1,
+          "method": "lanczos"
+        },
+        "type": "fugue/resize-megapixels",
+        "version": "1.0.0"
+      },
+      "size": {
+        "inputs": {
+          "height": {
+            "from": "scale.height"
+          },
+          "width": {
+            "from": "scale.width"
+          }
+        },
+        "type": "fugue/empty-latent",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "compare_picture": {
+        "pos": [
+          2380,
+          0
+        ]
+      },
+      "compare_words": {
+        "pos": [
+          2380,
+          1000
+        ]
+      },
+      "decode_picture": {
+        "pos": [
+          2040,
+          0
+        ]
+      },
+      "decode_words": {
+        "pos": [
+          2040,
+          1000
+        ]
+      },
+      "encode_picture": {
+        "pos": [
+          1360,
+          0
+        ]
+      },
+      "encode_words": {
+        "pos": [
+          1360,
+          1000
+        ]
+      },
+      "load": {
+        "pos": [
+          0,
+          360
+        ]
+      },
+      "load2": {
+        "pos": [
+          0,
+          824
+        ]
+      },
+      "models": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "pose": {
+        "pos": [
+          680,
+          824
+        ]
+      },
+      "prompt_picture": {
+        "pos": [
+          1020,
+          0
+        ]
+      },
+      "prompt_words": {
+        "pos": [
+          1020,
+          1000
+        ]
+      },
+      "sample_picture": {
+        "pos": [
+          1700,
+          0
+        ]
+      },
+      "sample_words": {
+        "pos": [
+          1700,
+          1000
+        ]
+      },
+      "save_picture": {
+        "pos": [
+          2380,
+          520
+        ]
+      },
+      "save_words": {
+        "pos": [
+          2380,
+          1520
+        ]
+      },
+      "scale": {
+        "pos": [
+          340,
+          360
+        ]
+      },
+      "scale2": {
+        "pos": [
+          340,
+          824
+        ]
+      },
+      "size": {
+        "pos": [
+          680,
+          360
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+        "name": "Qwen3-8B-Q8_0.gguf",
+        "resource": "fugue/text-encoder",
+        "size": 8709519168,
+        "source": "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q8_0.gguf"
+      },
+      {
+        "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+        "name": "flux-2-klein-9b-Q8_0.gguf",
+        "resource": "fugue/diffusion-model",
+        "size": 10245691680,
+        "source": "https://huggingface.co/unsloth/FLUX.2-klein-9B-GGUF/resolve/main/flux-2-klein-9b-Q8_0.gguf"
+      },
+      {
+        "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+        "name": "flux2-vae.safetensors",
+        "resource": "fugue/vae",
+        "size": 336213556,
+        "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/main/split_files/vae/flux2-vae.safetensors"
+      }
+    ]
+  }
+}
