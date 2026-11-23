@@ -1,0 +1,11 @@
+{
+  "title": "Harmonize: make a collage look like one photograph",
+  "description": "A canvas action: select the pasted parts of a canvas (or nothing, for the whole picture) and the pasted edges are redrawn strongly, the rest lightly, so light, colour grade, shadows and grain agree (FLUX.2 Klein 4B edit, 4 steps), then the colours are matched back to the picture so they do not drift. The result is added as a layer named Harmonized. The Canvas view's task bar lists it; open it here to edit the workflow.",
+  "category": "canvas",
+  "tags": [
+    "FLUX.2 Klein",
+    "Edit",
+    "Canvas",
+    "Canvas action"
+  ]
+}
