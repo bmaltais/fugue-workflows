@@ -1,0 +1,10 @@
+{
+  "title": "Upscale without a model: the whole picture, to a new canvas",
+  "description": "A canvas action: the same as Upscale but with plain Lanczos resampling, so there is nothing to download and no GPU is needed. It adds no detail. The Canvas view's task bar lists it; open it here to edit the workflow.",
+  "category": "canvas",
+  "tags": [
+    "Upscale",
+    "Canvas",
+    "Canvas action"
+  ]
+}

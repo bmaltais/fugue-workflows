@@ -1,0 +1,11 @@
+{
+  "title": "Upscale: the whole picture, to a new canvas",
+  "description": "A canvas action: the task bar's Upscale makes the head of the canvas (every layer, flattened) 2 or 4 times bigger with Real-ESRGAN x4plus and puts it on a new canvas (Canvas New), which opens; the original canvas is untouched. Scale is in Advanced; the model is a 67 MB download the bar offers. A 2x is the 4x result scaled down, which keeps its sharpness. The Canvas view's task bar lists it; open it here to edit the workflow.",
+  "category": "canvas",
+  "tags": [
+    "Upscale",
+    "Canvas",
+    "Canvas action",
+    "Real-ESRGAN"
+  ]
+}
