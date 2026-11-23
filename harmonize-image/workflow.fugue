@@ -231,7 +231,7 @@
           },
           "steps": 4,
           "guidance": 1,
-          "denoise": 0.9,
+          "denoise": 1,
           "soft_mask": true
         }
       },
