@@ -1,0 +1,10 @@
+{
+  "title": "Harmonize a picture: blend pasted parts into one photograph",
+  "description": "For a flat picture assembled elsewhere (a collage from Photoshop, a pasted cut-out): paint the pasted parts white and the seams around them are softened and redrawn strongly, the rest of the picture lightly, so light, colour grade, shadows and grain agree (FLUX.2 Klein 4B edit, 4 steps). Colours are matched back to the original and the result is saved at the original size. Paint nothing for a light whole-picture pass.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Edit",
+    "Mask"
+  ]
+}
