@@ -17,6 +17,10 @@ One folder per template; the folder's name is its id.
 ```
 
 - `category` is one of the ids in `categories.json`, which also orders the categories.
+- A template whose `workflow.fugue` has a top-level `action` block is also a **canvas action**: the Canvas view's
+  task bar lists it (category `canvas`, by convention). The block names the inputs the canvas fills in (design:
+  `docs/canvas-actions-design.md` in the fugue repo); `generative-fill` is the model. It is part of the workflow
+  file, so it travels with every copy; it opens from Browse templates as a plain workflow too.
 - What a template needs is read from its workflow, never written twice:
   - every model it names, by hash, with a `source` and a `size` in the workflow's
     `requires.models`: an https URL whose file has exactly that hash, and its bytes. Fugue

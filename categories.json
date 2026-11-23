@@ -9,6 +9,10 @@
       "title": "Image editing"
     },
     {
+      "id": "canvas",
+      "title": "Canvas actions"
+    },
+    {
       "id": "video",
       "title": "Video"
     },
