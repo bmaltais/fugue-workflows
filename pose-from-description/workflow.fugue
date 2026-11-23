@@ -308,7 +308,7 @@
     },
     "local/edit-with-klein-9b": {
       "category": "Image/Edit",
-      "description": "FLUX.2 Klein 9B edits picture 1 as told by the instruction: encodes the picture, samples in 4 steps and decodes. It never sees another picture.",
+      "description": "FLUX.2 Klein 9B edits picture 1 as told by the instruction: encodes the picture, samples in 4 steps and decodes. It never sees another picture. A Color Match then moves the result's colors toward picture 1's (Advanced: Color match, 0 is off), so the edit keeps picture 1's color.",
       "inputs": [
         {
           "label": "Models",
@@ -323,7 +323,8 @@
           "label": "Picture",
           "name": "picture",
           "targets": [
-            "encode_ref.image"
+            "encode_ref.image",
+            "color.reference"
           ]
         },
         {
@@ -370,10 +371,28 @@
           "targets": [
             "sample.sampler"
           ]
+        },
+        {
+          "default": 0.8,
+          "label": "Color match",
+          "name": "color_match",
+          "section": "Advanced",
+          "targets": [
+            "color.strength"
+          ]
         }
       ],
       "name": "Edit with Klein 9B",
       "nodes": {
+        "color": {
+          "inputs": {
+            "image": {
+              "from": "decode.image"
+            }
+          },
+          "type": "fugue/color-match",
+          "version": "1.0.0"
+        },
         "decode": {
           "inputs": {
             "latent": {
@@ -411,7 +430,7 @@
       },
       "outputs": [
         {
-          "from": "decode.image",
+          "from": "color.image",
           "label": "Image",
           "name": "image"
         }
@@ -585,6 +604,12 @@
       },
       "local/edit-with-klein-9b": {
         "nodes": {
+          "color": {
+            "pos": [
+              1520,
+              0
+            ]
+          },
           "decode": {
             "pos": [
               1140,
@@ -772,6 +797,7 @@
       }
     ],
     "nodes": {
+      "fugue/color-match": "1.0.0",
       "fugue/compare-images": "1.0.0",
       "fugue/load-image": "1.1.0",
       "fugue/load-models": "1.0.0",
