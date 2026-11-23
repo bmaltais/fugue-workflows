@@ -1,0 +1,487 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "brief": {
+        "inputs": {
+          "a": {
+            "from": "brief3.text"
+          },
+          "b": {
+            "from": "extra.text"
+          },
+          "separator": "\n\nEXTRA WISHES (may be empty):\n"
+        },
+        "type": "fugue/text-concat",
+        "version": "1.0.0"
+      },
+      "brief1": {
+        "inputs": {
+          "a": "SETTING OF IMAGE 1 (what is really there):",
+          "b": {
+            "from": "setting.text"
+          },
+          "separator": "\n"
+        },
+        "type": "fugue/text-concat",
+        "version": "1.0.0"
+      },
+      "brief2": {
+        "inputs": {
+          "a": {
+            "from": "brief1.text"
+          },
+          "b": {
+            "from": "pose.text"
+          },
+          "separator": "\n\nBODY POSE TO GIVE THE SUBJECT (taken from another photo):\n"
+        },
+        "type": "fugue/text-concat",
+        "version": "1.0.0"
+      },
+      "brief3": {
+        "inputs": {
+          "a": {
+            "from": "brief2.text"
+          },
+          "b": {
+            "from": "support.text"
+          },
+          "separator": "\n\nWHAT THAT POSE STANDS, SITS, LEANS OR STEPS ON IN THE OTHER PHOTO:\n"
+        },
+        "type": "fugue/text-concat",
+        "version": "1.0.0"
+      },
+      "compare": {
+        "inputs": {
+          "a": {
+            "from": "scale.image"
+          },
+          "b": {
+            "from": "decode.image"
+          },
+          "mode": "slider"
+        },
+        "type": "fugue/compare-images",
+        "version": "1.0.0"
+      },
+      "decode": {
+        "inputs": {
+          "latent": {
+            "from": "sample.latent"
+          }
+        },
+        "type": "fugue/vae-decode",
+        "version": "1.0.0"
+      },
+      "encode": {
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "prompt": {
+            "from": "instruction.text"
+          },
+          "references": [
+            {
+              "from": "scale.image"
+            }
+          ]
+        },
+        "type": "fugue/text-encode",
+        "version": "1.0.0"
+      },
+      "encode_ref": {
+        "inputs": {
+          "image": {
+            "from": "scale.image"
+          },
+          "model": {
+            "from": "models.model"
+          }
+        },
+        "type": "fugue/vae-encode",
+        "version": "1.1.0"
+      },
+      "extra": {
+        "inputs": {
+          "text": ""
+        },
+        "type": "fugue/text",
+        "version": "1.0.0"
+      },
+      "instruction": {
+        "inputs": {
+          "prompt": {
+            "from": "brief.text"
+          },
+          "seed": {
+            "from": "seed.value"
+          },
+          "system": "You write the instruction for an image editing model that gets image 1 and your text, and nothing else; it never sees any other photo. You are given blocks with headings: the setting of image 1, a body pose, what that pose relied on in another photo, and maybe extra wishes. Write one paragraph of at most 120 words, in the imperative, that starts with 'Edit image 1.' It must say, in this order: keep the setting exactly as it is (name its place, background, light and camera angle in a few words, from the setting block only); keep the subject's face, hair, age, clothes and shoes; change only the body pose to the given pose, described in plain words. Then make the pose fit the setting. For each thing the pose relied on, check the setting block: if the setting has that thing or something that does the same job (a step, a rock, a curb, a bench, a wall, a railing), say the body uses it; if it does not, say the body takes the same stance in a natural way on what the setting does offer (standing on the ground, sitting on the floor or on a nearby object that the setting block names), so that no limb floats in the air and nothing leans on air. Do not add any object, building or furniture that the setting block does not name, and never name another photo, image 2, or any prop the setting lacks and do not write the name of any missing object, not even to say it is absent (an editing model would draw it); write only what the body does on what the setting block names, for example 'plants the foot on the ground'. Apply any extra wishes. Answer with the instruction only."
+        },
+        "type": "fugue/text-generate",
+        "version": "1.0.0"
+      },
+      "load": {
+        "inputs": {
+          "file": "inputs/woman-in-park.jpg"
+        },
+        "type": "fugue/load-image",
+        "version": "1.0.0"
+      },
+      "load2": {
+        "inputs": {
+          "file": "inputs/ballet-pose.jpg"
+        },
+        "type": "fugue/load-image",
+        "version": "1.0.0"
+      },
+      "models": {
+        "inputs": {
+          "diffusion_model": {
+            "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+            "name": "flux-2-klein-9b-Q8_0.gguf",
+            "resource": "fugue/diffusion-model"
+          },
+          "text_encoder": {
+            "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+            "name": "Qwen3-8B-Q8_0.gguf",
+            "resource": "fugue/text-encoder"
+          },
+          "vae": {
+            "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+            "name": "flux2-vae.safetensors",
+            "resource": "fugue/vae"
+          }
+        },
+        "type": "fugue/load-models",
+        "version": "1.0.0"
+      },
+      "pose": {
+        "inputs": {
+          "image": {
+            "from": "load2.image"
+          },
+          "prompt": "Describe only the body pose in this photo.",
+          "seed": {
+            "from": "seed.value"
+          },
+          "system": "You describe body poses for an artist's pose chart. You see a photo. Answer with one paragraph of 2 or 3 plain sentences that say only how the body is arranged: which way it faces (front, side, three-quarter, from behind), where the weight is, what each leg and each arm does, where the hands are, how the torso leans, where the head turns and looks. Never mention who or what the person is (no dancer, woman, man), clothes, shoes, hair, face, colors, the setting or the background. Start with 'The body'."
+        },
+        "type": "fugue/text-generate",
+        "version": "1.0.0"
+      },
+      "sample": {
+        "inputs": {
+          "conditioning": {
+            "from": "encode.conditioning"
+          },
+          "guidance": 1,
+          "latent": {
+            "from": "encode_ref.latent"
+          },
+          "model": {
+            "from": "models.model"
+          },
+          "sampler": "euler",
+          "seed": {
+            "from": "seed.value"
+          },
+          "steps": 4
+        },
+        "type": "fugue/sampler",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "image": {
+            "from": "decode.image"
+          },
+          "name": "pose-from-description"
+        },
+        "type": "fugue/save-image",
+        "version": "1.0.0"
+      },
+      "scale": {
+        "inputs": {
+          "image": {
+            "from": "load.image"
+          },
+          "megapixels": 1,
+          "method": "lanczos"
+        },
+        "type": "fugue/resize-megapixels",
+        "version": "1.0.0"
+      },
+      "seed": {
+        "inputs": {
+          "value": 1
+        },
+        "type": "fugue/number",
+        "version": "1.0.0"
+      },
+      "setting": {
+        "inputs": {
+          "image": {
+            "from": "scale.image"
+          },
+          "prompt": "Describe only the setting of this photo, without its subject.",
+          "seed": {
+            "from": "seed.value"
+          },
+          "system": "You describe the setting of a photo for a set designer who will rebuild the place without the subject. You see a photo. Answer with one paragraph of 3 to 5 plain sentences about the place only: what kind of place it is, the background and the objects in it, the ground, the light (direction, softness, time of day, colors), the camera angle and distance, the mood and the photo style. Leave the main subject out completely: no person, animal or main object, no clothes, no face, no body, no pose, no age or gender. Describe the place as if it were empty. Start with 'The scene is'."
+        },
+        "type": "fugue/text-generate",
+        "version": "1.0.0"
+      },
+      "show_instruction": {
+        "inputs": {
+          "value": {
+            "from": "instruction.text"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "show_pose": {
+        "inputs": {
+          "value": {
+            "from": "pose.text"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "show_setting": {
+        "inputs": {
+          "value": {
+            "from": "setting.text"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "show_support": {
+        "inputs": {
+          "value": {
+            "from": "support.text"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "support": {
+        "inputs": {
+          "image": {
+            "from": "load2.image"
+          },
+          "prompt": "List only what the body stands, sits, leans or steps on or against in this photo.",
+          "seed": {
+            "from": "seed.value"
+          },
+          "system": "You help an artist adapt a pose to another place. You see a photo of a person. Name only the objects and surfaces the body relies on: stairs or a step, a wall, a chair, a railing, a rock, a table, a ledge, a bar, a floor or the ground, and how the body uses each one (feet on the second step, back against the wall, one hand on the rail). One or two plain sentences. Never describe the person, clothes, face, colors or the rest of the background. If the body just stands on flat ground and touches nothing, answer exactly: None, the body stands on flat ground."
+        },
+        "type": "fugue/text-generate",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "brief": {
+        "pos": [
+          2660,
+          460
+        ]
+      },
+      "brief1": {
+        "pos": [
+          1520,
+          460
+        ]
+      },
+      "brief2": {
+        "pos": [
+          1900,
+          460
+        ]
+      },
+      "brief3": {
+        "pos": [
+          2280,
+          460
+        ]
+      },
+      "compare": {
+        "pos": [
+          4560,
+          0
+        ]
+      },
+      "decode": {
+        "pos": [
+          4180,
+          0
+        ]
+      },
+      "encode": {
+        "pos": [
+          3420,
+          0
+        ]
+      },
+      "encode_ref": {
+        "pos": [
+          1520,
+          0
+        ]
+      },
+      "extra": {
+        "pos": [
+          760,
+          0
+        ]
+      },
+      "instruction": {
+        "pos": [
+          3040,
+          460
+        ]
+      },
+      "load": {
+        "pos": [
+          0,
+          460
+        ]
+      },
+      "load2": {
+        "pos": [
+          0,
+          1380
+        ]
+      },
+      "models": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "pose": {
+        "pos": [
+          760,
+          1380
+        ]
+      },
+      "sample": {
+        "pos": [
+          3800,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          4560,
+          920
+        ]
+      },
+      "scale": {
+        "pos": [
+          380,
+          460
+        ]
+      },
+      "seed": {
+        "pos": [
+          380,
+          0
+        ]
+      },
+      "setting": {
+        "pos": [
+          760,
+          460
+        ]
+      },
+      "show_instruction": {
+        "pos": [
+          3420,
+          460
+        ]
+      },
+      "show_pose": {
+        "pos": [
+          1140,
+          1380
+        ]
+      },
+      "show_setting": {
+        "pos": [
+          1140,
+          460
+        ]
+      },
+      "show_support": {
+        "pos": [
+          1140,
+          1840
+        ]
+      },
+      "support": {
+        "pos": [
+          760,
+          1840
+        ]
+      }
+    },
+    "view": {
+      "center": [
+        2000,
+        900
+      ],
+      "zoom": 0.3
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+        "name": "Qwen3-8B-Q8_0.gguf",
+        "resource": "fugue/text-encoder",
+        "size": 8709519168,
+        "source": "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q8_0.gguf"
+      },
+      {
+        "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+        "name": "flux-2-klein-9b-Q8_0.gguf",
+        "resource": "fugue/diffusion-model",
+        "size": 10245691680,
+        "source": "https://huggingface.co/unsloth/FLUX.2-klein-9B-GGUF/resolve/main/flux-2-klein-9b-Q8_0.gguf"
+      },
+      {
+        "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+        "name": "flux2-vae.safetensors",
+        "resource": "fugue/vae",
+        "size": 336213556,
+        "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/main/split_files/vae/flux2-vae.safetensors"
+      }
+    ],
+    "nodes": {
+      "fugue/compare-images": "1.0.0",
+      "fugue/load-image": "1.1.0",
+      "fugue/load-models": "1.0.0",
+      "fugue/number": "1.0.0",
+      "fugue/preview": "1.0.0",
+      "fugue/resize-megapixels": "1.0.0",
+      "fugue/sampler": "1.0.0",
+      "fugue/save-image": "1.0.0",
+      "fugue/text": "1.0.0",
+      "fugue/text-concat": "1.0.0",
+      "fugue/text-encode": "1.0.0",
+      "fugue/text-generate": "1.0.0",
+      "fugue/vae-decode": "1.0.0",
+      "fugue/vae-encode": "1.1.0"
+    }
+  }
+}
