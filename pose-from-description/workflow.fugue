@@ -150,6 +150,15 @@
         "type": "fugue/preview",
         "version": "1.0.0"
       },
+      "show_subject": {
+        "inputs": {
+          "value": {
+            "from": "describe.subject"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
       "show_support": {
         "inputs": {
           "value": {
@@ -173,6 +182,9 @@
           "setting": {
             "from": "describe.setting"
           },
+          "subject": {
+            "from": "describe.subject"
+          },
           "support": {
             "from": "describe.support"
           }
@@ -185,13 +197,14 @@
   "groups": {
     "local/describe-the-pictures": {
       "category": "Text",
-      "description": "A language model that reads images writes three texts: picture 1's setting without its subject, picture 2's body pose without its person, and what picture 2's pose stands, sits or leans on. Each prompt is under Advanced.",
+      "description": "A language model that reads images writes four texts: picture 1's setting without its subject, picture 2's body pose without its person, what picture 2's pose stands, sits or leans on, and the subject of picture 1 as it looks (clothes, shoes, hair, age, accessories). Each prompt is under Advanced.",
       "inputs": [
         {
           "label": "Picture 1",
           "name": "picture1",
           "targets": [
-            "setting.image"
+            "setting.image",
+            "subject.image"
           ]
         },
         {
@@ -208,7 +221,8 @@
           "targets": [
             "setting.seed",
             "pose.seed",
-            "support.seed"
+            "support.seed",
+            "subject.seed"
           ]
         },
         {
@@ -258,6 +272,22 @@
           "targets": [
             "support.system"
           ]
+        },
+        {
+          "label": "Subject: question",
+          "name": "subject_prompt",
+          "section": "Advanced",
+          "targets": [
+            "subject.prompt"
+          ]
+        },
+        {
+          "label": "Subject: instructions",
+          "name": "subject_system",
+          "section": "Advanced",
+          "targets": [
+            "subject.system"
+          ]
         }
       ],
       "name": "Describe the pictures",
@@ -274,6 +304,14 @@
           "inputs": {
             "prompt": "Describe only the setting of this photo, without its subject.",
             "system": "You describe the setting of a photo for a set designer who will rebuild the place without the subject. You see a photo. Answer with one paragraph of 3 to 5 plain sentences about the place only: what kind of place it is, the background and the objects in it, the ground, the light (direction, softness, time of day, colors), the camera angle and distance, the mood and the photo style. Leave the main subject out completely: no person, animal or main object, no clothes, no face, no body, no pose, no age or gender. Describe the place as if it were empty. Start with 'The scene is'."
+          },
+          "type": "fugue/text-generate",
+          "version": "1.0.0"
+        },
+        "subject": {
+          "inputs": {
+            "prompt": "Describe only the clothes, shoes, hair, age and accessories of the person in this photo.",
+            "system": "You describe what a person wears and carries for a costume designer who must dress the same person again. You see a photo. Answer with one short paragraph of 2 or 3 plain sentences that lists, exactly as they are: every visible garment with its color, cut, material and pattern; the shoes (type, color, material, heel or sole; say 'barefoot' if there are none, or 'shoes not visible' if hidden); the hair (length, color, style); the apparent age; and any accessories (jewelry, bag, hat, glasses, watch). Be precise about colors and shapes, and describe only what you see. Never mention the pose, the body position, the setting, the background, the light, the face, the expression or who the person is. Start with 'The subject wears'."
           },
           "type": "fugue/text-generate",
           "version": "1.0.0"
@@ -302,6 +340,11 @@
           "from": "support.text",
           "label": "Support",
           "name": "support"
+        },
+        {
+          "from": "subject.text",
+          "label": "Subject",
+          "name": "subject"
         }
       ],
       "version": "1.0.0"
@@ -439,34 +482,41 @@
     },
     "local/write-the-edit-instruction": {
       "category": "Text",
-      "description": "A text-only language model joins the setting, the pose, what the pose relies on and your extra wishes into one edit instruction for an image editing model. The block headings and the model's instructions are under Advanced.",
+      "description": "A text-only language model joins the setting, the subject's look, the pose, what the pose relies on and your extra wishes into one edit instruction for an image editing model. The brief it reads (headings and block order) is the Brief template, and the model's instructions, both under Advanced.",
       "inputs": [
         {
           "label": "Setting",
           "name": "setting",
           "targets": [
-            "brief1.b"
+            "brief.a"
           ]
         },
         {
           "label": "Pose",
           "name": "pose",
           "targets": [
-            "brief2.b"
+            "brief.b"
           ]
         },
         {
           "label": "Support",
           "name": "support",
           "targets": [
-            "brief3.b"
+            "brief.c"
+          ]
+        },
+        {
+          "label": "Subject",
+          "name": "subject",
+          "targets": [
+            "brief.d"
           ]
         },
         {
           "label": "Extra instructions",
           "name": "extra",
           "targets": [
-            "brief.b"
+            "brief.e"
           ]
         },
         {
@@ -477,35 +527,11 @@
           ]
         },
         {
-          "label": "Setting heading",
-          "name": "setting_heading",
+          "label": "Brief template",
+          "name": "brief_template",
           "section": "Advanced",
           "targets": [
-            "brief1.a"
-          ]
-        },
-        {
-          "label": "Pose heading",
-          "name": "pose_heading",
-          "section": "Advanced",
-          "targets": [
-            "brief2.separator"
-          ]
-        },
-        {
-          "label": "Support heading",
-          "name": "support_heading",
-          "section": "Advanced",
-          "targets": [
-            "brief3.separator"
-          ]
-        },
-        {
-          "label": "Extra heading",
-          "name": "extra_heading",
-          "section": "Advanced",
-          "targets": [
-            "brief.separator"
+            "brief.template"
           ]
         },
         {
@@ -521,40 +547,9 @@
       "nodes": {
         "brief": {
           "inputs": {
-            "a": {
-              "from": "brief3.text"
-            },
-            "separator": "\n\nEXTRA WISHES (may be empty):\n"
+            "template": "SETTING OF IMAGE 1 (what is really there):\n{a}\n\nSUBJECT OF IMAGE 1 (clothes, shoes, hair, age and accessories that must stay exactly as they are):\n{d}\n\nBODY POSE TO GIVE THE SUBJECT (taken from another photo):\n{b}\n\nWHAT THAT POSE STANDS, SITS, LEANS OR STEPS ON IN THE OTHER PHOTO:\n{c}\n\nEXTRA WISHES (may be empty):\n{e}"
           },
-          "type": "fugue/text-concat",
-          "version": "1.0.0"
-        },
-        "brief1": {
-          "inputs": {
-            "a": "SETTING OF IMAGE 1 (what is really there):",
-            "separator": "\n"
-          },
-          "type": "fugue/text-concat",
-          "version": "1.0.0"
-        },
-        "brief2": {
-          "inputs": {
-            "a": {
-              "from": "brief1.text"
-            },
-            "separator": "\n\nBODY POSE TO GIVE THE SUBJECT (taken from another photo):\n"
-          },
-          "type": "fugue/text-concat",
-          "version": "1.0.0"
-        },
-        "brief3": {
-          "inputs": {
-            "a": {
-              "from": "brief2.text"
-            },
-            "separator": "\n\nWHAT THAT POSE STANDS, SITS, LEANS OR STEPS ON IN THE OTHER PHOTO:\n"
-          },
-          "type": "fugue/text-concat",
+          "type": "fugue/text-template",
           "version": "1.0.0"
         },
         "instruction": {
@@ -562,7 +557,7 @@
             "prompt": {
               "from": "brief.text"
             },
-            "system": "You write the instruction for an image editing model that gets image 1 and your text, and nothing else; it never sees any other photo. You are given blocks with headings: the setting of image 1, a body pose, what that pose relied on in another photo, and maybe extra wishes. Write one paragraph of at most 120 words, in the imperative, that starts with 'Edit image 1.' It must say, in this order: keep the setting exactly as it is (name its place, background, light and camera angle in a few words, from the setting block only); keep the subject's face, hair, age, clothes and shoes; change only the body pose to the given pose, described in plain words. Then make the pose fit the setting. For each thing the pose relied on, check the setting block: if the setting has that thing or something that does the same job (a step, a rock, a curb, a bench, a wall, a railing), say the body uses it; if it does not, say the body takes the same stance in a natural way on what the setting does offer (standing on the ground, sitting on the floor or on a nearby object that the setting block names), so that no limb floats in the air and nothing leans on air. Do not add any object, building or furniture that the setting block does not name, and never name another photo, image 2, or any prop the setting lacks and do not write the name of any missing object, not even to say it is absent (an editing model would draw it); write only what the body does on what the setting block names, for example 'plants the foot on the ground'. Apply any extra wishes. Answer with the instruction only."
+            "system": "You write the instruction for an image editing model that gets image 1 and your text, and nothing else; it never sees any other photo. You are given blocks with headings: the setting of image 1, the subject of image 1 (its clothes, shoes, hair, age and accessories), a body pose, what that pose relied on in another photo, and maybe extra wishes. Write one paragraph of at most 150 words, in the imperative, that starts with 'Edit image 1.' It must say, in this order: keep the setting exactly as it is (name its place, background, light and camera angle in a few words, from the setting block only); keep the subject exactly as it is: say the face stays, then name each item of the subject block in plain words (every garment, the shoes, the hair, the accessories, with their colors) as staying unchanged, and say the shoes and clothes do not change in color, type or style; change only the body pose to the given pose, described in plain words. Then make the pose fit the setting. For each thing the pose relied on, check the setting block: if the setting has that thing or something that does the same job (a step, a rock, a curb, a bench, a wall, a railing), say the body uses it; if it does not, say the body takes the same stance in a natural way on what the setting does offer (standing on the ground, sitting on the floor or on a nearby object that the setting block names), so that no limb floats in the air and nothing leans on air. Do not add any object, building or furniture that the setting block does not name, and never name another photo, image 2, or any prop the setting lacks and do not write the name of any missing object, not even to say it is absent (an editing model would draw it); write only what the body does on what the setting block names, for example 'plants the foot on the ground'. Apply any extra wishes. Answer with the instruction only."
           },
           "type": "fugue/text-generate",
           "version": "1.0.0"
@@ -591,6 +586,12 @@
           "setting": {
             "pos": [
               0,
+              0
+            ]
+          },
+          "subject": {
+            "pos": [
+              1140,
               0
             ]
           },
@@ -640,31 +641,13 @@
         "nodes": {
           "brief": {
             "pos": [
-              1140,
-              0
-            ]
-          },
-          "brief1": {
-            "pos": [
               0,
-              0
-            ]
-          },
-          "brief2": {
-            "pos": [
-              380,
-              0
-            ]
-          },
-          "brief3": {
-            "pos": [
-              760,
               0
             ]
           },
           "instruction": {
             "pos": [
-              1520,
+              380,
               0
             ]
           }
@@ -750,6 +733,12 @@
           460
         ]
       },
+      "show_subject": {
+        "pos": [
+          1140,
+          1840
+        ]
+      },
       "show_support": {
         "pos": [
           1140,
@@ -807,9 +796,9 @@
       "fugue/sampler": "1.0.0",
       "fugue/save-image": "1.0.0",
       "fugue/text": "1.0.0",
-      "fugue/text-concat": "1.0.0",
       "fugue/text-encode": "1.0.0",
       "fugue/text-generate": "1.0.0",
+      "fugue/text-template": "1.0.0",
       "fugue/vae-decode": "1.0.0",
       "fugue/vae-encode": "1.1.0"
     }
