@@ -27,7 +27,7 @@
         "targets": [
           "sample.denoise"
         ],
-        "default": 0.9,
+        "default": 1,
         "min": 0.3,
         "max": 1,
         "section": "Advanced"
@@ -299,7 +299,7 @@
           },
           "steps": 4,
           "guidance": 1,
-          "denoise": 0.9,
+          "denoise": 1,
           "soft_mask": true
         }
       },
