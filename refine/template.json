@@ -1,6 +1,6 @@
 {
   "title": "Refine: redraw a selection lightly",
-  "description": "A canvas action: select an area of a canvas and it is redrawn lightly (FLUX.2 Klein 4B, 4 steps, strength 0.7), keeping its shapes and colours, and added as a new layer with a soft-edged mask. The Strength in the task bar's Advanced section moves it from a polish (0.55) to a restyle (0.9); a prompt says what to change. The Canvas view's task bar lists it; open it here to edit the workflow.",
+  "description": "A canvas action: select an area of a canvas and it is redrawn lightly (FLUX.2 Klein 4B, 4 steps, strength 0.7), keeping its shapes and colours, and added as a new layer with a soft-edged mask. The task bar's Advanced popover offers Strength as Light (0.55), Default (0.7) or Restyle (0.9); a prompt says what to change. The Canvas view's task bar lists it; open it here to edit the workflow.",
   "category": "canvas",
   "tags": [
     "FLUX.2 Klein",

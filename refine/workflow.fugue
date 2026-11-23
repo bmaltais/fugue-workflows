@@ -28,10 +28,19 @@
     "targets": [
      "sample.denoise"
     ],
-    "default": 0.7,
-    "min": 0.3,
-    "max": 1,
-    "section": "Advanced"
+    "default": "Default",
+    "section": "Advanced",
+    "label": "Strength",
+    "choices": [
+     "Light",
+     "Default",
+     "Restyle"
+    ],
+    "choice_values": [
+     0.55,
+     0.7,
+     0.9
+    ]
    },
    {
     "role": "model",
