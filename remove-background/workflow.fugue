@@ -1,0 +1,197 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "cut": {
+        "inputs": {
+          "image": {
+            "from": "load.image"
+          },
+          "model": {
+            "hash": "sha256:5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333",
+            "name": "BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx",
+            "resource": "io.github.bmaltais.fugue-remove-background/birefnet-model"
+          }
+        },
+        "type": "io.github.bmaltais.fugue-remove-background/cutout",
+        "version": "1.0.0"
+      },
+      "load": {
+        "inputs": {
+          "file": "inputs/ramen.jpg"
+        },
+        "type": "fugue/load-image",
+        "version": "1.0.0"
+      },
+      "preview": {
+        "inputs": {
+          "value": {
+            "from": "cut.image"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "format": "png",
+          "image": {
+            "from": "cut.image"
+          },
+          "name": "cutout"
+        },
+        "type": "fugue/save-image",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "groups": {
+    "io.github.bmaltais.fugue-remove-background/cutout": {
+      "category": "Image/Mask",
+      "description": "Cut the subject out of a picture: the image back as a cutout with a transparent background (RGBA), and the subject's mask.",
+      "inputs": [
+        {
+          "label": "Image",
+          "name": "image",
+          "targets": [
+            "find.image",
+            "alpha.image"
+          ]
+        },
+        {
+          "label": "Model",
+          "name": "model",
+          "targets": [
+            "find.model"
+          ]
+        },
+        {
+          "label": "Threshold",
+          "name": "threshold",
+          "section": "Advanced",
+          "targets": [
+            "find.threshold"
+          ]
+        },
+        {
+          "label": "Edge shrink",
+          "name": "feather",
+          "section": "Advanced",
+          "targets": [
+            "soften.radius"
+          ]
+        }
+      ],
+      "name": "Remove Background",
+      "nodes": {
+        "alpha": {
+          "inputs": {
+            "mask": {
+              "from": "soften.mask"
+            }
+          },
+          "type": "fugue/mask-to-alpha",
+          "version": "1.0.0"
+        },
+        "find": {
+          "inputs": {},
+          "type": "io.github.bmaltais.fugue-remove-background/remove-background",
+          "version": "1.0.1"
+        },
+        "soften": {
+          "inputs": {
+            "direction": "inward",
+            "mask": {
+              "from": "find.mask"
+            },
+            "radius": 0
+          },
+          "type": "fugue/feather-mask",
+          "version": "1.0.0"
+        }
+      },
+      "outputs": [
+        {
+          "from": "alpha.image",
+          "label": "Cutout",
+          "name": "image"
+        },
+        {
+          "from": "soften.mask",
+          "label": "Mask",
+          "name": "mask"
+        }
+      ],
+      "version": "1.0.0"
+    }
+  },
+  "layout": {
+    "groups": {
+      "io.github.bmaltais.fugue-remove-background/cutout": {
+        "nodes": {
+          "alpha": {
+            "pos": [
+              680,
+              0
+            ]
+          },
+          "find": {
+            "pos": [
+              0,
+              0
+            ]
+          },
+          "soften": {
+            "pos": [
+              340,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "nodes": {
+      "cut": {
+        "pos": [
+          400,
+          0
+        ]
+      },
+      "load": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "preview": {
+        "pos": [
+          800,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          800,
+          500
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "hash": "sha256:5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333",
+        "name": "BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx",
+        "resource": "io.github.bmaltais.fugue-remove-background/birefnet-model",
+        "size": 224005088,
+        "source": "https://github.com/ZhengPeng7/BiRefNet/releases/download/v1/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx"
+      }
+    ],
+    "packs": {
+      "io.github.bmaltais.fugue-remove-background": {
+        "version": "1.1.0"
+      }
+    }
+  }
+}

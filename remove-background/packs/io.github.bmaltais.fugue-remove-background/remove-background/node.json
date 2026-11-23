@@ -1,0 +1,23 @@
+{
+  "manifest": 1,
+  "id": "io.github.bmaltais.fugue-remove-background/remove-background",
+  "version": "1.0.1",
+  "name": "Remove Background Mask",
+  "description": "Finds the subject of a picture and gives it as a mask (white is the subject, soft at its edge). Wire the mask to Inpaint, Crop to Mask or Composite Masked, or use the group Remove Background for a cutout with a transparent background. Invert gives the background instead. BiRefNet through ONNX Runtime.",
+  "category": "Image/Mask",
+  "keywords": ["background", "remove", "subject", "cutout", "segment", "salient", "birefnet", "rembg", "matte", "mask"],
+  "runtime": {"kind": "command", "entry": "./run.sh", "mode": "persistent", "idle_timeout_s": 60},
+  "inputs": [
+    {"name": "image", "type": "image"},
+    {"name": "model", "type": "io.github.bmaltais.fugue-remove-background/birefnet-model", "label": "Model", "optional": true,
+     "description": "A BiRefNet ONNX file. The picker offers the downloads, with their licence shown first."},
+    {"name": "invert", "type": "boolean", "default": false, "widget": "toggle", "label": "Invert",
+     "description": "Give the background as the mask instead of the subject."},
+    {"name": "threshold", "type": "number", "default": 0, "min": 0, "max": 1, "step": 0.05, "widget": "slider", "advanced": true,
+     "description": "0 keeps the soft edge. Above 0, everything at least this sure to be the subject becomes 1 and the rest 0."},
+    {"name": "device", "type": "text", "default": "auto", "choices": ["auto", "cpu", "cuda"], "advanced": true,
+     "description": "Auto uses the GPU when the pack's environment has the CUDA build of ONNX Runtime."}
+  ],
+  "outputs": [{"name": "mask", "type": "image", "role": "mask", "label": "Mask"}],
+  "needs": {"memory_mb": 8000}
+}

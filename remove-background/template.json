@@ -1,0 +1,10 @@
+{
+  "title": "Remove background",
+  "description": "Cut the subject out of a picture: it comes back with a transparent background (a PNG that keeps the transparency), and the mask is there to use elsewhere. Needs the Remove Background pack, which this template offers to install, and downloads a model after a question.",
+  "category": "edit",
+  "tags": [
+    "Remove background",
+    "Cutout",
+    "Mask"
+  ]
+}
