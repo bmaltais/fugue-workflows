@@ -1,0 +1,13 @@
+{
+  "title": "Pose from description (keep the background)",
+  "description": "Same as Pose from a description, plus: After the edit, Remove Background finds the person in picture 1 and in the result, and the result is pasted over picture 1 inside that mask, so the setting stays pixel for pixel as in picture 1 (Advanced: Keep the background, 0 is off). Needs the Remove Background pack, which the window offers to install, and downloads its model (about 224 MB) after a question. Everything else (the four texts, the Klein 9B edit, Color Match, Compare Images) is as in that template, and it needs the same language model that reads images. The sample pictures are those of Pose transfer.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Image edit",
+    "Pose",
+    "Language model",
+    "Compare Images",
+    "Remove background"
+  ]
+}

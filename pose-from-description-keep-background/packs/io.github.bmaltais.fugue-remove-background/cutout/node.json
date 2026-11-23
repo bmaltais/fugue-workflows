@@ -1,0 +1,25 @@
+{
+  "manifest": 1,
+  "id": "io.github.bmaltais.fugue-remove-background/cutout",
+  "version": "1.0.0",
+  "name": "Remove Background",
+  "description": "Cut the subject out of a picture: the image back as a cutout with a transparent background (RGBA), and the subject's mask. Remove Background Mask finds the subject, Feather Mask softens or tightens its edge, Apply Mask as Alpha makes the cutout. Save as PNG or WebP to keep the transparency.",
+  "category": "Image/Mask",
+  "keywords": ["background", "remove", "cutout", "transparent", "subject", "rembg", "matte", "alpha", "png"],
+  "runtime": {"kind": "group", "definition": "group.fugue"},
+  "inputs": [
+    {"name": "image", "type": "image", "label": "Image"},
+    {"name": "model", "type": "io.github.bmaltais.fugue-remove-background/birefnet-model", "label": "Model", "optional": true,
+     "description": "A BiRefNet ONNX file. The picker offers the downloads, with their licence shown first."},
+    {"name": "threshold", "type": "number", "label": "Threshold", "default": 0, "min": 0, "max": 1, "step": 0.05, "widget": "slider",
+     "section": "Advanced",
+     "description": "0 keeps the soft edge. Above 0, everything at least this sure to be the subject becomes opaque and the rest transparent."},
+    {"name": "feather", "type": "number", "label": "Edge shrink", "default": 0, "min": 0, "max": 512, "step": 1, "integer": true,
+     "section": "Advanced",
+     "description": "Pixels the edge of the cutout is pulled inward and softened, to lose a fringe of the old background. 0 leaves the edge as the model made it."}
+  ],
+  "outputs": [
+    {"name": "image", "type": "image", "label": "Cutout"},
+    {"name": "mask", "type": "image", "role": "mask", "label": "Mask"}
+  ]
+}

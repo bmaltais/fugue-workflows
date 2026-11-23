@@ -1,0 +1,31 @@
+{
+  "fugue": 1,
+  "graph": {"nodes": {}},
+  "groups": {
+    "io.github.bmaltais.fugue-remove-background/cutout": {
+      "name": "Remove Background",
+      "version": "1.0.0",
+      "category": "Image/Mask",
+      "description": "Cut the subject out of a picture: the image back as a cutout with a transparent background (RGBA), and the subject's mask.",
+      "inputs": [
+        {"name": "image", "label": "Image", "targets": ["find.image", "alpha.image"]},
+        {"name": "model", "label": "Model", "targets": ["find.model"]},
+        {"name": "threshold", "label": "Threshold", "section": "Advanced", "targets": ["find.threshold"]},
+        {"name": "feather", "label": "Edge shrink", "section": "Advanced", "targets": ["soften.radius"]}
+      ],
+      "outputs": [
+        {"name": "image", "label": "Cutout", "from": "alpha.image"},
+        {"name": "mask", "label": "Mask", "from": "soften.mask"}
+      ],
+      "nodes": {
+        "find": {"type": "io.github.bmaltais.fugue-remove-background/remove-background", "version": "1.0.1", "inputs": {}},
+        "soften": {"type": "fugue/feather-mask", "version": "1.0.0",
+                   "inputs": {"mask": {"from": "find.mask"}, "direction": "inward", "radius": 0}},
+        "alpha": {"type": "fugue/mask-to-alpha", "version": "1.0.0",
+                  "inputs": {"mask": {"from": "soften.mask"}}}
+      }
+    }
+  },
+  "layout": {"groups": {"io.github.bmaltais.fugue-remove-background/cutout": {"nodes": {
+    "find": {"pos": [0, 0]}, "soften": {"pos": [340, 0]}, "alpha": {"pos": [680, 0]}}}}}
+}

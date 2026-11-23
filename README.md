@@ -29,7 +29,7 @@ One folder per template; the folder's name is its id.
   - the node versions it was made with. A Fugue that lacks a built-in node, or has an older minor
     of it, does not list the template.
 - A template that needs a pack carries it as `<id>/packs/<pack id>/` (a copy of the pack folder without its tests),
-  so the window can offer to install it; `remove-background` carries `io.github.bmaltais.fugue-remove-background`,
+  so the window can offer to install it; `remove-background` and `pose-from-description-keep-background` carry `io.github.bmaltais.fugue-remove-background`,
   copied from `examples/packs/` in the fugue repo. Copy it again when the pack changes, and keep `requires.packs`
   at the same version.
 - No models in this repo. Sample pictures are small JPEGs made with Fugue itself.

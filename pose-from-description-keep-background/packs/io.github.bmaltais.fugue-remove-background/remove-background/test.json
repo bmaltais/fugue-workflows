@@ -1,0 +1,5 @@
+{"cases": [
+  {"name": "subject", "inputs": {"image": "sample.png", "device": "cpu"}},
+  {"name": "inverted", "inputs": {"image": "sample.png", "invert": true, "device": "cpu"}},
+  {"name": "hard edge", "inputs": {"image": "sample.png", "threshold": 0.5, "device": "cpu"}}
+]}

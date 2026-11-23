@@ -1,0 +1,15 @@
+{
+  "manifest": 1,
+  "id": "io.github.bmaltais.fugue-remove-background",
+  "version": "1.1.0",
+  "name": "Remove Background",
+  "description": "Finds the subject of a picture and gives it as a mask (Remove Background Mask), or as a cutout with a transparent background (the group Remove Background). BiRefNet (code MIT, github.com/ZhengPeng7/BiRefNet; its ONNX weights are released by the author under MIT) through ONNX Runtime (MIT), on the CPU or an NVIDIA GPU, in the pack's own Python environment. Nothing is bundled: the model is downloaded from the model picker after a question that names its licence.",
+  "license": "MIT",
+  "nodes": ["remove-background", "cutout"],
+  "types": [
+    {"id": "io.github.bmaltais.fugue-remove-background/birefnet-model", "version": 1, "kind": "resource",
+     "name": "BiRefNet model", "extensions": [".onnx"], "folders": ["birefnet"]}
+  ],
+  "setup": {"command": ["uv", "sync", "--no-dev", "--extra", "cpu"],
+            "description": "Create the pack's Python environment (ONNX Runtime for the CPU, NumPy, Pillow) in its folder; needs uv and the network."}
+}
