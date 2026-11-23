@@ -48,7 +48,7 @@
         "version": "1.0.1",
         "inputs": {
           "mask": {
-            "from": "load.mask"
+            "from": "mask_work.image"
           },
           "expand": 48,
           "tapered_corners": true
@@ -59,7 +59,7 @@
         "version": "1.0.1",
         "inputs": {
           "mask": {
-            "from": "load.mask"
+            "from": "mask_work.image"
           },
           "expand": -48,
           "tapered_corners": true
@@ -84,10 +84,10 @@
         "inputs": {
           "value": 0.25,
           "width": {
-            "from": "load.width"
+            "from": "work.width"
           },
           "height": {
-            "from": "load.height"
+            "from": "work.height"
           }
         }
       },
@@ -123,10 +123,10 @@
         "inputs": {
           "value": 0.5,
           "width": {
-            "from": "load.width"
+            "from": "work.width"
           },
           "height": {
-            "from": "load.height"
+            "from": "work.height"
           }
         }
       },
@@ -292,6 +292,23 @@
           },
           "name": "harmonized"
         }
+      },
+      "mask_work": {
+        "type": "fugue/resize",
+        "version": "1.0.0",
+        "inputs": {
+          "image": {
+            "from": "load.mask"
+          },
+          "width": {
+            "from": "work.width"
+          },
+          "height": {
+            "from": "work.height"
+          },
+          "fit": "stretch",
+          "method": "bilinear"
+        }
       }
     }
   },
@@ -427,6 +444,12 @@
         "pos": [
           1140,
           900
+        ]
+      },
+      "mask_work": {
+        "pos": [
+          1900,
+          600
         ]
       }
     }
