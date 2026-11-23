@@ -118,6 +118,18 @@
         "type": "fugue/load-models",
         "version": "1.0.0"
       },
+      "pe6a3u": {
+        "inputs": {
+          "image": {
+            "from": "scale2.image"
+          },
+          "model": {
+            "from": "models.model"
+          }
+        },
+        "type": "fugue/vae-encode",
+        "version": "1.1.0"
+      },
       "pose": {
         "inputs": {
           "image": {
@@ -159,7 +171,7 @@
           },
           "guidance": 1,
           "latent": {
-            "from": "size.latent"
+            "from": "pe6a3u.latent"
           },
           "model": {
             "from": "models.model"
@@ -180,7 +192,7 @@
           },
           "guidance": 1,
           "latent": {
-            "from": "size.latent"
+            "from": "pe6a3u.latent"
           },
           "model": {
             "from": "models.model"
@@ -235,22 +247,29 @@
         },
         "type": "fugue/resize-megapixels",
         "version": "1.0.0"
-      },
-      "size": {
-        "inputs": {
-          "height": {
-            "from": "scale.height"
-          },
-          "width": {
-            "from": "scale.width"
-          }
-        },
-        "type": "fugue/empty-latent",
-        "version": "1.0.0"
       }
     }
   },
   "layout": {
+    "groups": {
+      "local/load-image-and-resize": {
+        "nodes": {
+          "p7l40w": {
+            "pos": [
+              0,
+              10
+            ]
+          },
+          "vu4r8p": {
+            "advanced": true,
+            "pos": [
+              362,
+              11
+            ]
+          }
+        }
+      }
+    },
     "nodes": {
       "compare_picture": {
         "pos": [
@@ -306,6 +325,12 @@
           0
         ]
       },
+      "pe6a3u": {
+        "pos": [
+          680,
+          504
+        ]
+      },
       "pose": {
         "pos": [
           680,
@@ -322,6 +347,10 @@
         "pos": [
           1020,
           1000
+        ],
+        "size": [
+          243,
+          314
         ]
       },
       "sample_picture": {
@@ -331,6 +360,7 @@
         ]
       },
       "sample_words": {
+        "advanced": true,
         "pos": [
           1700,
           1000
@@ -359,13 +389,14 @@
           340,
           824
         ]
-      },
-      "size": {
-        "pos": [
-          680,
-          360
-        ]
       }
+    },
+    "view": {
+      "center": [
+        963,
+        645
+      ],
+      "zoom": 0.491
     }
   },
   "requires": {
@@ -392,6 +423,19 @@
         "size": 336213556,
         "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/main/split_files/vae/flux2-vae.safetensors"
       }
-    ]
+    ],
+    "nodes": {
+      "fugue/compare-images": "1.0.0",
+      "fugue/load-image": "1.1.0",
+      "fugue/load-models": "1.0.0",
+      "fugue/resize-megapixels": "1.0.0",
+      "fugue/sampler": "1.0.0",
+      "fugue/save-image": "1.0.0",
+      "fugue/text-concat": "1.0.0",
+      "fugue/text-encode": "1.0.0",
+      "fugue/text-generate": "1.0.0",
+      "fugue/vae-decode": "1.0.0",
+      "fugue/vae-encode": "1.1.0"
+    }
   }
 }
