@@ -58,7 +58,7 @@
       "pad": {
         "inputs": {
           "bottom": 0,
-          "fill": "gray",
+          "fill": "edge-blur",
           "image": {
             "from": "load.image"
           },
@@ -66,7 +66,9 @@
           "right": 0,
           "target_height": 768,
           "target_width": 1152,
-          "top": 0
+          "top": 0,
+          "blur": 24,
+          "feathering": 40
         },
         "type": "fugue/pad",
         "version": "1.2.0"
@@ -98,7 +100,8 @@
           "sampler": "euler",
           "scheduler": "discrete",
           "seed": 776,
-          "steps": 6
+          "steps": 6,
+          "soft_mask": true
         },
         "type": "fugue/sampler",
         "version": "1.4.0"
