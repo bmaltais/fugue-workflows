@@ -1,0 +1,10 @@
+{
+  "title": "FLUX.2 Klein 9B outpaint, DA settings",
+  "description": "Grow a picture with FLUX.2 Klein 9B. Pad fits the picture inside a target size and centers it (set Target width and Target height; the sample goes from 768x768 to 1152x768), or, with both targets at 0, adds the pixels you give it on the left, top, right and bottom. The new area is gray and masked; the original, un-padded, is also the model's reference, so the new part matches it. Denoise 0.85 (ComfyUI's reading, schedule_cut), seed 776, 6 steps, euler, flow shift 2.02. This is not a one-step tool: growing beyond 1.5x the original size can lose consistency, and a follow-up inpaint near denoise 0.6 often helps. Describe the whole picture in the prompt, not only the new part.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Outpaint",
+    "Mask"
+  ]
+}
