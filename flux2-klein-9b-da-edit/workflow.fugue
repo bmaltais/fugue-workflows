@@ -132,10 +132,10 @@
           "image": {
             "from": "decode.image"
           },
-          "name": "flux2-klein-9b-da-edit"
+          "name": "{date}/{model}_{time}"
         },
         "type": "fugue/save-image",
-        "version": "1.0.0"
+        "version": "1.1.0"
       },
       "size": {
         "inputs": {
