@@ -1,6 +1,6 @@
 {
   "title": "FLUX.2 Klein 9B edit, guided by a depth picture",
-  "description": "Like \"FLUX.2 Klein 9B edit, up to five pictures\" (flux2-klein-9b-da-edit), but image 1 reaches the model as its depth picture (Depth Anything V2 Small, the Depth pack this template offers to install): the layout and pose of image 1 are kept, and the colours come from the other references and the prompt. Bypass the Depth Estimate node to use image 1 itself. Use the plain edit template when you do not need depth.",
+  "description": "Like \"FLUX.2 Klein 9B edit, up to five pictures\" (flux2-klein-9b-da-edit), but image 1 reaches the model only as its depth picture (Depth Anything V2 Small, the Depth pack this template offers to install), as the DA workflow's \"Controlnet\" does: it is a layout and pose guide, not a picture the model sees. Put the scene or pose you want to keep in image 1, and the people and things to show in images 2 to 5. Say so in the prompt (\"Image 1 is a depth map: keep its layout ... Put the fox from image 2 ...\"): the DA author notes its influence \"highly depends on the prompt\". A subject placed in image 1 comes out as a pale shape. Bypass the Depth Estimate node to send image 1 itself; use the plain edit template when you do not need depth.",
   "category": "edit",
   "tags": [
     "FLUX.2 Klein",
