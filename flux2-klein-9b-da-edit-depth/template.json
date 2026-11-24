@@ -1,0 +1,11 @@
+{
+  "title": "FLUX.2 Klein 9B edit, guided by a depth picture",
+  "description": "Like \"FLUX.2 Klein 9B edit, up to five pictures\" (flux2-klein-9b-da-edit), but image 1 reaches the model as its depth picture (Depth Anything V2 Small, the Depth pack this template offers to install): the layout and pose of image 1 are kept, and the colours come from the other references and the prompt. Bypass the Depth Estimate node to use image 1 itself. Use the plain edit template when you do not need depth.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Image edit",
+    "References",
+    "Depth"
+  ]
+}

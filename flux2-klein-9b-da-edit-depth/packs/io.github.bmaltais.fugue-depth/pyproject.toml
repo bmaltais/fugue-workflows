@@ -1,0 +1,27 @@
+[project]
+name = "fugue-depth"
+version = "1.0.0"
+description = "Fugue pack: Depth Estimate (Depth Anything V2 through ONNX Runtime)"
+license = "MIT"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "numpy>=1.26",
+    "pillow>=10.0",
+]
+
+[project.optional-dependencies]
+# One ONNX Runtime wheel: the setup installs `cpu`; for an NVIDIA GPU run
+# `uv sync --no-dev --extra cuda` in the pack folder instead.
+cpu = ["onnxruntime>=1.20"]
+cuda = ["onnxruntime-gpu>=1.20"]
+
+[dependency-groups]
+dev = ["onnx>=1.16", "pytest>=8"]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "cuda" }]]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["depth-estimate"]

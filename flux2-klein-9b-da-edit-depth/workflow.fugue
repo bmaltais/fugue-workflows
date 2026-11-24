@@ -1,0 +1,353 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "decode": {
+        "inputs": {
+          "latent": {
+            "from": "sample.latent"
+          }
+        },
+        "type": "fugue/vae-decode",
+        "version": "1.0.0"
+      },
+      "depth": {
+        "inputs": {
+          "image": {
+            "from": "ref1.image"
+          },
+          "model": {
+            "hash": "sha256:afb6a5c28f3b6bf1618c6e43f02073ef9dfdc70e937502d51603e57b0a1df10c",
+            "name": "depth-anything-v2-small.onnx",
+            "resource": "io.github.bmaltais.fugue-depth/depth-anything-model"
+          },
+          "resolution": 832
+        },
+        "type": "io.github.bmaltais.fugue-depth/depth-estimate",
+        "version": "1.0.0"
+      },
+      "encode": {
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "prompt": "Put the cat from image 1 in the armchair from image 2, wearing the red hat from image 3. Keep the room and its lighting as they are.",
+          "reference_size": "exact",
+          "references": [
+            {
+              "from": "depth.depth"
+            },
+            {
+              "from": "ref2.image"
+            },
+            {
+              "from": "ref3.image"
+            },
+            {
+              "from": "ref4.image"
+            },
+            {
+              "from": "ref5.image"
+            }
+          ]
+        },
+        "type": "fugue/text-encode",
+        "version": "1.1.0"
+      },
+      "models": {
+        "inputs": {
+          "diffusion_model": {
+            "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+            "name": "flux-2-klein-9b-Q8_0.gguf",
+            "resource": "fugue/diffusion-model"
+          },
+          "text_encoder": {
+            "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+            "name": "Qwen3-8B-Q8_0.gguf",
+            "resource": "fugue/text-encoder"
+          },
+          "vae": {
+            "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+            "name": "flux2-vae.safetensors",
+            "resource": "fugue/vae"
+          }
+        },
+        "type": "fugue/load-models",
+        "version": "1.0.0"
+      },
+      "preview": {
+        "inputs": {
+          "value": {
+            "from": "decode.image"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "ref1": {
+        "inputs": {
+          "file": "inputs/cat.jpg"
+        },
+        "type": "local/reference-image",
+        "version": "1.0.0"
+      },
+      "ref2": {
+        "inputs": {
+          "file": "inputs/reading-nook.jpg"
+        },
+        "type": "local/reference-image",
+        "version": "1.0.0"
+      },
+      "ref3": {
+        "inputs": {
+          "file": "inputs/beanie.jpg"
+        },
+        "type": "local/reference-image",
+        "version": "1.0.0"
+      },
+      "ref4": {
+        "inputs": {
+          "file": "inputs/teacup.jpg"
+        },
+        "mode": "bypass",
+        "type": "local/reference-image",
+        "version": "1.0.0"
+      },
+      "ref5": {
+        "inputs": {
+          "file": "inputs/fox.jpg"
+        },
+        "mode": "bypass",
+        "type": "local/reference-image",
+        "version": "1.0.0"
+      },
+      "sample": {
+        "inputs": {
+          "conditioning": {
+            "from": "encode.conditioning"
+          },
+          "flow_shift": 2.02,
+          "guidance": 1,
+          "latent": {
+            "from": "size.latent"
+          },
+          "model": {
+            "from": "models.model"
+          },
+          "sampler": "euler",
+          "scheduler": "discrete",
+          "seed": 776,
+          "steps": 6
+        },
+        "type": "fugue/sampler",
+        "version": "1.3.0"
+      },
+      "save": {
+        "inputs": {
+          "image": {
+            "from": "decode.image"
+          },
+          "name": "{date}/{model}_{time}"
+        },
+        "type": "fugue/save-image",
+        "version": "1.1.0"
+      },
+      "size": {
+        "inputs": {
+          "height": 1024,
+          "width": 1024
+        },
+        "type": "fugue/empty-latent",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "groups": {
+    "local/reference-image": {
+      "category": "Image/Transform",
+      "description": "A picture to give the model as a reference: loaded, then scaled to a megapixel, as ComfyUI's edit does it. Bypass the group to leave the reference out.",
+      "inputs": [
+        {
+          "label": "File",
+          "name": "file",
+          "targets": [
+            "load.file"
+          ]
+        },
+        {
+          "label": "Megapixels",
+          "name": "megapixels",
+          "targets": [
+            "scale.megapixels"
+          ]
+        }
+      ],
+      "name": "Reference image",
+      "nodes": {
+        "load": {
+          "inputs": {},
+          "type": "fugue/load-image",
+          "version": "1.1.0"
+        },
+        "scale": {
+          "inputs": {
+            "image": {
+              "from": "load.image"
+            },
+            "megapixels": 1,
+            "method": "nearest",
+            "multiple": 1
+          },
+          "type": "fugue/resize-megapixels",
+          "version": "1.0.0"
+        }
+      },
+      "outputs": [
+        {
+          "from": "scale.image",
+          "label": "Image",
+          "name": "image"
+        }
+      ],
+      "version": "1.0.0"
+    }
+  },
+  "layout": {
+    "groups": {
+      "local/reference-image": {
+        "nodes": {
+          "load": {
+            "pos": [
+              0,
+              0
+            ]
+          },
+          "scale": {
+            "pos": [
+              340,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "nodes": {
+      "decode": {
+        "pos": [
+          1360,
+          0
+        ]
+      },
+      "depth": {
+        "pos": [
+          340,
+          2460
+        ]
+      },
+      "encode": {
+        "pos": [
+          680,
+          0
+        ]
+      },
+      "models": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "preview": {
+        "pos": [
+          1700,
+          0
+        ]
+      },
+      "ref1": {
+        "pos": [
+          0,
+          360
+        ]
+      },
+      "ref2": {
+        "pos": [
+          0,
+          780
+        ]
+      },
+      "ref3": {
+        "pos": [
+          0,
+          1200
+        ]
+      },
+      "ref4": {
+        "pos": [
+          0,
+          1620
+        ]
+      },
+      "ref5": {
+        "pos": [
+          0,
+          2040
+        ]
+      },
+      "sample": {
+        "pos": [
+          1020,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          1700,
+          320
+        ]
+      },
+      "size": {
+        "pos": [
+          680,
+          360
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "resource": "fugue/text-encoder",
+        "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+        "name": "Qwen3-8B-Q8_0.gguf",
+        "source": "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q8_0.gguf",
+        "size": 8709519168
+      },
+      {
+        "resource": "fugue/diffusion-model",
+        "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+        "name": "flux-2-klein-9b-Q8_0.gguf",
+        "source": "https://huggingface.co/unsloth/FLUX.2-klein-9B-GGUF/resolve/main/flux-2-klein-9b-Q8_0.gguf",
+        "size": 10245691680
+      },
+      {
+        "resource": "fugue/vae",
+        "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+        "name": "flux2-vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+        "size": 336213556
+      },
+      {
+        "hash": "sha256:afb6a5c28f3b6bf1618c6e43f02073ef9dfdc70e937502d51603e57b0a1df10c",
+        "name": "depth-anything-v2-small.onnx",
+        "resource": "io.github.bmaltais.fugue-depth/depth-anything-model",
+        "size": 99060839,
+        "source": "https://huggingface.co/onnx-community/depth-anything-v2-small/resolve/4472b7362082ad9968fee890ca0f1e5aca36b93d/onnx/model.onnx"
+      }
+    ],
+    "packs": {
+      "io.github.bmaltais.fugue-depth": {
+        "version": "1.0.0"
+      }
+    }
+  }
+}

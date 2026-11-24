@@ -1,0 +1,21 @@
+{
+  "manifest": 1,
+  "id": "io.github.bmaltais.fugue-depth/depth-estimate",
+  "version": "1.0.0",
+  "name": "Depth Estimate",
+  "description": "Gives a picture as a depth picture: gray, 3 channels, the nearest part white and the farthest black (stretched to the full range), at the size of the picture. Use it as a reference for an Edit workflow, or to see the shape of a scene. Depth Anything V2 through ONNX Runtime.",
+  "category": "Image/Analyze",
+  "keywords": ["depth", "depth map", "midas", "depth anything", "controlnet", "preprocessor", "reference", "zdepth"],
+  "runtime": {"kind": "command", "entry": "./run.sh", "mode": "persistent", "idle_timeout_s": 60},
+  "inputs": [
+    {"name": "image", "type": "image"},
+    {"name": "model", "type": "io.github.bmaltais.fugue-depth/depth-anything-model", "label": "Model", "optional": true,
+     "description": "A Depth Anything V2 ONNX file. The picker offers the download of the Small model, with its licence shown first."},
+    {"name": "resolution", "type": "number", "default": 832, "min": 224, "max": 2048, "step": 14, "label": "Resolution",
+     "description": "The size the shorter side of the picture is looked at (rounded to a multiple of 14). Higher shows finer detail and takes longer; the result is always the size of the picture."},
+    {"name": "device", "type": "text", "default": "auto", "choices": ["auto", "cpu", "cuda"], "advanced": true,
+     "description": "Auto uses the GPU when the pack's environment has the CUDA build of ONNX Runtime."}
+  ],
+  "outputs": [{"name": "depth", "type": "image", "label": "Depth"}],
+  "needs": {"memory_mb": 4000}
+}

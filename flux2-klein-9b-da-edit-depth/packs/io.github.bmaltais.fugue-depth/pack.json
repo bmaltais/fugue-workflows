@@ -1,0 +1,15 @@
+{
+  "manifest": 1,
+  "id": "io.github.bmaltais.fugue-depth",
+  "version": "1.0.0",
+  "name": "Depth",
+  "description": "Gives a picture as a depth picture (a gray picture where near is light and far is dark), for example as a reference for an Edit workflow. Depth Anything V2 Small (code and weights Apache-2.0, github.com/DepthAnything/Depth-Anything-V2) through ONNX Runtime (MIT), on the CPU or an NVIDIA GPU, in the pack's own Python environment. Nothing is bundled: the model is downloaded from the model picker after a question that names its licence.",
+  "license": "MIT",
+  "nodes": ["depth-estimate"],
+  "types": [
+    {"id": "io.github.bmaltais.fugue-depth/depth-anything-model", "version": 1, "kind": "resource",
+     "name": "Depth Anything model", "extensions": [".onnx"], "folders": ["depth-anything"]}
+  ],
+  "setup": {"command": ["uv", "sync", "--no-dev", "--extra", "cpu"],
+            "description": "Create the pack's Python environment (ONNX Runtime for the CPU, NumPy, Pillow) in its folder; needs uv and the network."}
+}
