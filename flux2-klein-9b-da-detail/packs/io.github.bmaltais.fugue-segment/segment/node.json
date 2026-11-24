@@ -1,0 +1,29 @@
+{
+  "manifest": 1,
+  "id": "io.github.bmaltais.fugue-segment/segment",
+  "version": "1.0.0",
+  "name": "Segment by Points or Box",
+  "description": "Cuts one object out of the picture as a mask (white is the object). Say where it is with points inside it (Include points), points on what must stay out (Exclude points) and/or a Box around it, all in the picture's pixels. Wire the mask to Inpaint, Crop to Mask or Composite Masked. SAM 2.1 through ONNX Runtime.",
+  "category": "Image/Mask",
+  "keywords": ["segment", "sam", "sam2", "select", "object", "points", "box", "click", "cutout", "mask", "segment anything"],
+  "runtime": {"kind": "command", "entry": "./run.sh", "mode": "persistent", "idle_timeout_s": 60},
+  "inputs": [
+    {"name": "image", "type": "image"},
+    {"name": "model", "type": "io.github.bmaltais.fugue-segment/sam2-model", "label": "Model", "optional": true,
+     "description": "A SAM 2.1 bundle (.zip with an encoder and a decoder). The picker offers the downloads, with their licence shown first."},
+    {"name": "positive", "type": "text", "default": "", "widget": "multiline", "label": "Include points",
+     "description": "Points inside the object, one per line: x y, in pixels from the picture's top left (x goes right, y goes down). Add one on every part the first mask missed."},
+    {"name": "negative", "type": "text", "default": "", "widget": "multiline", "label": "Exclude points",
+     "description": "Points on what must stay out of the mask, one per line: x y."},
+    {"name": "box", "type": "text", "default": "", "widget": "multiline", "label": "Box",
+     "description": "A box around the object: x1 y1 x2 y2, two opposite corners in pixels. With a box, Include points are optional. Several lines are several objects, joined in one mask (wire Find by Text's Boxes here); then leave the points empty."},
+    {"name": "invert", "type": "boolean", "default": false, "widget": "toggle", "label": "Invert",
+     "description": "Give everything but the object as the mask."},
+    {"name": "soft", "type": "boolean", "default": false, "widget": "toggle", "advanced": true, "label": "Soft edge",
+     "description": "Give the model's confidence (gray at the edge) instead of a hard black and white edge."},
+    {"name": "device", "type": "text", "default": "auto", "choices": ["auto", "cpu", "cuda"], "advanced": true,
+     "description": "Auto uses the GPU when the pack's environment has the CUDA build of ONNX Runtime."}
+  ],
+  "outputs": [{"name": "mask", "type": "image", "role": "mask", "label": "Mask"}],
+  "needs": {"memory_mb": 4000}
+}

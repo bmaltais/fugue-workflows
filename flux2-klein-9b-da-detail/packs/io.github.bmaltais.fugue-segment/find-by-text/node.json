@@ -1,0 +1,29 @@
+{
+  "manifest": 1,
+  "id": "io.github.bmaltais.fugue-segment/find-by-text",
+  "version": "1.0.0",
+  "name": "Find by Text",
+  "description": "Finds what you name in words and gives a box around each match, in the picture's pixels. Wire Boxes to the Box input of Segment by Points or Box to get the mask of what the words name (one object per box, joined in one mask); Preview shows what was found. GroundingDINO tiny through ONNX Runtime.",
+  "category": "Image/Mask",
+  "keywords": ["find", "detect", "text", "words", "grounding", "dino", "groundingdino", "boxes", "text to mask", "prompt", "select", "segment", "object", "open vocabulary"],
+  "runtime": {"kind": "command", "entry": "./run.sh", "mode": "persistent", "idle_timeout_s": 60},
+  "inputs": [
+    {"name": "image", "type": "image"},
+    {"name": "model", "type": "io.github.bmaltais.fugue-segment/grounding-dino-model", "label": "Model", "optional": true,
+     "description": "A GroundingDINO ONNX file. The picker offers the downloads, with their licence shown first."},
+    {"name": "query", "type": "text", "default": "", "widget": "multiline", "label": "Query",
+     "description": "What to find, in a few words: red balloon. For several things separate them with periods, commas or lines: cat, dog. A short noun phrase works best (the clown, a red mug)."},
+    {"name": "threshold", "type": "number", "default": 0.3, "min": 0.05, "max": 0.95, "step": 0.05, "widget": "slider", "label": "Threshold",
+     "description": "How sure the model must be, from 0 to 1. Lower finds more (and more wrong ones), higher keeps only the clear matches. Preview shows each match with its score."},
+    {"name": "max_results", "type": "number", "default": 0, "min": 0, "max": 100, "step": 1, "integer": true, "advanced": true, "label": "Most matches",
+     "description": "Keep only this many matches, the best first. 0 keeps every match above Threshold."},
+    {"name": "device", "type": "text", "default": "auto", "choices": ["auto", "cpu", "cuda"], "advanced": true,
+     "description": "Auto uses the GPU when the pack's environment has the CUDA build of ONNX Runtime."}
+  ],
+  "outputs": [
+    {"name": "boxes", "type": "text", "label": "Boxes",
+     "description": "One line per match, best first: x1 y1 x2 y2 in the picture's pixels. Empty when nothing matched."},
+    {"name": "preview", "type": "image", "label": "Preview", "description": "The picture with each match's box, phrase and score."}
+  ],
+  "needs": {"memory_mb": 6000}
+}

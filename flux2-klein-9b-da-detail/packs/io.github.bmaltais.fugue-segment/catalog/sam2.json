@@ -1,0 +1,49 @@
+{
+  "catalog": 1,
+  "models": [
+    {
+      "id": "sam2.1-hiera-tiny",
+      "title": "SAM 2.1 tiny (small, fast)",
+      "description": "Segment by Points or Box for most pictures: about 1 s to look at a picture on a CPU, then 0.05 s for each change of points. 117 MB.",
+      "file": "sam2.1_hiera_tiny_20260221.zip",
+      "url": "https://huggingface.co/vietanhdev/segment-anything-2.1-onnx-models/resolve/6a3ac868340a3196a349050a6efae22a5acc0330/sam2.1_hiera_tiny_20260221.zip",
+      "size": 116507723,
+      "sha256": "c602cb3f6fd297312a415f885f0df3f0eef9fbb334b069c9d30e828f2ae7c69a",
+      "resource": "io.github.bmaltais.fugue-segment/sam2-model",
+      "architecture": "SAM 2.1 (Hiera), ONNX encoder and decoder, 1024 x 1024",
+      "license": "Apache-2.0",
+      "license_url": "https://github.com/facebookresearch/sam2/blob/main/LICENSE",
+      "commercial": true,
+      "attribution": true,
+      "author": "Meta FAIR (SAM 2.1); ONNX export by Viet-Anh Nguyen (vietanhdev)",
+      "source": "https://huggingface.co/vietanhdev/segment-anything-2.1-onnx-models",
+      "tags": [
+        "segment",
+        "sam",
+        "onnx"
+      ]
+    },
+    {
+      "id": "sam2.1-hiera-base-plus",
+      "title": "SAM 2.1 base+ (better)",
+      "description": "The larger SAM 2.1: finer edges and harder objects, about 2.5 s to look at a picture on a CPU, 272 MB.",
+      "file": "sam2.1_hiera_base_plus_20260221.zip",
+      "url": "https://huggingface.co/vietanhdev/segment-anything-2.1-onnx-models/resolve/6a3ac868340a3196a349050a6efae22a5acc0330/sam2.1_hiera_base_plus_20260221.zip",
+      "size": 271998747,
+      "sha256": "389a2b0ba3209e4352887651d794a79e7518b186d85bd640b032ad6d5bee089a",
+      "resource": "io.github.bmaltais.fugue-segment/sam2-model",
+      "architecture": "SAM 2.1 (Hiera), ONNX encoder and decoder, 1024 x 1024",
+      "license": "Apache-2.0",
+      "license_url": "https://github.com/facebookresearch/sam2/blob/main/LICENSE",
+      "commercial": true,
+      "attribution": true,
+      "author": "Meta FAIR (SAM 2.1); ONNX export by Viet-Anh Nguyen (vietanhdev)",
+      "source": "https://huggingface.co/vietanhdev/segment-anything-2.1-onnx-models",
+      "tags": [
+        "segment",
+        "sam",
+        "onnx"
+      ]
+    }
+  ]
+}

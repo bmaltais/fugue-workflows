@@ -1,0 +1,17 @@
+{
+  "manifest": 1,
+  "id": "io.github.bmaltais.fugue-segment",
+  "version": "1.1.0",
+  "name": "Segment: by Points, Box or Words",
+  "description": "Cuts objects out of a picture as a mask. Segment by Points or Box: SAM 2.1 (code and checkpoints Apache-2.0, github.com/facebookresearch/sam2; the ONNX export is by vietanhdev, Apache-2.0). Find by Text: GroundingDINO tiny (code and weights Apache-2.0, github.com/IDEA-Research/GroundingDINO; the ONNX export is onnx-community's, Apache-2.0) gives a box for what words name, which Segment turns into a mask. Both run through ONNX Runtime (MIT), on the CPU or an NVIDIA GPU, in the pack's own Python environment. Nothing is bundled but the tokenizer's word list (BERT uncased, Apache-2.0): the models are downloaded from the model picker after a question that names their licence.",
+  "license": "MIT",
+  "nodes": ["segment", "find-by-text"],
+  "types": [
+    {"id": "io.github.bmaltais.fugue-segment/sam2-model", "version": 1, "kind": "resource",
+     "name": "SAM 2.1 model", "extensions": [".zip"], "folders": ["sam2"]},
+    {"id": "io.github.bmaltais.fugue-segment/grounding-dino-model", "version": 1, "kind": "resource",
+     "name": "GroundingDINO model", "extensions": [".onnx"], "folders": ["grounding-dino"]}
+  ],
+  "setup": {"command": ["uv", "sync", "--no-dev", "--extra", "cpu"],
+            "description": "Create the pack's Python environment (ONNX Runtime for the CPU, NumPy, Pillow) in its folder; needs uv and the network."}
+}
