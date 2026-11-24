@@ -1,0 +1,10 @@
+{
+  "title": "FLUX.2 Klein 9B inpaint, whole picture, DA settings",
+  "description": "Redraw a painted part of a picture with FLUX.2 Klein 9B, working on the whole picture at the output size (Inpaint: change a region crops and stitches instead). The picture and its mask (white is redrawn; the sample is an 8-bit gray PNG in inputs/) are fitted to the output size alike, the picture with cover and the mask with nearest, then encoded together; the rest is kept. Shipped with a reference: the same picture is given to the model as a reference, which keeps the structure and is stable; keep Denoise at 1.0. Without a reference (disconnect Text Encode's references): set the Sampler's Denoise to 0.65 to 0.8 (ComfyUI's reading, schedule_cut); the prompt then counts for more, so edits are sharper, but the result is less consistent and the mask must be precise. Seed 776, 6 steps, euler, flow shift 2.02.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Inpaint",
+    "Mask"
+  ]
+}
