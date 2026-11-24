@@ -89,7 +89,7 @@
             "model": {
               "hash": "sha256:5aa0d25fc9d35e449b659d0c9a5dcb22e2a4fa04032101b95a39da42b32c1be6",
               "name": "seedvr2_7b_int8_convrot.safetensors",
-              "resource": "fugue/diffusion-model"
+              "resource": "fugue/seedvr2-model"
             },
             "overlap": 64,
             "seed": 0,
@@ -97,7 +97,7 @@
             "vae": {
               "hash": "sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1",
               "name": "ema_vae_fp16.safetensors",
-              "resource": "fugue/vae"
+              "resource": "fugue/seedvr2-vae"
             }
           },
           "type": "fugue/restore-image",
@@ -160,14 +160,14 @@
       {
         "hash": "sha256:5aa0d25fc9d35e449b659d0c9a5dcb22e2a4fa04032101b95a39da42b32c1be6",
         "name": "seedvr2_7b_int8_convrot.safetensors",
-        "resource": "fugue/diffusion-model",
+        "resource": "fugue/seedvr2-model",
         "size": 8334897976,
         "source": "https://huggingface.co/Comfy-Org/SeedVR2/resolve/df48879708206a403d2a61acd55578c2e80fd233/diffusion_models/seedvr2_7b_int8_convrot.safetensors"
       },
       {
         "hash": "sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1",
         "name": "ema_vae_fp16.safetensors",
-        "resource": "fugue/vae",
+        "resource": "fugue/seedvr2-vae",
         "size": 501324814,
         "source": "https://huggingface.co/Comfy-Org/SeedVR2/resolve/df48879708206a403d2a61acd55578c2e80fd233/vae/ema_vae_fp16.safetensors"
       }
