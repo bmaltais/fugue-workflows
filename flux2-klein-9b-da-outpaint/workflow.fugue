@@ -85,7 +85,7 @@
           "conditioning": {
             "from": "encode.conditioning"
           },
-          "denoise": 0.85,
+          "denoise": 1.0,
           "denoise_mode": "schedule_cut",
           "flow_shift": 2.02,
           "guidance": 1,
