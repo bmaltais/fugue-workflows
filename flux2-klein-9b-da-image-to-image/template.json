@@ -6,5 +6,10 @@
     "FLUX.2 Klein",
     "Image to image",
     "DA workflow"
-  ]
+  ],
+  "source": {
+    "name": "DA flux2 klein-9b distilled union v10",
+    "author": "DemonAlone",
+    "note": "ported like for like as separate templates (#339)"
+  }
 }
