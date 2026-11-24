@@ -1,0 +1,5 @@
+{"cases": [
+  {"name": "one match", "inputs": {"image": "sample.png", "query": "thing", "device": "cpu"}},
+  {"name": "lower threshold, two matches", "inputs": {"image": "sample.png", "query": "thing. other", "threshold": 0.1, "device": "cpu"}},
+  {"name": "nothing above the threshold", "inputs": {"image": "sample.png", "query": "thing", "threshold": 0.95, "device": "cpu"}}
+]}

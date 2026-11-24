@@ -1,0 +1,6 @@
+{"cases": [
+  {"name": "one point", "inputs": {"image": "sample.png", "positive": "80 48", "device": "cpu"}},
+  {"name": "box", "inputs": {"image": "sample.png", "box": "30 20 130 76", "device": "cpu"}},
+  {"name": "inverted", "inputs": {"image": "sample.png", "positive": "80 48", "invert": true, "device": "cpu"}},
+  {"name": "soft edge", "inputs": {"image": "sample.png", "positive": "80 48", "soft": true, "device": "cpu"}}
+]}
