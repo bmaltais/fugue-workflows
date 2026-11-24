@@ -31,9 +31,12 @@
           "model": {
             "from": "models.model"
           },
-          "prompt": "Image 1 is a depth map: keep its layout, the shelves and the armchair. Put the fox from image 2 in the armchair, wearing the red hat from image 3. A cosy library in warm evening light.",
+          "prompt": "Put the cat from image 1 in the armchair from image 3, wearing the red hat from image 4. Image 2 is the depth map of image 1: keep the cat's pose and shape. Keep the room and its lighting as they are.",
           "reference_size": "exact",
           "references": [
+            {
+              "from": "ref1.image"
+            },
             {
               "from": "depth.depth"
             },
@@ -86,14 +89,14 @@
       },
       "ref1": {
         "inputs": {
-          "file": "inputs/reading-nook.jpg"
+          "file": "inputs/cat.jpg"
         },
         "type": "local/reference-image",
         "version": "1.0.0"
       },
       "ref2": {
         "inputs": {
-          "file": "inputs/fox.jpg"
+          "file": "inputs/reading-nook.jpg"
         },
         "type": "local/reference-image",
         "version": "1.0.0"
@@ -115,7 +118,7 @@
       },
       "ref5": {
         "inputs": {
-          "file": "inputs/cat.jpg"
+          "file": "inputs/fox.jpg"
         },
         "mode": "bypass",
         "type": "local/reference-image",
