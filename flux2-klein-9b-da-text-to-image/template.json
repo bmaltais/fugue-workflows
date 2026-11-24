@@ -1,0 +1,9 @@
+{
+  "title": "FLUX.2 Klein 9B, DA settings",
+  "description": "A picture from a prompt with FLUX.2 Klein 9B, set as in the DA all-in-one workflow: seed 776, 6 steps, euler, flow shift 2.02, saved to a dated folder.",
+  "category": "image",
+  "tags": [
+    "FLUX.2 Klein",
+    "Text to image"
+  ]
+}
