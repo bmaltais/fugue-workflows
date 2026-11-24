@@ -1,0 +1,176 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "compare": {
+        "inputs": {
+          "a": {
+            "from": "load.image"
+          },
+          "b": {
+            "from": "restore.image"
+          },
+          "mode": "slider"
+        },
+        "type": "fugue/compare-images",
+        "version": "1.0.0"
+      },
+      "load": {
+        "inputs": {
+          "file": "inputs/reading-nook.jpg"
+        },
+        "type": "fugue/load-image",
+        "version": "1.0.0"
+      },
+      "restore": {
+        "inputs": {
+          "color_fix": "lab",
+          "factor": 3,
+          "image": {
+            "from": "load.image"
+          },
+          "seed": 0
+        },
+        "type": "local/restore",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "image": {
+            "from": "restore.image"
+          },
+          "name": "{date}/{model}_{time}"
+        },
+        "type": "fugue/save-image",
+        "version": "1.1.0"
+      }
+    }
+  },
+  "groups": {
+    "local/restore": {
+      "category": "Image/Transform",
+      "description": "Makes the picture 3 times bigger and sharper with SeedVR2 7B (INT8), which redraws the detail a plain resize cannot, and puts the input's colors back. The model and its VAE are inside, so it drops after any template that makes a picture: no loaders to wire.",
+      "inputs": [
+        {
+          "label": "Image",
+          "name": "image",
+          "targets": [
+            "restore.image"
+          ]
+        },
+        {
+          "label": "Factor",
+          "name": "factor",
+          "targets": [
+            "restore.factor"
+          ]
+        },
+        {
+          "label": "Seed",
+          "name": "seed",
+          "targets": [
+            "restore.seed"
+          ]
+        },
+        {
+          "label": "Color fix",
+          "name": "color_fix",
+          "targets": [
+            "restore.color_fix"
+          ]
+        }
+      ],
+      "name": "Restore",
+      "nodes": {
+        "restore": {
+          "inputs": {
+            "color_fix": "lab",
+            "factor": 3,
+            "model": {
+              "hash": "sha256:5aa0d25fc9d35e449b659d0c9a5dcb22e2a4fa04032101b95a39da42b32c1be6",
+              "name": "seedvr2_7b_int8_convrot.safetensors",
+              "resource": "fugue/diffusion-model"
+            },
+            "overlap": 64,
+            "seed": 0,
+            "tile": 512,
+            "vae": {
+              "hash": "sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1",
+              "name": "ema_vae_fp16.safetensors",
+              "resource": "fugue/vae"
+            }
+          },
+          "type": "fugue/restore-image",
+          "version": "1.0.0"
+        }
+      },
+      "outputs": [
+        {
+          "from": "restore.image",
+          "label": "Image",
+          "name": "image"
+        }
+      ],
+      "version": "1.0.0"
+    }
+  },
+  "layout": {
+    "groups": {
+      "local/restore": {
+        "nodes": {
+          "restore": {
+            "pos": [
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "nodes": {
+      "compare": {
+        "pos": [
+          680,
+          0
+        ]
+      },
+      "load": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "restore": {
+        "pos": [
+          340,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          680,
+          560
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "hash": "sha256:5aa0d25fc9d35e449b659d0c9a5dcb22e2a4fa04032101b95a39da42b32c1be6",
+        "name": "seedvr2_7b_int8_convrot.safetensors",
+        "resource": "fugue/diffusion-model",
+        "size": 8334897976,
+        "source": "https://huggingface.co/Comfy-Org/SeedVR2/resolve/df48879708206a403d2a61acd55578c2e80fd233/diffusion_models/seedvr2_7b_int8_convrot.safetensors"
+      },
+      {
+        "hash": "sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1",
+        "name": "ema_vae_fp16.safetensors",
+        "resource": "fugue/vae",
+        "size": 501324814,
+        "source": "https://huggingface.co/Comfy-Org/SeedVR2/resolve/df48879708206a403d2a61acd55578c2e80fd233/vae/ema_vae_fp16.safetensors"
+      }
+    ]
+  }
+}
