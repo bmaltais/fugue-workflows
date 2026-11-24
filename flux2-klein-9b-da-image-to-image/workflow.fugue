@@ -16,7 +16,7 @@
           "model": {
             "from": "models.model"
           },
-          "prompt": "a watercolor painting of a cozy corner of a room, soft evening light"
+          "prompt": "a cozy reading corner with a green velvet armchair, tall bookshelves and a floor lamp, soft evening light"
         },
         "type": "fugue/text-encode",
         "version": "1.0.0"
