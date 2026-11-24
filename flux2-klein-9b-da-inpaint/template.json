@@ -7,5 +7,10 @@
     "Inpaint",
     "Mask",
     "DA workflow"
-  ]
+  ],
+  "source": {
+    "name": "DA flux2 klein-9b distilled union v10",
+    "author": "DemonAlone",
+    "note": "ported like for like as separate templates (#339)"
+  }
 }
