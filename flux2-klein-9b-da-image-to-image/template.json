@@ -1,0 +1,9 @@
+{
+  "title": "FLUX.2 Klein 9B image to image, DA settings",
+  "description": "Redraw a picture with FLUX.2 Klein 9B: it is fitted to the output size, encoded and denoised at 0.6 (ComfyUI's reading: 6 steps of a longer schedule), so the layout and most of the look are kept and the details change. Raise the Sampler's Denoise toward 1 to leave the picture behind. Seed 776, euler, flow shift 2.02.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Image to image"
+  ]
+}
