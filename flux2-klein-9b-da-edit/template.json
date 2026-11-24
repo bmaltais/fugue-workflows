@@ -1,0 +1,10 @@
+{
+  "title": "FLUX.2 Klein 9B edit, up to five pictures",
+  "description": "Combine up to five pictures: each is scaled to 1 megapixel and given to the model as a reference, in order, and the prompt says what to do with them (image 1, image 2, and so on). Bypass the Reference images you do not need. The settings of the DA all-in-one workflow: seed 776, 6 steps.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Image edit",
+    "References"
+  ]
+}
