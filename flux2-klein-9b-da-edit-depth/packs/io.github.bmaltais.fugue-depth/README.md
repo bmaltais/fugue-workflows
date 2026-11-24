@@ -3,7 +3,7 @@
 The node **Depth Estimate** gives a picture as a depth picture: gray in 3 channels, the nearest part white and the
 farthest black (stretched to the full range), at the size of the picture. It is the depth map of ComfyUI's
 `AIO_Preprocessor` / `DepthAnythingV2Preprocessor`, and the Klein DA Edit template uses it as the first reference
-(`flux2-klein-9b-da-edit`: the Depth Estimate node is bypassed, turn it on to replace image 1 by its depth picture). Depth Anything V2 through ONNX Runtime, in this pack's
+(`flux2-klein-9b-da-edit-depth`: the node replaces image 1 by its depth picture). Depth Anything V2 through ONNX Runtime, in this pack's
 own Python environment.
 
 ## Licences (checked 2026-11-23)
