@@ -1,6 +1,6 @@
 {
-  "title": "FLUX.2 Klein 9B, restore at x3 (SeedVR2)",
-  "description": "The last stage of the DA workflow on its own: SeedVR2 7B (INT8) makes a picture three times bigger and redraws the detail a plain resize cannot, in one step with tiled encoding (512, overlap 64), then puts the input's colors back (lab). A 1 megapixel picture becomes 9; it needs a 24 GB card. The group is a library group with the model inside: save it to the library to drop it after any other template.",
+  "title": "SeedVR2 7B restore at x3, DA settings",
+  "description": "The last stage of the DA workflow on its own: SeedVR2 7B (INT8) makes a picture three times bigger and redraws the detail a plain resize cannot, in one step with tiled encoding (512, overlap 64), then puts the input's colors back (lab). A 1 megapixel picture becomes 9 (about 15 GB of graphics memory; the node refuses a result over 16.8 megapixels). The group is a library group with the model inside: save it to the library to drop it after any other template.",
   "category": "upscale",
   "tags": [
     "SeedVR2",
