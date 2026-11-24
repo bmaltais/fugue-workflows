@@ -1,0 +1,23 @@
+{
+  "catalog": 1,
+  "models": [
+    {
+      "id": "depth-anything-v2-small",
+      "title": "Depth Anything V2 Small",
+      "description": "Depth Estimate for most pictures: about 1 s on a CPU, 99 MB. The smallest of the family, and the only size under a licence that allows commercial use.",
+      "file": "depth-anything-v2-small.onnx",
+      "url": "https://huggingface.co/onnx-community/depth-anything-v2-small/resolve/4472b7362082ad9968fee890ca0f1e5aca36b93d/onnx/model.onnx",
+      "size": 99060839,
+      "sha256": "afb6a5c28f3b6bf1618c6e43f02073ef9dfdc70e937502d51603e57b0a1df10c",
+      "resource": "io.github.bmaltais.fugue-depth/depth-anything-model",
+      "architecture": "Depth Anything V2 (ViT-S), ONNX, any size that is a multiple of 14",
+      "license": "Apache-2.0",
+      "license_url": "https://huggingface.co/depth-anything/Depth-Anything-V2-Small",
+      "commercial": true,
+      "attribution": true,
+      "author": "Lihe Yang et al. (Depth Anything V2); ONNX export by Hugging Face (onnx-community)",
+      "source": "https://huggingface.co/onnx-community/depth-anything-v2-small",
+      "tags": ["depth", "onnx"]
+    }
+  ]
+}

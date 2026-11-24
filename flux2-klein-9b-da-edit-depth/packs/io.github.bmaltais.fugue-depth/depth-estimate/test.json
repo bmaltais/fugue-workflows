@@ -1,0 +1,3 @@
+{"cases": [
+  {"name": "depth", "inputs": {"image": "sample.png", "resolution": 224, "device": "cpu"}}
+]}
