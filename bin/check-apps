@@ -94,6 +94,15 @@ for name in with_block:
     for out in block.get("outputs", []):
         if out["node"] not in nodes:
             problems.append(f"{name}: output {out['node']} is not a node of the workflow")
+    # An app opens ready to try: every picture input defaults to a sample the template carries (inputs/...).
+    for item in shown["inputs"]:
+        if item.get("type") != "image":
+            continue
+        sample = item.get("default")
+        if not isinstance(sample, str) or not sample:
+            problems.append(f"{name}: picture input {item['key']} has no sample (default it to a file in {name}/inputs/)")
+        elif not os.path.isfile(os.path.join(ROOT, name, sample)):
+            problems.append(f"{name}: picture input {item['key']} defaults to {sample}, which the template does not carry")
     for item in block.get("inputs", []):
         for target in item.get("targets", []):
             node_id, _, port = target.partition(".")
