@@ -1,5 +1,34 @@
 {
   "fugue": 1,
+  "app": {
+    "format": 1,
+    "title": "Upscale",
+    "description": "Makes a picture four times bigger and draws in the detail a plain resize cannot (Real-ESRGAN).",
+    "defaultView": "app",
+    "inputs": [
+      {
+        "role": "image",
+        "targets": [
+          "load.file"
+        ],
+        "label": "Picture"
+      },
+      {
+        "role": "model",
+        "targets": [
+          "model.model"
+        ],
+        "label": "Upscale model",
+        "section": "Advanced"
+      }
+    ],
+    "outputs": [
+      {
+        "node": "save",
+        "label": "Upscaled picture"
+      }
+    ]
+  },
   "graph": {
     "nodes": {
       "compare": {

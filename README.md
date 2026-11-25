@@ -21,6 +21,13 @@ One folder per template; the folder's name is its id.
   task bar lists it (category `canvas`, by convention). The block names the inputs the canvas fills in (design:
   `docs/canvas-actions-design.md` in the fugue repo); `generative-fill` is the model (`harmonize` is a second: its prompt is optional and its selection too; `refine`, `remove` and `expand` follow, Expand with `selection: "bounds"`: the bar grows the canvas first). It is part of the workflow
   file, so it travels with every copy; it opens from Browse templates as a plain workflow too.
+- A template whose `workflow.fugue` has a top-level `app` block is also an **app**: Fugue's App view shows the block's
+  inputs as one simple form with a Run button, and `fugue app info|run <id>` reads it (spec 4.9 and 11.10 in the fugue repo).
+  `template.json` may carry `"app": {"title", "summary", "kind"}` for the card (`true` takes them from the block, `false`
+  keeps a block out of the Apps). One input list serves the `action` block and the `app` block alike: roles `image`, `prompt`,
+  `seed`, `model`, a plain `name` for the rest, `section: "Advanced"` for what a hobbyist leaves alone. The apps are
+  `remove-background`, `image-upscale`, `flux2-klein-9b-da-restore` (Restore) and `outpaint` (Expand). An app is the template's own
+  workflow, so it still opens as a graph; `bin/check-apps` makes sure every block reads.
 - What a template needs is read from its workflow, never written twice:
   - every model it names, by hash, with a `source` and a `size` in the workflow's
     `requires.models`: an https URL whose file has exactly that hash, and its bytes. Fugue
@@ -41,7 +48,7 @@ One folder per template; the folder's name is its id.
 2. Add `template.json` and a preview (about 768 px wide, WebP).
 3. Give each model in `requires.models` a `source` and a `size`. For a Hugging Face file,
    `curl -sI <source>` shows both checks: `x-linked-size` and `x-linked-etag` (the sha256).
-4. Run `bin/check`, then `FUGUE_TEMPLATES=$PWD fugue template list` (no warnings) and
+4. Run `bin/check`, then `bin/check-apps <fugue binary>` (when it has an `app` block), then `FUGUE_TEMPLATES=$PWD fugue template list` (no warnings) and
    `fugue validate <id>/workflow.fugue`.
 
 CI runs the same checks, the last two against Fugue's main branch.

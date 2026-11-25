@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""Every app reads: each template whose workflow.fugue has an `app` block passes `fugue app info`.
+
+Needs a Fugue binary (CI builds Fugue's main branch; locally `bin/check-apps ~/github/fugue/build/fugue`).
+`app info` reads the block against the graph and fails with app_invalid when a role, target or output is wrong;
+a stale target or output is the warning app_stale, which is a problem here too. A missing pack or model is no
+problem (the check reads no model file). Every template with a block must also be listed as an app, and the
+other way round (the catalog check of docs/spec.md 11.10), so a flag and a block never disagree (`"app": false` keeps a block out of the Apps on purpose).
+"""
+import json
+import os
+import subprocess
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+fugue = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("FUGUE", "fugue")
+env = dict(os.environ, FUGUE_TEMPLATES=ROOT)
+problems = []
+
+
+def run(*args):
+    done = subprocess.run([fugue, *args, "--json"], env=env, capture_output=True, text=True)
+    try:
+        return json.loads(done.stdout)
+    except ValueError:
+        return {"ok": False, "errors": [{"message": (done.stderr or done.stdout).strip()}]}
+
+
+def why(reply):
+    return "; ".join(e.get("message", "") for e in reply.get("errors", []) + reply.get("warnings", []))
+
+
+
+
+def load(name, file):
+    try:
+        with open(os.path.join(ROOT, name, file), encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+described = {}
+
+
+def ports(name, node):
+    """The input names of a node's type: a built-in or installed node by `fugue node describe`, a group by its face.
+    Unknown (a pack that is not installed here) means every name is allowed."""
+    kind = node.get("type", "")
+    group = load(name, "workflow.fugue").get("groups", {}).get(kind)
+    if group:
+        return {i["name"] for i in group.get("inputs", [])}
+    if kind not in described:
+        reply = run("node", "describe", kind)
+        found = (reply.get("data") or {}).get("nodes") or [None]
+        data = found[0]
+        described[kind] = {i["name"] for i in data.get("inputs", [])} if isinstance(data, dict) else None
+    return described[kind] or ports_any
+
+
+class _Any(set):
+    def __contains__(self, item):
+        return True
+
+
+ports_any = _Any()
+
+folders = sorted(n for n in os.listdir(ROOT) if os.path.isfile(os.path.join(ROOT, n, "workflow.fugue")))
+with_block = [n for n in folders if isinstance(load(n, "workflow.fugue"), dict) and "app" in load(n, "workflow.fugue")]
+kept_out = {n for n in with_block if load(n, "template.json").get("app") is False}  # a block the card hides on purpose
+
+listed = run("template", "list")
+flagged = sorted(t["id"] for t in listed.get("data", {}).get("templates", []) if t.get("app"))
+for name in sorted(set(with_block) - kept_out - set(flagged)):
+    problems.append(f"{name}: has an app block but is not listed as an app (template.json app flag?)")
+for name in sorted(set(flagged) - set(with_block)):
+    problems.append(f"{name}: is flagged as an app but its workflow has no app block")
+
+for name in with_block:
+    reply = run("app", "info", name)
+    if not reply.get("ok") or reply.get("warnings"):
+        problems.append(f"{name}: fugue app info: {why(reply)}")
+        continue
+    # Fugue drops a stale target or output without a word when it reads the block (spec 4.9, app_stale), so
+    # what `app info` shows must be everything the block says.
+    block = load(name, "workflow.fugue")["app"]
+    nodes = load(name, "workflow.fugue").get("graph", {}).get("nodes", {})
+    shown = reply["data"]
+    keys = [i.get("name") or i.get("role") for i in block.get("inputs", [])]
+    if keys != [i["key"] for i in shown["inputs"]]:
+        problems.append(f"{name}: the app block's inputs {keys} are not all read (a target's node is gone?)")
+    if [o["node"] for o in block.get("outputs", [])] != [o["node"] for o in shown["outputs"]]:
+        problems.append(f"{name}: an app output names a node that is not in the workflow")
+    for out in block.get("outputs", []):
+        if out["node"] not in nodes:
+            problems.append(f"{name}: output {out['node']} is not a node of the workflow")
+    for item in block.get("inputs", []):
+        for target in item.get("targets", []):
+            node_id, _, port = target.partition(".")
+            if node_id not in nodes:
+                problems.append(f"{name}: input {item.get('name') or item.get('role')} targets {target}, and there is no such node")
+            elif port not in ports(name, nodes[node_id]):
+                problems.append(f"{name}: input {item.get('name') or item.get('role')} targets {target}, and the node has no input {port}")
+
+for problem in problems:
+    print(problem, file=sys.stderr)
+print(f"{len(with_block)} apps, {len(problems)} problems")
+sys.exit(1 if problems else 0)

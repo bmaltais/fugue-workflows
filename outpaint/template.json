@@ -6,5 +6,10 @@
     "FLUX.2 Klein",
     "Outpaint",
     "Mask"
-  ]
+  ],
+  "app": {
+    "title": "Expand",
+    "summary": "Grow a picture on any side and fill in the new area.",
+    "kind": "image"
+  }
 }
