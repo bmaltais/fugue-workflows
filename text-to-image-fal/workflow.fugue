@@ -31,23 +31,19 @@
         "section": "Advanced"
       },
       {
-        "name": "width",
+        "name": "shape",
         "targets": [
-          "generate.width"
+          "size.aspect"
         ],
-        "label": "Width (pixels)",
-        "min": 256,
-        "max": 2048,
-        "section": "Advanced"
-      },
-      {
-        "name": "height",
-        "targets": [
-          "generate.height"
+        "label": "Shape",
+        "choices": [
+          "1:1",
+          "3:2",
+          "2:3",
+          "16:9",
+          "9:16"
         ],
-        "label": "Height (pixels)",
-        "min": 256,
-        "max": 2048,
+        "default": "1:1",
         "section": "Advanced"
       },
       {
@@ -75,8 +71,12 @@
             "name": "fal-ai/z-image/turbo"
           },
           "prompt": "a red fox in fresh snow, morning light, photo",
-          "width": 1024,
-          "height": 1024,
+          "width": {
+            "from": "size.width"
+          },
+          "height": {
+            "from": "size.height"
+          },
           "steps": 8,
           "seed": {
             "auto": "random"
@@ -103,6 +103,14 @@
         },
         "type": "fugue/save-image",
         "version": "1.0.0"
+      },
+      "size": {
+        "type": "fugue/image-size",
+        "version": "1.0.0",
+        "inputs": {
+          "aspect": "1:1",
+          "megapixels": 1
+        }
       }
     }
   },
@@ -124,6 +132,12 @@
         "pos": [
           400,
           320
+        ]
+      },
+      "size": {
+        "pos": [
+          -320,
+          0
         ]
       }
     }
