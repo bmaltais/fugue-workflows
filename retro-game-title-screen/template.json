@@ -1,0 +1,16 @@
+{
+  "title": "Retro Game Title Screen",
+  "description": "Type a game title, a scene and a hero, and get an 8-bit arcade title screen: the hero is keyed out of green, matched to the scene, graded neon, then pixelized.",
+  "category": "image",
+  "tags": [
+    "Z-Image",
+    "Pixel art",
+    "Retro",
+    "Text on image"
+  ],
+  "app": {
+    "title": "Retro Game Title Screen",
+    "summary": "Make an 8-bit arcade title screen from a title, a scene and a hero.",
+    "kind": "image"
+  }
+}
