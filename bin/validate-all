@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+"""bin/validate-all <fugue binary>: every template's workflow passes `fugue validate`.
+
+One error is allowed: a node of a pack the template carries in packs/<id> (`unknown_node_type` with
+that `pack`). CI cannot install those packs, because installing and trusting a pack needs a person,
+and Fugue registers only trusted packs; the template offers its carried pack when it is opened.
+Every other error fails the check.
+"""
+import json
+import pathlib
+import subprocess
+import sys
+
+if len(sys.argv) != 2:
+    sys.exit("usage: bin/validate-all <fugue binary>")
+fugue = str(pathlib.Path(sys.argv[1]).resolve())
+root = pathlib.Path(__file__).resolve().parent.parent
+failed = 0
+for flow in sorted(root.glob("*/workflow.fugue")):
+    folder = flow.parent
+    carried = {p.name for p in (folder / "packs").glob("*") if p.is_dir()}
+    done = subprocess.run([fugue, "validate", "workflow.fugue", "--json"], cwd=folder, capture_output=True, text=True)
+    try:
+        reply = json.loads(done.stdout)
+    except json.JSONDecodeError:
+        print(f"invalid: {folder.name}: no JSON reply ({done.stderr.strip()})")
+        failed += 1
+        continue
+    errors = [e for e in reply.get("errors", []) if e.get("severity", "error") == "error"]
+    left = [e for e in errors if not (e.get("code") == "unknown_node_type" and e.get("pack") in carried)]
+    if left or (not reply.get("ok") and not errors):
+        failed += 1
+        for e in left or [{"code": "?", "message": "validate failed with no error"}]:
+            print(f"invalid: {folder.name}: [{e.get('code')}] {e.get('message')}")
+print(f"{len(list(root.glob('*/workflow.fugue')))} workflows checked, {failed} invalid")
+sys.exit(1 if failed else 0)

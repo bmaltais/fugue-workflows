@@ -49,6 +49,6 @@ One folder per template; the folder's name is its id.
 3. Give each model in `requires.models` a `source` and a `size`. For a Hugging Face file,
    `curl -sI <source>` shows both checks: `x-linked-size` and `x-linked-etag` (the sha256).
 4. Run `bin/check`, then `bin/check-apps <fugue binary>` (when it has an `app` block), then `FUGUE_TEMPLATES=$PWD fugue template list` (no warnings) and
-   `fugue validate <id>/workflow.fugue`.
+   `bin/validate-all <fugue binary>` (every workflow validates; a node of a pack the template carries in `packs/` is allowed, since CI cannot install and trust packs).
 
 CI runs the same checks, the last two against Fugue's main branch.
