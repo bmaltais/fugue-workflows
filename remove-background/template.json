@@ -11,5 +11,7 @@
     "title": "Remove Background",
     "summary": "Cut out the subject and make the background transparent.",
     "kind": "image"
-  }
+  },
+  "preview": "preview.webm",
+  "poster": "poster.png"
 }
