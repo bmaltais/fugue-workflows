@@ -1,7 +1,8 @@
 name: Check
 
 # Every template: its shape (bin/check), then Fugue's own reading of it against Fugue's main
-# branch: `fugue template list` with no warnings, and every workflow validates.
+# branch: `fugue template list` with no warnings, every workflow validates, and every app (a workflow with an
+# `app` block) reads (bin/check-apps).
 on:
   pull_request:
   push:
@@ -58,10 +59,9 @@ jobs:
           print(listed, 'templates listed')
           sys.exit(1 if reply.get('warnings') or listed == 0 else 0)"
 
+      # A node of a pack the template carries is allowed: CI cannot install and trust packs (bin/validate-all).
       - name: Every workflow validates
-        run: |
-          status=0
-          for flow in templates/*/workflow.fugue; do
-            (cd "$(dirname "$flow")" && "$GITHUB_WORKSPACE/fugue/build/fugue" validate workflow.fugue >/dev/null) || { echo "invalid: $flow"; status=1; }
-          done
-          exit $status
+        run: templates/bin/validate-all "$GITHUB_WORKSPACE/fugue/build/fugue"
+
+      - name: Every app reads
+        run: templates/bin/check-apps "$GITHUB_WORKSPACE/fugue/build/fugue"

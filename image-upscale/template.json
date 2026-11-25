@@ -6,5 +6,10 @@
     "Upscale",
     "Real-ESRGAN",
     "Compare"
-  ]
+  ],
+  "app": {
+    "title": "Upscale",
+    "summary": "Make a picture four times bigger with Real-ESRGAN.",
+    "kind": "image"
+  }
 }

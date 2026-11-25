@@ -6,5 +6,10 @@
     "Remove background",
     "Cutout",
     "Mask"
-  ]
+  ],
+  "app": {
+    "title": "Remove Background",
+    "summary": "Cut out the subject and make the background transparent.",
+    "kind": "image"
+  }
 }

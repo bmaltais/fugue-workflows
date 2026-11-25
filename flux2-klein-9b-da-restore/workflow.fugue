@@ -1,5 +1,50 @@
 {
   "fugue": 1,
+  "app": {
+    "format": 1,
+    "title": "Restore",
+    "description": "Makes a picture bigger and redraws the detail a plain resize cannot (SeedVR2 7B), then puts its colors back. Needs about 15 GB of graphics memory for a 1 megapixel picture at the default size.",
+    "defaultView": "app",
+    "inputs": [
+      {
+        "role": "image",
+        "targets": [
+          "load.file"
+        ],
+        "label": "Picture"
+      },
+      {
+        "name": "factor",
+        "targets": [
+          "restore.factor"
+        ],
+        "label": "Make it this many times bigger",
+        "min": 1,
+        "max": 4
+      },
+      {
+        "role": "seed",
+        "targets": [
+          "restore.seed"
+        ],
+        "label": "Seed"
+      },
+      {
+        "name": "color_fix",
+        "targets": [
+          "restore.color_fix"
+        ],
+        "label": "Color fix",
+        "section": "Advanced"
+      }
+    ],
+    "outputs": [
+      {
+        "node": "save",
+        "label": "Restored picture"
+      }
+    ]
+  },
   "graph": {
     "nodes": {
       "compare": {

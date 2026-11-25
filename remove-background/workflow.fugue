@@ -1,5 +1,42 @@
 {
   "fugue": 1,
+  "app": {
+    "format": 1,
+    "title": "Remove Background",
+    "description": "Cuts the subject out of a picture and leaves the background transparent (BiRefNet).",
+    "defaultView": "app",
+    "inputs": [
+      {
+        "role": "image",
+        "targets": [
+          "load.file"
+        ],
+        "label": "Picture"
+      },
+      {
+        "role": "model",
+        "targets": [
+          "cut.model"
+        ],
+        "label": "Model",
+        "section": "Advanced"
+      },
+      {
+        "name": "threshold",
+        "targets": [
+          "cut.threshold"
+        ],
+        "label": "Hard edge (0 keeps the soft edge)",
+        "section": "Advanced"
+      }
+    ],
+    "outputs": [
+      {
+        "node": "save",
+        "label": "Cutout"
+      }
+    ]
+  },
   "graph": {
     "nodes": {
       "cut": {
