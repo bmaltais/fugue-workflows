@@ -1,0 +1,531 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "models": {
+        "type": "fugue/load-models",
+        "version": "1.2.0",
+        "inputs": {
+          "diffusion_model": {
+            "hash": "sha256:f163d60b0eb427469510b8226243d196574a18139a2e40c017409cfbda95ecfe",
+            "name": "z-image-turbo-Q8_0.gguf",
+            "resource": "fugue/diffusion-model"
+          },
+          "text_encoder": {
+            "hash": "sha256:eed555233267a33c7e8ee31682762cc7751b3f6d224039086e0e846f05fffa5d",
+            "name": "Qwen3-4B-Q8_0.gguf",
+            "resource": "fugue/text-encoder"
+          },
+          "vae": {
+            "hash": "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38",
+            "name": "ae.safetensors",
+            "resource": "fugue/vae"
+          }
+        }
+      },
+      "encode_scene": {
+        "type": "fugue/text-encode",
+        "version": "1.1.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "prompt": "a neon-lit alien city at night under a huge purple moon, flying cars, glowing signs, rain-slick streets, retro sci-fi arcade game background, wide shot, empty street in the foreground"
+        }
+      },
+      "hero_prompt": {
+        "type": "fugue/text-template",
+        "version": "1.0.0",
+        "inputs": {
+          "template": "{a}, full body, standing, front view, solid plain flat bright pure green (#00ff00) background, no shadow",
+          "a": "a heroic cartoon space ranger in a bright red and orange armored suit with a round helmet and a blue glowing visor, holding a big blaster"
+        }
+      },
+      "encode_hero": {
+        "type": "fugue/text-encode",
+        "version": "1.1.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "prompt": {
+            "from": "hero_prompt.text"
+          }
+        }
+      },
+      "size": {
+        "type": "fugue/empty-latent",
+        "version": "1.0.0",
+        "inputs": {
+          "width": 1024,
+          "height": 1024
+        }
+      },
+      "sample_scene": {
+        "type": "fugue/sampler",
+        "version": "1.5.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "conditioning": {
+            "from": "encode_scene.conditioning"
+          },
+          "latent": {
+            "from": "size.latent"
+          },
+          "guidance": 1,
+          "steps": 8,
+          "seed": {
+            "auto": "random"
+          }
+        }
+      },
+      "sample_hero": {
+        "type": "fugue/sampler",
+        "version": "1.5.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "conditioning": {
+            "from": "encode_hero.conditioning"
+          },
+          "latent": {
+            "from": "size.latent"
+          },
+          "guidance": 1,
+          "steps": 8,
+          "seed": {
+            "auto": "random"
+          },
+          "variation_strength": 0
+        }
+      },
+      "scene": {
+        "type": "fugue/vae-decode",
+        "version": "1.0.0",
+        "inputs": {
+          "latent": {
+            "from": "sample_scene.latent"
+          }
+        }
+      },
+      "hero": {
+        "type": "fugue/vae-decode",
+        "version": "1.0.0",
+        "inputs": {
+          "latent": {
+            "from": "sample_hero.latent"
+          }
+        }
+      },
+      "key": {
+        "type": "fugue/mask-from-color",
+        "version": "1.0.0",
+        "inputs": {
+          "image": {
+            "from": "hero.image"
+          },
+          "color": "#65e478",
+          "tolerance": 0.14,
+          "soften": 3
+        }
+      },
+      "match": {
+        "type": "fugue/color-match",
+        "version": "1.1.0",
+        "inputs": {
+          "image": {
+            "from": "hero.image"
+          },
+          "reference": {
+            "from": "scene.image"
+          },
+          "mask": {
+            "from": "key.mask"
+          },
+          "method": "match-color",
+          "strength": 0.65,
+          "luminance": 0.7,
+          "color_intensity": 1.1
+        }
+      },
+      "cut": {
+        "type": "fugue/invert-mask",
+        "version": "1.0.1",
+        "inputs": {
+          "mask": {
+            "from": "key.mask"
+          }
+        }
+      },
+      "small": {
+        "type": "fugue/resize",
+        "version": "1.0.0",
+        "inputs": {
+          "image": {
+            "from": "match.image"
+          },
+          "width": 800,
+          "height": 800,
+          "fit": "contain"
+        }
+      },
+      "small_mask": {
+        "type": "fugue/resize",
+        "version": "1.0.0",
+        "inputs": {
+          "image": {
+            "from": "cut.mask"
+          },
+          "width": 800,
+          "height": 800,
+          "fit": "contain"
+        }
+      },
+      "place": {
+        "type": "fugue/composite-masked",
+        "version": "1.0.0",
+        "inputs": {
+          "destination": {
+            "from": "scene.image"
+          },
+          "source": {
+            "from": "small.image"
+          },
+          "mask": {
+            "from": "small_mask.image"
+          },
+          "x": 112,
+          "y": 244
+        }
+      },
+      "posterize": {
+        "type": "fugue/posterize",
+        "version": "1.0.0",
+        "inputs": {
+          "image": {
+            "from": "place.image"
+          },
+          "levels": 7
+        }
+      },
+      "grade": {
+        "type": "fugue/apply-lut",
+        "version": "1.0.0",
+        "inputs": {
+          "image": {
+            "from": "posterize.image"
+          },
+          "file": "inputs/neon-arcade.cube",
+          "strength": 1
+        }
+      },
+      "title": {
+        "type": "fugue/draw-text",
+        "version": "1.0.0",
+        "inputs": {
+          "image": {
+            "from": "grade.image"
+          },
+          "text": "SPACE RANGER",
+          "anchor": "top-center",
+          "x": 512,
+          "y": 70,
+          "size": 120,
+          "color": "#ffe81a",
+          "outline": 10,
+          "outline_color": "#2a0050",
+          "align": "center",
+          "max_width": 980
+        }
+      },
+      "start": {
+        "type": "fugue/draw-text",
+        "version": "1.0.0",
+        "inputs": {
+          "image": {
+            "from": "title.image"
+          },
+          "text": "PRESS START",
+          "anchor": "bottom-center",
+          "x": 512,
+          "y": 979,
+          "size": 72,
+          "color": "#ffffff",
+          "outline": 9,
+          "outline_color": "#2a0050"
+        }
+      },
+      "pixels": {
+        "type": "fugue/pixelize",
+        "version": "1.0.0",
+        "inputs": {
+          "image": {
+            "from": "start.image"
+          },
+          "block_size": 7
+        }
+      },
+      "preview": {
+        "type": "fugue/preview",
+        "version": "1.0.0",
+        "inputs": {
+          "value": {
+            "from": "pixels.image"
+          }
+        }
+      },
+      "save": {
+        "type": "fugue/save-image",
+        "version": "1.1.0",
+        "inputs": {
+          "image": {
+            "from": "pixels.image"
+          },
+          "name": "retro-title-screen"
+        }
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "models": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "hero_prompt": {
+        "pos": [
+          340,
+          0
+        ]
+      },
+      "encode_scene": {
+        "pos": [
+          340,
+          340
+        ]
+      },
+      "encode_hero": {
+        "pos": [
+          340,
+          680
+        ]
+      },
+      "size": {
+        "pos": [
+          340,
+          1020
+        ]
+      },
+      "sample_scene": {
+        "pos": [
+          680,
+          0
+        ]
+      },
+      "sample_hero": {
+        "pos": [
+          680,
+          340
+        ]
+      },
+      "scene": {
+        "pos": [
+          1020,
+          0
+        ]
+      },
+      "hero": {
+        "pos": [
+          1020,
+          340
+        ]
+      },
+      "key": {
+        "pos": [
+          1360,
+          0
+        ]
+      },
+      "cut": {
+        "pos": [
+          1360,
+          340
+        ]
+      },
+      "match": {
+        "pos": [
+          1700,
+          0
+        ]
+      },
+      "small": {
+        "pos": [
+          1700,
+          340
+        ]
+      },
+      "small_mask": {
+        "pos": [
+          1700,
+          680
+        ]
+      },
+      "place": {
+        "pos": [
+          2040,
+          0
+        ]
+      },
+      "posterize": {
+        "pos": [
+          2380,
+          0
+        ]
+      },
+      "grade": {
+        "pos": [
+          2720,
+          0
+        ]
+      },
+      "title": {
+        "pos": [
+          3060,
+          0
+        ]
+      },
+      "start": {
+        "pos": [
+          3060,
+          340
+        ]
+      },
+      "pixels": {
+        "pos": [
+          3400,
+          0
+        ]
+      },
+      "preview": {
+        "pos": [
+          3740,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          3740,
+          340
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "resource": "fugue/vae",
+        "hash": "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38",
+        "name": "ae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Z-Image-Turbo/resolve/main/split_files/vae/ae.safetensors",
+        "size": 335304388
+      },
+      {
+        "resource": "fugue/text-encoder",
+        "hash": "sha256:eed555233267a33c7e8ee31682762cc7751b3f6d224039086e0e846f05fffa5d",
+        "name": "Qwen3-4B-Q8_0.gguf",
+        "source": "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q8_0.gguf",
+        "size": 4280405792
+      },
+      {
+        "resource": "fugue/diffusion-model",
+        "hash": "sha256:f163d60b0eb427469510b8226243d196574a18139a2e40c017409cfbda95ecfe",
+        "name": "z-image-turbo-Q8_0.gguf",
+        "source": "https://huggingface.co/unsloth/Z-Image-Turbo-GGUF/resolve/main/z-image-turbo-Q8_0.gguf",
+        "size": 7224707136
+      }
+    ]
+  },
+  "app": {
+    "format": 1,
+    "title": "Retro Game Title Screen",
+    "description": "Type a title, a scene and a hero: out comes an 8-bit arcade title screen.",
+    "defaultView": "app",
+    "inputs": [
+      {
+        "name": "title",
+        "targets": [
+          "title.text"
+        ],
+        "label": "Game title"
+      },
+      {
+        "role": "prompt",
+        "name": "scene",
+        "targets": [
+          "encode_scene.prompt"
+        ],
+        "label": "Scene",
+        "default": "a neon-lit alien city at night under a huge purple moon, flying cars, glowing signs, rain-slick streets, retro sci-fi arcade game background, wide shot, empty street in the foreground"
+      },
+      {
+        "name": "hero",
+        "targets": [
+          "hero_prompt.a"
+        ],
+        "label": "Hero",
+        "default": "a heroic cartoon space ranger in a bright red and orange armored suit with a round helmet and a blue glowing visor, holding a big blaster"
+      },
+      {
+        "role": "seed",
+        "targets": [
+          "sample_scene.seed",
+          "sample_hero.seed"
+        ],
+        "label": "Seed"
+      },
+      {
+        "name": "variation",
+        "targets": [
+          "sample_scene.variation_strength",
+          "sample_hero.variation_strength"
+        ],
+        "label": "Variation (small redraws of a screen you like)",
+        "min": 0,
+        "max": 1,
+        "section": "Advanced"
+      },
+      {
+        "name": "pixel",
+        "targets": [
+          "pixels.block_size"
+        ],
+        "label": "Pixel size",
+        "min": 1,
+        "max": 24,
+        "section": "Advanced"
+      },
+      {
+        "name": "levels",
+        "targets": [
+          "posterize.levels"
+        ],
+        "label": "Color levels",
+        "min": 2,
+        "max": 16,
+        "section": "Advanced"
+      }
+    ],
+    "outputs": [
+      {
+        "node": "save",
+        "label": "Title screen"
+      }
+    ]
+  }
+}
