@@ -99,6 +99,8 @@ for name in with_block:
         if item.get("type") != "image":
             continue
         sample = item.get("default")
+        if item.get("optional") and sample is None:
+            continue  # an optional picture may be left out (its branch is bypassed): no sample needed
         if not isinstance(sample, str) or not sample:
             problems.append(f"{name}: picture input {item['key']} has no sample (default it to a file in {name}/inputs/)")
         elif not os.path.isfile(os.path.join(ROOT, name, sample)):

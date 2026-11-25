@@ -3,7 +3,7 @@
   "app": {
     "format": 1,
     "title": "Edit with pictures",
-    "description": "Combines pictures by a prompt: each is given to the model as a reference, and the prompt says what to do with them (image 1, image 2 and so on). FLUX.2 Klein 9B.",
+    "description": "Combines pictures by a prompt: each is given to the model as a reference, and the prompt says what to do with them (image 1, image 2 and so on). Pictures 4 and 5 are optional. FLUX.2 Klein 9B.",
     "defaultView": "app",
     "inputs": [
       {
@@ -36,6 +36,24 @@
           "ref3.file"
         ],
         "label": "Picture 3"
+      },
+      {
+        "role": "image",
+        "name": "image4",
+        "targets": [
+          "ref4.file"
+        ],
+        "label": "Picture 4",
+        "optional": true
+      },
+      {
+        "role": "image",
+        "name": "image5",
+        "targets": [
+          "ref5.file"
+        ],
+        "label": "Picture 5",
+        "optional": true
       },
       {
         "role": "seed",
