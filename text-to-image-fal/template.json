@@ -1,0 +1,16 @@
+{
+  "title": "Text to image on fal.ai",
+  "description": "Draws a picture from a prompt with Z-Image Turbo, which runs on fal.ai, not on this machine: about $0.005 a picture at 1024 by 1024. Needs a fal.ai key (Settings > Providers > add fal.ai); the prompt goes to fal.ai.",
+  "category": "image",
+  "tags": [
+    "Z-Image",
+    "Text to image",
+    "fal.ai",
+    "Cloud"
+  ],
+  "app": {
+    "title": "Text to image on fal.ai",
+    "summary": "Draw a picture on fal.ai, about $0.005.",
+    "kind": "image"
+  }
+}

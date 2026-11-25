@@ -1,0 +1,134 @@
+{
+  "fugue": 1,
+  "app": {
+    "format": 1,
+    "title": "Text to image on fal.ai",
+    "description": "Draws a picture from a prompt with Z-Image Turbo, which runs on fal.ai, not on this machine: about $0.005 a picture at 1024 by 1024. Needs a fal.ai key (Settings > Providers > add fal.ai); the prompt goes to fal.ai.",
+    "defaultView": "app",
+    "inputs": [
+      {
+        "role": "prompt",
+        "targets": [
+          "generate.prompt"
+        ],
+        "label": "What to draw"
+      },
+      {
+        "role": "seed",
+        "targets": [
+          "generate.seed"
+        ],
+        "label": "Seed"
+      },
+      {
+        "name": "steps",
+        "targets": [
+          "generate.steps"
+        ],
+        "label": "Steps",
+        "min": 1,
+        "max": 8,
+        "section": "Advanced"
+      },
+      {
+        "name": "width",
+        "targets": [
+          "generate.width"
+        ],
+        "label": "Width (pixels)",
+        "min": 256,
+        "max": 2048,
+        "section": "Advanced"
+      },
+      {
+        "name": "height",
+        "targets": [
+          "generate.height"
+        ],
+        "label": "Height (pixels)",
+        "min": 256,
+        "max": 2048,
+        "section": "Advanced"
+      },
+      {
+        "role": "model",
+        "targets": [
+          "generate.model"
+        ],
+        "label": "fal.ai model",
+        "section": "Advanced"
+      }
+    ],
+    "outputs": [
+      {
+        "node": "save",
+        "label": "Picture"
+      }
+    ]
+  },
+  "graph": {
+    "nodes": {
+      "generate": {
+        "inputs": {
+          "model": {
+            "resource": "fugue/image-model",
+            "name": "fal-ai/z-image/turbo"
+          },
+          "prompt": "a red fox in fresh snow, morning light, photo",
+          "width": 1024,
+          "height": 1024,
+          "steps": 8,
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/generate-image",
+        "version": "1.0.0"
+      },
+      "preview": {
+        "inputs": {
+          "value": {
+            "from": "generate.image"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "image": {
+            "from": "generate.image"
+          },
+          "name": "text-to-image-fal"
+        },
+        "type": "fugue/save-image",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "generate": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "preview": {
+        "pos": [
+          400,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          400,
+          320
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}

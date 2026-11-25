@@ -1,0 +1,16 @@
+{
+  "title": "Edit a picture on fal.ai",
+  "description": "Changes a picture by saying what to change, with FLUX.2 [klein] 4B edit on fal.ai, not on this machine: about $0.01 a picture (the picture is scaled to 1 megapixel first). Needs a fal.ai key (Settings > Providers > add fal.ai); the picture and prompt go to fal.ai.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Image edit",
+    "fal.ai",
+    "Cloud"
+  ],
+  "app": {
+    "title": "Edit a picture on fal.ai",
+    "summary": "Change a picture on fal.ai, about $0.01.",
+    "kind": "image"
+  }
+}

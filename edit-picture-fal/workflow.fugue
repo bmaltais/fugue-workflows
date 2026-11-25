@@ -1,0 +1,154 @@
+{
+  "fugue": 1,
+  "app": {
+    "format": 1,
+    "title": "Edit a picture on fal.ai",
+    "description": "Changes a picture by saying what to change, with FLUX.2 [klein] 4B edit on fal.ai, not on this machine: about $0.01 a picture (the picture is scaled to 1 megapixel first). Needs a fal.ai key (Settings > Providers > add fal.ai); the picture and prompt go to fal.ai.",
+    "defaultView": "app",
+    "inputs": [
+      {
+        "role": "image",
+        "targets": [
+          "load.file"
+        ],
+        "label": "Picture"
+      },
+      {
+        "role": "prompt",
+        "targets": [
+          "edit.instruction"
+        ],
+        "label": "What to change"
+      },
+      {
+        "role": "seed",
+        "targets": [
+          "edit.seed"
+        ],
+        "label": "Seed"
+      },
+      {
+        "name": "steps",
+        "targets": [
+          "edit.steps"
+        ],
+        "label": "Steps",
+        "min": 4,
+        "max": 8,
+        "section": "Advanced"
+      },
+      {
+        "role": "model",
+        "targets": [
+          "edit.model"
+        ],
+        "label": "fal.ai model",
+        "section": "Advanced"
+      }
+    ],
+    "outputs": [
+      {
+        "node": "save",
+        "label": "Edited picture"
+      }
+    ]
+  },
+  "graph": {
+    "nodes": {
+      "load": {
+        "inputs": {
+          "file": "inputs/cat.jpg"
+        },
+        "type": "fugue/load-image",
+        "version": "1.0.0"
+      },
+      "scale": {
+        "inputs": {
+          "image": {
+            "from": "load.image"
+          },
+          "megapixels": 1,
+          "method": "lanczos"
+        },
+        "type": "fugue/resize-megapixels",
+        "version": "1.0.0"
+      },
+      "edit": {
+        "inputs": {
+          "model": {
+            "resource": "fugue/image-model",
+            "name": "fal-ai/flux-2/klein/4b/edit"
+          },
+          "instruction": "Make it night under a full moon. Keep everything else the same.",
+          "images": [
+            {
+              "from": "scale.image"
+            }
+          ],
+          "steps": 4,
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/edit-image",
+        "version": "1.0.0"
+      },
+      "preview": {
+        "inputs": {
+          "value": {
+            "from": "edit.image"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "image": {
+            "from": "edit.image"
+          },
+          "name": "edit-fal"
+        },
+        "type": "fugue/save-image",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "load": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "scale": {
+        "pos": [
+          340,
+          0
+        ]
+      },
+      "edit": {
+        "pos": [
+          680,
+          0
+        ]
+      },
+      "preview": {
+        "pos": [
+          1020,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          1020,
+          320
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}
