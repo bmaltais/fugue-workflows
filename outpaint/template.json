@@ -1,6 +1,6 @@
 {
   "title": "Outpaint: extend a picture",
-  "description": "Add room on the left and right of a picture and fill it in: the model draws the new border to match the picture, which is put back unchanged over the result. 4 steps.",
+  "description": "Add room on the left and right of a picture and fill it in: the model draws the new border to match the picture, which is put back unchanged over the result. 4 steps. Runs on FLUX.2 Klein 4B (Apache-2.0, about 8.9 GB of models); the original picture is also given to the model as a reference.",
   "category": "edit",
   "tags": [
     "FLUX.2 Klein",

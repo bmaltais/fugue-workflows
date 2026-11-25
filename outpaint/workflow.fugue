@@ -143,7 +143,12 @@
           "model": {
             "from": "models.model"
           },
-          "prompt": "A cat sitting on a wooden windowsill by a window, with green plants in terracotta pots, soft daylight."
+          "prompt": "A cat sitting on a wooden windowsill by a window, with green plants in terracotta pots, soft daylight.",
+          "references": [
+            {
+              "from": "load.image"
+            }
+          ]
         }
       },
       "vae_encode": {
