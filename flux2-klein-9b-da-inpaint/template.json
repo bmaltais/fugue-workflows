@@ -8,6 +8,11 @@
     "Mask",
     "DA workflow"
   ],
+  "app": {
+    "title": "Inpaint",
+    "summary": "Paint the part of a picture to change and say what goes there.",
+    "kind": "image"
+  },
   "source": {
     "name": "DA flux2 klein-9b distilled union v10",
     "author": "DemonAlone",

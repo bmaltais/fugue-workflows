@@ -8,6 +8,11 @@
     "References",
     "DA workflow"
   ],
+  "app": {
+    "title": "Edit with pictures",
+    "summary": "Combine up to three pictures by a prompt.",
+    "kind": "image"
+  },
   "source": {
     "name": "DA flux2 klein-9b distilled union v10",
     "author": "DemonAlone",
