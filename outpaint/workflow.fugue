@@ -90,7 +90,14 @@
         "node": "save",
         "label": "Expanded picture"
       }
-    ]
+    ],
+    "compare": {
+      "input": "image",
+      "left": "left",
+      "top": "top",
+      "right": "right",
+      "bottom": "bottom"
+    }
   },
   "graph": {
     "nodes": {
