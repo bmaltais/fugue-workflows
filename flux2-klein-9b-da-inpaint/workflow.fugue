@@ -1,5 +1,79 @@
 {
   "fugue": 1,
+  "app": {
+    "format": 1,
+    "title": "Inpaint",
+    "description": "Redraws the part of a picture you paint, following a prompt, and keeps the rest as it is (FLUX.2 Klein 9B). Paint the part to change in white.",
+    "defaultView": "app",
+    "inputs": [
+      {
+        "role": "image",
+        "targets": [
+          "load.file"
+        ],
+        "label": "Picture"
+      },
+      {
+        "role": "mask",
+        "targets": [
+          "load.mask"
+        ],
+        "label": "Part to change (paint it white)"
+      },
+      {
+        "role": "prompt",
+        "targets": [
+          "encode.prompt"
+        ],
+        "label": "What goes there"
+      },
+      {
+        "role": "seed",
+        "targets": [
+          "sample.seed"
+        ],
+        "label": "Seed"
+      },
+      {
+        "name": "steps",
+        "targets": [
+          "sample.steps"
+        ],
+        "label": "Steps",
+        "min": 1,
+        "max": 12,
+        "section": "Advanced"
+      },
+      {
+        "name": "width",
+        "targets": [
+          "resize-image.width",
+          "resize-mask.width"
+        ],
+        "label": "Working width (pixels)",
+        "min": 256,
+        "max": 2048,
+        "section": "Advanced"
+      },
+      {
+        "name": "height",
+        "targets": [
+          "resize-image.height",
+          "resize-mask.height"
+        ],
+        "label": "Working height (pixels)",
+        "min": 256,
+        "max": 2048,
+        "section": "Advanced"
+      }
+    ],
+    "outputs": [
+      {
+        "node": "save",
+        "label": "Inpainted picture"
+      }
+    ]
+  },
   "graph": {
     "nodes": {
       "decode": {

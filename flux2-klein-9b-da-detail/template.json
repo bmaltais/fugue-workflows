@@ -10,6 +10,11 @@
     "Find by Text",
     "DA workflow"
   ],
+  "app": {
+    "title": "Detailer",
+    "summary": "Redraw faces and eyes at full detail, then blend them back.",
+    "kind": "image"
+  },
   "source": {
     "name": "DA flux2 klein-9b distilled union v10",
     "author": "DemonAlone",
