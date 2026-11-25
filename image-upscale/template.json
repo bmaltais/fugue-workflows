@@ -11,5 +11,7 @@
     "title": "Upscale",
     "summary": "Make a picture four times bigger with Real-ESRGAN.",
     "kind": "image"
-  }
+  },
+  "preview": "preview.webm",
+  "poster": "poster.png"
 }

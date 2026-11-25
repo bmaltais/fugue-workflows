@@ -12,6 +12,8 @@ One folder per template; the folder's name is its id.
 <id>/template.json    {"title", "description", "category", "tags": [...]}
 <id>/workflow.fugue   the workflow
 <id>/preview.webp     what it makes (preview.png or .jpg also work)
+<id>/preview.webm     optional: a moving preview (VP9, no audio, 640x640, a 3 to 4 s loop); template.json names it
+                      ("preview": "preview.webm") and its still ("poster": "poster.png")
 <id>/inputs/          sample pictures its Load Image nodes name as inputs/<name>, and a painted
                       mask's PNG (8-bit gray, white is redrawn) when a node has one
 ```

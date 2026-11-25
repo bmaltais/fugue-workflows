@@ -18,5 +18,7 @@
     "title": "Restore",
     "summary": "Sharpen and enlarge a picture, redrawing lost detail (SeedVR2).",
     "kind": "image"
-  }
+  },
+  "preview": "preview.webm",
+  "poster": "poster.png"
 }

@@ -11,5 +11,7 @@
     "title": "Expand",
     "summary": "Grow a picture on any side and fill in the new area.",
     "kind": "image"
-  }
+  },
+  "preview": "preview.webm",
+  "poster": "poster.png"
 }

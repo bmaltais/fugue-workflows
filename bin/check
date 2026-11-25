@@ -15,6 +15,7 @@ SHA = re.compile(r"^sha256:[0-9a-f]{64}$")
 PREVIEWS = ("preview.webp", "preview.png", "preview.jpg")
 MAX_PREVIEW = 300 * 1024
 MAX_INPUT = 600 * 1024
+MAX_CLIP = 600 * 1024  # a moving preview (preview.webm) and its poster
 problems = []
 
 
@@ -64,6 +65,19 @@ for name in sorted(os.listdir(ROOT)):
         problems.append(f"{name}: needs a preview ({', '.join(PREVIEWS)})")
     elif os.path.getsize(os.path.join(folder, preview)) > MAX_PREVIEW:
         problems.append(f"{name}/{preview}: over {MAX_PREVIEW // 1024} KB")
+    # A moving preview: template.json's `preview` names a WebM, `poster` its still (the still preview above stays the fallback).
+    if about is not None and "preview" in about:
+        clip = about["preview"]
+        if not isinstance(clip, str) or clip != os.path.basename(clip) or not os.path.isfile(os.path.join(folder, clip)):
+            problems.append(f"{name}/template.json: preview {clip!r} is not a file of the folder")
+        elif os.path.getsize(os.path.join(folder, clip)) > MAX_CLIP:
+            problems.append(f"{name}/{clip}: over {MAX_CLIP // 1024} KB")
+        elif clip.endswith(".webm"):
+            poster = about.get("poster")
+            if not isinstance(poster, str) or poster != os.path.basename(poster) or not os.path.isfile(os.path.join(folder, poster)):
+                problems.append(f"{name}/template.json: a WebM preview needs a poster that is a file of the folder")
+            elif os.path.getsize(os.path.join(folder, poster)) > MAX_CLIP:
+                problems.append(f"{name}/{poster}: over {MAX_CLIP // 1024} KB")
     inputs = os.path.join(folder, "inputs")
     if os.path.isdir(inputs):
         for f in os.listdir(inputs):
