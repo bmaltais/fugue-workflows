@@ -1,0 +1,16 @@
+{
+  "title": "Quick sketch on fal.ai",
+  "description": "The cheapest test of the fal.ai connection: FLUX.1 [schnell] makes one 1024 by 1024 picture in 4 steps for about $0.003. It runs on fal.ai, not on this machine, and needs a fal.ai key (Settings > Providers > add fal.ai); the prompt goes to fal.ai.",
+  "category": "image",
+  "tags": [
+    "FLUX.1 schnell",
+    "Text to image",
+    "fal.ai",
+    "Cloud"
+  ],
+  "app": {
+    "title": "Quick sketch on fal.ai",
+    "summary": "A sketch on fal.ai for about $0.003.",
+    "kind": "image"
+  }
+}

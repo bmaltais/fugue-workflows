@@ -1,0 +1,148 @@
+{
+  "fugue": 1,
+  "app": {
+    "format": 1,
+    "title": "Quick sketch on fal.ai",
+    "description": "The cheapest test of the fal.ai connection: FLUX.1 [schnell] makes one 1024 by 1024 picture in 4 steps for about $0.003. It runs on fal.ai, not on this machine, and needs a fal.ai key (Settings > Providers > add fal.ai); the prompt goes to fal.ai.",
+    "defaultView": "app",
+    "inputs": [
+      {
+        "role": "prompt",
+        "targets": [
+          "generate.prompt"
+        ],
+        "label": "What to draw"
+      },
+      {
+        "role": "seed",
+        "targets": [
+          "generate.seed"
+        ],
+        "label": "Seed"
+      },
+      {
+        "name": "steps",
+        "targets": [
+          "generate.steps"
+        ],
+        "label": "Steps",
+        "min": 1,
+        "max": 4,
+        "section": "Advanced"
+      },
+      {
+        "name": "shape",
+        "targets": [
+          "size.aspect"
+        ],
+        "label": "Shape",
+        "choices": [
+          "1:1",
+          "3:2",
+          "2:3",
+          "16:9",
+          "9:16"
+        ],
+        "default": "1:1",
+        "section": "Advanced"
+      },
+      {
+        "role": "model",
+        "targets": [
+          "generate.model"
+        ],
+        "label": "fal.ai model",
+        "section": "Advanced"
+      }
+    ],
+    "outputs": [
+      {
+        "node": "save",
+        "label": "Picture"
+      }
+    ]
+  },
+  "graph": {
+    "nodes": {
+      "generate": {
+        "inputs": {
+          "model": {
+            "resource": "fugue/image-model",
+            "name": "fal-ai/flux/schnell"
+          },
+          "prompt": "a lighthouse on a cliff, oil painting, stormy sky",
+          "width": {
+            "from": "size.width"
+          },
+          "height": {
+            "from": "size.height"
+          },
+          "steps": 4,
+          "seed": {
+            "auto": "random"
+          }
+        },
+        "type": "fugue/generate-image",
+        "version": "1.0.0"
+      },
+      "preview": {
+        "inputs": {
+          "value": {
+            "from": "generate.image"
+          }
+        },
+        "type": "fugue/preview",
+        "version": "1.0.0"
+      },
+      "save": {
+        "inputs": {
+          "image": {
+            "from": "generate.image"
+          },
+          "name": "quick-sketch-fal"
+        },
+        "type": "fugue/save-image",
+        "version": "1.0.0"
+      },
+      "size": {
+        "type": "fugue/image-size",
+        "version": "1.0.0",
+        "inputs": {
+          "aspect": "1:1",
+          "megapixels": 1
+        }
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "generate": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "preview": {
+        "pos": [
+          400,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          400,
+          320
+        ]
+      },
+      "size": {
+        "pos": [
+          -320,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0"
+  }
+}
