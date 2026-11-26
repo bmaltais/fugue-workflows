@@ -1,0 +1,233 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "models": {
+        "type": "fugue/load-models",
+        "version": "1.2.0",
+        "inputs": {
+          "diffusion_model": {
+            "hash": "sha256:f163d60b0eb427469510b8226243d196574a18139a2e40c017409cfbda95ecfe",
+            "name": "z-image-turbo-Q8_0.gguf",
+            "resource": "fugue/diffusion-model"
+          },
+          "text_encoder": {
+            "hash": "sha256:eed555233267a33c7e8ee31682762cc7751b3f6d224039086e0e846f05fffa5d",
+            "name": "Qwen3-4B-Q8_0.gguf",
+            "resource": "fugue/text-encoder"
+          },
+          "vae": {
+            "hash": "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38",
+            "name": "ae.safetensors",
+            "resource": "fugue/vae"
+          }
+        }
+      },
+      "dyn": {
+        "type": "fugue/dynamic-prompt",
+        "version": "1.0.0",
+        "inputs": {
+          "template": "${place=!__places__}\na vintage picture postcard from __eras__, a scenic view of ${place}{19::|1::, under two moons}, __weather__, {2$$ and $$__moods__} mood, __art-styles__, __colour-palettes__ colour palette, a white border around the picture, and the hand-lettered words \"Greetings from ${place}\" across the top of the card",
+          "seed": {
+            "auto": "random"
+          }
+        }
+      },
+      "subject": {
+        "type": "fugue/text-template",
+        "version": "1.0.0",
+        "inputs": {
+          "template": "{a}, with {b} in the foreground",
+          "a": {
+            "from": "dyn.text"
+          },
+          "b": "a small red bicycle leaning on a wall"
+        }
+      },
+      "encode": {
+        "type": "fugue/text-encode",
+        "version": "1.1.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "prompt": {
+            "from": "subject.text"
+          }
+        }
+      },
+      "size": {
+        "type": "fugue/empty-latent",
+        "version": "1.0.0",
+        "inputs": {
+          "width": 1024,
+          "height": 1024
+        }
+      },
+      "sample": {
+        "type": "fugue/sampler",
+        "version": "1.5.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "conditioning": {
+            "from": "encode.conditioning"
+          },
+          "latent": {
+            "from": "size.latent"
+          },
+          "guidance": 1,
+          "steps": 8,
+          "seed": {
+            "auto": "random"
+          }
+        }
+      },
+      "picture": {
+        "type": "fugue/vae-decode",
+        "version": "1.0.0",
+        "inputs": {
+          "latent": {
+            "from": "sample.latent"
+          }
+        }
+      },
+      "preview": {
+        "type": "fugue/preview",
+        "version": "1.0.0",
+        "inputs": {
+          "value": {
+            "from": "picture.image"
+          }
+        }
+      },
+      "save": {
+        "type": "fugue/save-image",
+        "version": "1.1.0",
+        "inputs": {
+          "image": {
+            "from": "picture.image"
+          },
+          "name": "mystery-postcard"
+        }
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "models": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "dyn": {
+        "pos": [
+          340,
+          0
+        ]
+      },
+      "subject": {
+        "pos": [
+          340,
+          720
+        ]
+      },
+      "encode": {
+        "pos": [
+          680,
+          0
+        ]
+      },
+      "size": {
+        "pos": [
+          680,
+          720
+        ]
+      },
+      "sample": {
+        "pos": [
+          1020,
+          0
+        ]
+      },
+      "picture": {
+        "pos": [
+          1360,
+          0
+        ]
+      },
+      "preview": {
+        "pos": [
+          1700,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          1700,
+          720
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "resource": "fugue/vae",
+        "hash": "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38",
+        "name": "ae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Z-Image-Turbo/resolve/main/split_files/vae/ae.safetensors",
+        "size": 335304388
+      },
+      {
+        "resource": "fugue/text-encoder",
+        "hash": "sha256:eed555233267a33c7e8ee31682762cc7751b3f6d224039086e0e846f05fffa5d",
+        "name": "Qwen3-4B-Q8_0.gguf",
+        "source": "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q8_0.gguf",
+        "size": 4280405792
+      },
+      {
+        "resource": "fugue/diffusion-model",
+        "hash": "sha256:f163d60b0eb427469510b8226243d196574a18139a2e40c017409cfbda95ecfe",
+        "name": "z-image-turbo-Q8_0.gguf",
+        "source": "https://huggingface.co/unsloth/Z-Image-Turbo-GGUF/resolve/main/z-image-turbo-Q8_0.gguf",
+        "size": 7224707136
+      }
+    ]
+  },
+  "app": {
+    "format": 1,
+    "title": "Mystery Postcard",
+    "description": "Each run makes a vintage picture postcard of a random place, era, weather and art style, with a \"Greetings from\" caption naming the place.",
+    "defaultView": "app",
+    "inputs": [
+      {
+        "role": "prompt",
+        "name": "subject",
+        "targets": [
+          "subject.b"
+        ],
+        "label": "In the foreground",
+        "default": "a small red bicycle leaning on a wall"
+      },
+      {
+        "role": "seed",
+        "name": "seed",
+        "targets": [
+          "dyn.seed",
+          "sample.seed"
+        ],
+        "label": "Seed"
+      }
+    ],
+    "outputs": [
+      {
+        "node": "save",
+        "label": "Postcard"
+      }
+    ]
+  }
+}
