@@ -1,0 +1,277 @@
+{
+  "fugue": 1,
+  "app": {
+    "format": 1,
+    "title": "MOSS-Image Edit",
+    "description": "Edits your picture as you tell it, keeping the rest as it was: write what to change, for example the color of a jacket or the time of day. MOSS-Image with its edit LoRA, as in ComfyUI's template of the same name.",
+    "defaultView": "app",
+    "inputs": [
+      {
+        "role": "image",
+        "name": "picture",
+        "targets": [
+          "load.file"
+        ],
+        "label": "Your picture"
+      },
+      {
+        "role": "prompt",
+        "targets": [
+          "encode.prompt"
+        ],
+        "label": "What to change"
+      },
+      {
+        "role": "seed",
+        "targets": [
+          "sample.seed"
+        ],
+        "label": "Seed"
+      }
+    ],
+    "outputs": [
+      {
+        "node": "save",
+        "label": "Edited picture"
+      }
+    ]
+  },
+  "graph": {
+    "nodes": {
+      "models": {
+        "type": "fugue/load-models",
+        "version": "1.2.0",
+        "inputs": {
+          "diffusion_model": {
+            "resource": "fugue/diffusion-model",
+            "name": "moss_image_sft_int8_convrot.safetensors",
+            "hash": "sha256:b4d1475bc7eeffd7b809e82ea13a1fba1fb85c4e18365af3813722faa5c0fe4f"
+          },
+          "text_encoder": {
+            "resource": "fugue/text-encoder",
+            "name": "qwen3.5_9b_int8_convrot.safetensors",
+            "hash": "sha256:32e3787472f708fa5f83624acbf5ef23f7fc89c439e05065ea57cfe5a97f025a"
+          },
+          "vae": {
+            "resource": "fugue/vae",
+            "name": "flux2-vae_small.safetensors",
+            "hash": "sha256:d8d52ba036475f5fb07c8b435e176d3d97ebfa82f0d1a1c317f9cc1e25bd013b"
+          }
+        }
+      },
+      "lora": {
+        "type": "fugue/apply-lora",
+        "version": "1.0.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "lora": {
+            "resource": "fugue/lora",
+            "name": "moss/moss_image_edit_lora_rank_64_bf16.safetensors",
+            "hash": "sha256:17a48b8c605dcffdedb92a2b887d18cf316505be90802717669fb6556098dcdf"
+          },
+          "strength": 1
+        }
+      },
+      "load": {
+        "type": "fugue/load-image",
+        "version": "1.1.0",
+        "inputs": {
+          "file": "inputs/street-portrait.jpg"
+        }
+      },
+      "rs": {
+        "type": "fugue/resize-megapixels",
+        "version": "1.0.0",
+        "inputs": {
+          "image": {
+            "from": "load.image"
+          },
+          "megapixels": 1,
+          "multiple": 16,
+          "method": "lanczos"
+        }
+      },
+      "size": {
+        "type": "fugue/empty-latent",
+        "version": "1.0.0",
+        "inputs": {
+          "width": {
+            "from": "rs.width"
+          },
+          "height": {
+            "from": "rs.height"
+          }
+        }
+      },
+      "encode": {
+        "type": "fugue/text-encode",
+        "version": "1.2.0",
+        "inputs": {
+          "model": {
+            "from": "lora.model"
+          },
+          "prompt": "Change only the red jacket to a plain black wool coat. Keep the person, face, hair, pose, background and composition unchanged.",
+          "negative_prompt": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact",
+          "references": [
+            {
+              "from": "rs.image"
+            }
+          ],
+          "reference_size": "exact",
+          "edit_format": "Moss-Image-Edit"
+        }
+      },
+      "sample": {
+        "type": "fugue/sampler",
+        "version": "1.5.0",
+        "inputs": {
+          "model": {
+            "from": "lora.model"
+          },
+          "conditioning": {
+            "from": "encode.conditioning"
+          },
+          "latent": {
+            "from": "size.latent"
+          },
+          "seed": 42,
+          "steps": 30,
+          "guidance": 4,
+          "sampler": "euler",
+          "scheduler": "discrete",
+          "denoise": 1
+        }
+      },
+      "decode": {
+        "type": "fugue/vae-decode",
+        "version": "1.0.0",
+        "inputs": {
+          "latent": {
+            "from": "sample.latent"
+          }
+        }
+      },
+      "save": {
+        "type": "fugue/save-image",
+        "version": "1.1.0",
+        "inputs": {
+          "image": {
+            "from": "decode.image"
+          },
+          "name": "moss-image-edit"
+        }
+      },
+      "compare": {
+        "type": "fugue/compare-images",
+        "version": "1.0.0",
+        "inputs": {
+          "a": {
+            "from": "rs.image"
+          },
+          "b": {
+            "from": "decode.image"
+          }
+        }
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "models": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "lora": {
+        "pos": [
+          340,
+          0
+        ]
+      },
+      "load": {
+        "pos": [
+          0,
+          720
+        ]
+      },
+      "rs": {
+        "pos": [
+          340,
+          720
+        ]
+      },
+      "size": {
+        "pos": [
+          680,
+          720
+        ]
+      },
+      "encode": {
+        "pos": [
+          680,
+          0
+        ]
+      },
+      "sample": {
+        "pos": [
+          1020,
+          0
+        ]
+      },
+      "decode": {
+        "pos": [
+          1360,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          1700,
+          0
+        ]
+      },
+      "compare": {
+        "pos": [
+          1700,
+          720
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "resource": "fugue/diffusion-model",
+        "name": "moss_image_sft_int8_convrot.safetensors",
+        "hash": "sha256:b4d1475bc7eeffd7b809e82ea13a1fba1fb85c4e18365af3813722faa5c0fe4f",
+        "source": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/2929efe3cdd506c0a430bcfca70a9a8d805cc095/diffusion_models/moss_image_sft_int8_convrot.safetensors",
+        "size": 5413698958
+      },
+      {
+        "resource": "fugue/text-encoder",
+        "name": "qwen3.5_9b_int8_convrot.safetensors",
+        "hash": "sha256:32e3787472f708fa5f83624acbf5ef23f7fc89c439e05065ea57cfe5a97f025a",
+        "source": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/2929efe3cdd506c0a430bcfca70a9a8d805cc095/text_encoders/qwen3.5_9b_int8_convrot.safetensors",
+        "size": 9748121532
+      },
+      {
+        "resource": "fugue/vae",
+        "name": "flux2-vae_small.safetensors",
+        "hash": "sha256:d8d52ba036475f5fb07c8b435e176d3d97ebfa82f0d1a1c317f9cc1e25bd013b",
+        "source": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/2929efe3cdd506c0a430bcfca70a9a8d805cc095/vae/flux2-vae_small.safetensors",
+        "size": 249521340
+      },
+      {
+        "resource": "fugue/lora",
+        "name": "moss/moss_image_edit_lora_rank_64_bf16.safetensors",
+        "hash": "sha256:17a48b8c605dcffdedb92a2b887d18cf316505be90802717669fb6556098dcdf",
+        "source": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/2929efe3cdd506c0a430bcfca70a9a8d805cc095/loras/moss_image_edit_lora_rank_64_bf16.safetensors",
+        "size": 297382216
+      }
+    ]
+  }
+}
