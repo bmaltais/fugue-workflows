@@ -212,6 +212,186 @@
           640
         ]
       }
+    },
+    "groups": {
+      "fugue/keep-unchanged": {
+        "nodes": {
+          "blur_matched": {
+            "pos": [
+              3060,
+              0
+            ]
+          },
+          "blur_original": {
+            "pos": [
+              340,
+              300
+            ]
+          },
+          "blur_rough": {
+            "pos": [
+              340,
+              0
+            ]
+          },
+          "change_blue": {
+            "pos": [
+              3740,
+              300
+            ]
+          },
+          "change_green": {
+            "pos": [
+              3740,
+              0
+            ]
+          },
+          "change_red": {
+            "pos": [
+              3740,
+              -300
+            ]
+          },
+          "change_rg": {
+            "pos": [
+              4080,
+              0
+            ]
+          },
+          "change_sum": {
+            "pos": [
+              4420,
+              0
+            ]
+          },
+          "diff_rough": {
+            "pos": [
+              680,
+              0
+            ]
+          },
+          "difference": {
+            "pos": [
+              3400,
+              0
+            ]
+          },
+          "feather": {
+            "pos": [
+              6800,
+              0
+            ]
+          },
+          "fill_grow": {
+            "pos": [
+              5780,
+              0
+            ]
+          },
+          "fill_shrink": {
+            "pos": [
+              6120,
+              0
+            ]
+          },
+          "fit": {
+            "pos": [
+              0,
+              0
+            ]
+          },
+          "grow_rough": {
+            "pos": [
+              2380,
+              0
+            ]
+          },
+          "margin": {
+            "pos": [
+              6460,
+              0
+            ]
+          },
+          "match": {
+            "pos": [
+              2720,
+              0
+            ]
+          },
+          "negate_fill": {
+            "pos": [
+              5780,
+              300
+            ]
+          },
+          "negate_speck": {
+            "pos": [
+              4760,
+              300
+            ]
+          },
+          "open_shrink": {
+            "pos": [
+              5100,
+              0
+            ]
+          },
+          "paste": {
+            "pos": [
+              7140,
+              0
+            ]
+          },
+          "regrow": {
+            "pos": [
+              5440,
+              0
+            ]
+          },
+          "rough_blue": {
+            "pos": [
+              1020,
+              300
+            ]
+          },
+          "rough_green": {
+            "pos": [
+              1020,
+              0
+            ]
+          },
+          "rough_red": {
+            "pos": [
+              1020,
+              -300
+            ]
+          },
+          "rough_rg": {
+            "pos": [
+              1360,
+              0
+            ]
+          },
+          "rough_sum": {
+            "pos": [
+              1700,
+              0
+            ]
+          },
+          "threshold": {
+            "pos": [
+              4760,
+              0
+            ]
+          },
+          "threshold_rough": {
+            "pos": [
+              2040,
+              0
+            ]
+          }
+        }
+      }
     }
   },
   "requires": {
@@ -302,5 +482,427 @@
         "label": "What changed"
       }
     ]
+  },
+  "groups": {
+    "fugue/keep-unchanged": {
+      "category": "Image/Mask",
+      "description": "After an edit model redraws a picture, keep the original everywhere the edit did not really change it: a soft mask of the changed areas, and the edit pasted through it onto the original, so the rest stays the original pixel for pixel.",
+      "inputs": [
+        {
+          "label": "Original",
+          "name": "original",
+          "targets": [
+            "blur_original.image",
+            "match.reference",
+            "paste.destination",
+            "fit.destination"
+          ]
+        },
+        {
+          "label": "Edited",
+          "name": "edited",
+          "targets": [
+            "fit.source"
+          ]
+        },
+        {
+          "label": "Blur",
+          "max": 31,
+          "min": 1,
+          "name": "blur",
+          "section": "Change detection",
+          "targets": [
+            "blur_original.radius",
+            "blur_rough.radius",
+            "blur_matched.radius"
+          ]
+        },
+        {
+          "label": "Threshold",
+          "max": 1,
+          "min": 0,
+          "name": "threshold",
+          "section": "Change detection",
+          "targets": [
+            "threshold.value",
+            "threshold_rough.value"
+          ]
+        },
+        {
+          "label": "Speck size",
+          "max": 256,
+          "min": 0,
+          "name": "speck",
+          "section": "Clean up",
+          "targets": [
+            "regrow.expand",
+            "negate_speck.b"
+          ]
+        },
+        {
+          "label": "Fill gaps",
+          "max": 256,
+          "min": 0,
+          "name": "close",
+          "section": "Clean up",
+          "targets": [
+            "fill_grow.expand",
+            "negate_fill.b"
+          ]
+        },
+        {
+          "label": "Margin",
+          "max": 256,
+          "min": 0,
+          "name": "margin",
+          "section": "Clean up",
+          "targets": [
+            "margin.expand"
+          ]
+        },
+        {
+          "label": "Feather",
+          "max": 256,
+          "min": 0,
+          "name": "feather",
+          "section": "Clean up",
+          "targets": [
+            "feather.radius"
+          ]
+        }
+      ],
+      "name": "Keep unchanged areas",
+      "nodes": {
+        "blur_matched": {
+          "inputs": {
+            "image": {
+              "from": "match.image"
+            },
+            "radius": 4,
+            "sigma": 2
+          },
+          "type": "fugue/blur",
+          "version": "1.0.0"
+        },
+        "blur_original": {
+          "inputs": {
+            "radius": 4,
+            "sigma": 2
+          },
+          "type": "fugue/blur",
+          "version": "1.0.0"
+        },
+        "blur_rough": {
+          "inputs": {
+            "image": {
+              "from": "fit.image"
+            },
+            "radius": 4,
+            "sigma": 2
+          },
+          "type": "fugue/blur",
+          "version": "1.0.0"
+        },
+        "change_blue": {
+          "inputs": {
+            "channel": "blue",
+            "image": {
+              "from": "difference.image"
+            }
+          },
+          "type": "fugue/image-to-mask",
+          "version": "1.0.1"
+        },
+        "change_green": {
+          "inputs": {
+            "channel": "green",
+            "image": {
+              "from": "difference.image"
+            }
+          },
+          "type": "fugue/image-to-mask",
+          "version": "1.0.1"
+        },
+        "change_red": {
+          "inputs": {
+            "channel": "red",
+            "image": {
+              "from": "difference.image"
+            }
+          },
+          "type": "fugue/image-to-mask",
+          "version": "1.0.1"
+        },
+        "change_rg": {
+          "inputs": {
+            "destination": {
+              "from": "change_red.mask"
+            },
+            "operation": "add",
+            "source": {
+              "from": "change_green.mask"
+            }
+          },
+          "type": "fugue/combine-masks",
+          "version": "1.0.0"
+        },
+        "change_sum": {
+          "inputs": {
+            "destination": {
+              "from": "change_rg.mask"
+            },
+            "operation": "add",
+            "source": {
+              "from": "change_blue.mask"
+            }
+          },
+          "type": "fugue/combine-masks",
+          "version": "1.0.0"
+        },
+        "diff_rough": {
+          "inputs": {
+            "base": {
+              "from": "blur_original.image"
+            },
+            "mode": "difference",
+            "opacity": 1,
+            "top": {
+              "from": "blur_rough.image"
+            }
+          },
+          "type": "fugue/blend",
+          "version": "1.0.0"
+        },
+        "difference": {
+          "inputs": {
+            "base": {
+              "from": "blur_original.image"
+            },
+            "mode": "difference",
+            "opacity": 1,
+            "top": {
+              "from": "blur_matched.image"
+            }
+          },
+          "type": "fugue/blend",
+          "version": "1.0.0"
+        },
+        "feather": {
+          "inputs": {
+            "direction": "outward",
+            "mask": {
+              "from": "margin.mask"
+            },
+            "radius": 16
+          },
+          "type": "fugue/feather-mask",
+          "version": "1.0.0"
+        },
+        "fill_grow": {
+          "inputs": {
+            "expand": 24,
+            "mask": {
+              "from": "regrow.mask"
+            }
+          },
+          "type": "fugue/grow-mask",
+          "version": "1.0.1"
+        },
+        "fill_shrink": {
+          "inputs": {
+            "expand": {
+              "from": "negate_fill.value"
+            },
+            "mask": {
+              "from": "fill_grow.mask"
+            }
+          },
+          "type": "fugue/grow-mask",
+          "version": "1.0.1"
+        },
+        "fit": {
+          "inputs": {
+            "resize_source": true
+          },
+          "type": "fugue/composite-masked",
+          "version": "1.0.0"
+        },
+        "grow_rough": {
+          "inputs": {
+            "expand": 20,
+            "mask": {
+              "from": "threshold_rough.mask"
+            }
+          },
+          "type": "fugue/grow-mask",
+          "version": "1.0.1"
+        },
+        "margin": {
+          "inputs": {
+            "expand": 16,
+            "mask": {
+              "from": "fill_shrink.mask"
+            }
+          },
+          "type": "fugue/grow-mask",
+          "version": "1.0.1"
+        },
+        "match": {
+          "inputs": {
+            "image": {
+              "from": "fit.image"
+            },
+            "mask": {
+              "from": "grow_rough.mask"
+            },
+            "method": "reinhard",
+            "strength": 1
+          },
+          "type": "fugue/color-match",
+          "version": "1.1.0"
+        },
+        "negate_fill": {
+          "inputs": {
+            "a": 0,
+            "b": 24,
+            "operation": "subtract"
+          },
+          "type": "fugue/number-math",
+          "version": "1.0.0"
+        },
+        "negate_speck": {
+          "inputs": {
+            "a": 0,
+            "b": 12,
+            "operation": "subtract"
+          },
+          "type": "fugue/number-math",
+          "version": "1.0.0"
+        },
+        "open_shrink": {
+          "inputs": {
+            "expand": {
+              "from": "negate_speck.value"
+            },
+            "mask": {
+              "from": "threshold.mask"
+            }
+          },
+          "type": "fugue/grow-mask",
+          "version": "1.0.1"
+        },
+        "paste": {
+          "inputs": {
+            "mask": {
+              "from": "feather.mask"
+            },
+            "source": {
+              "from": "fit.image"
+            }
+          },
+          "type": "fugue/composite-masked",
+          "version": "1.0.0"
+        },
+        "regrow": {
+          "inputs": {
+            "expand": 12,
+            "mask": {
+              "from": "open_shrink.mask"
+            }
+          },
+          "type": "fugue/grow-mask",
+          "version": "1.0.1"
+        },
+        "rough_blue": {
+          "inputs": {
+            "channel": "blue",
+            "image": {
+              "from": "diff_rough.image"
+            }
+          },
+          "type": "fugue/image-to-mask",
+          "version": "1.0.1"
+        },
+        "rough_green": {
+          "inputs": {
+            "channel": "green",
+            "image": {
+              "from": "diff_rough.image"
+            }
+          },
+          "type": "fugue/image-to-mask",
+          "version": "1.0.1"
+        },
+        "rough_red": {
+          "inputs": {
+            "channel": "red",
+            "image": {
+              "from": "diff_rough.image"
+            }
+          },
+          "type": "fugue/image-to-mask",
+          "version": "1.0.1"
+        },
+        "rough_rg": {
+          "inputs": {
+            "destination": {
+              "from": "rough_red.mask"
+            },
+            "operation": "add",
+            "source": {
+              "from": "rough_green.mask"
+            }
+          },
+          "type": "fugue/combine-masks",
+          "version": "1.0.0"
+        },
+        "rough_sum": {
+          "inputs": {
+            "destination": {
+              "from": "rough_rg.mask"
+            },
+            "operation": "add",
+            "source": {
+              "from": "rough_blue.mask"
+            }
+          },
+          "type": "fugue/combine-masks",
+          "version": "1.0.0"
+        },
+        "threshold": {
+          "inputs": {
+            "mask": {
+              "from": "change_sum.mask"
+            },
+            "value": 0.12
+          },
+          "type": "fugue/threshold-mask",
+          "version": "1.0.0"
+        },
+        "threshold_rough": {
+          "inputs": {
+            "mask": {
+              "from": "rough_sum.mask"
+            },
+            "value": 0.12
+          },
+          "type": "fugue/threshold-mask",
+          "version": "1.0.0"
+        }
+      },
+      "outputs": [
+        {
+          "from": "paste.image",
+          "label": "Image",
+          "name": "image"
+        },
+        {
+          "from": "feather.mask",
+          "label": "Mask",
+          "name": "mask"
+        }
+      ],
+      "version": "1.0.0"
+    }
   }
 }
