@@ -64,7 +64,7 @@
         "name": "RealESRGAN_x4plus.safetensors",
         "resource": "fugue/upscale-model",
         "size": 66857836,
-        "source": "https://huggingface.co/Comfy-Org/Real-ESRGAN_repackaged/resolve/5fd49b7b278836f48af63ecd314d0f98ab336105/RealESRGAN_x4plus.safetensors"
+        "source": "https://huggingface.co/Comfy-Org/Real-ESRGAN/resolve/5fd49b7b278836f48af63ecd314d0f98ab336105/RealESRGAN_x4plus.safetensors"
       }
     ]
   }
