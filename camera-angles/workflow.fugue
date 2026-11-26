@@ -1,0 +1,738 @@
+{
+ "fugue": 1,
+ "app": {
+  "format": 1,
+  "title": "Camera Angles",
+  "description": "Makes six views of the subject of your picture from different camera positions, and a labelled sheet of all six. The views come from a LoRA trained on 96 camera poses, so the subject and room stay the same and only the camera moves.",
+  "defaultView": "app",
+  "inputs": [
+   {
+    "role": "image",
+    "name": "picture",
+    "targets": [
+     "load.file"
+    ],
+    "label": "Your picture"
+   },
+   {
+    "role": "seed",
+    "targets": [
+     "sample_front-right.seed",
+     "sample_right-side.seed",
+     "sample_left-side.seed",
+     "sample_back.seed",
+     "sample_from-above.seed",
+     "sample_close-up.seed"
+    ],
+    "label": "Seed"
+   }
+  ],
+  "outputs": [
+   {
+    "node": "save_grid",
+    "label": "All views"
+   },
+   {
+    "node": "save_front-right",
+    "label": "Front right"
+   },
+   {
+    "node": "save_right-side",
+    "label": "Right side"
+   },
+   {
+    "node": "save_left-side",
+    "label": "Left side"
+   },
+   {
+    "node": "save_back",
+    "label": "Back"
+   },
+   {
+    "node": "save_from-above",
+    "label": "From above"
+   },
+   {
+    "node": "save_close-up",
+    "label": "Close-up"
+   }
+  ]
+ },
+ "graph": {
+  "nodes": {
+   "models": {
+    "type": "fugue/load-models",
+    "version": "1.2.0",
+    "inputs": {
+     "diffusion_model": {
+      "resource": "fugue/diffusion-model",
+      "name": "qwen-image-edit-2511-Q4_K_M.gguf",
+      "hash": "sha256:8677bac90627adbbc11efab87b1870e701c4eb3689ee865a3de8ab81b705a723"
+     },
+     "text_encoder": {
+      "resource": "fugue/text-encoder",
+      "name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "hash": "sha256:cb5636d852a0ea6a9075ab1bef496c0db7aef13c02350571e388aea959c5c0b4"
+     },
+     "vae": {
+      "resource": "fugue/vae",
+      "name": "qwen_image_vae.safetensors",
+      "hash": "sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f"
+     }
+    }
+   },
+   "load": {
+    "type": "fugue/load-image",
+    "version": "1.1.0",
+    "inputs": {
+     "file": "inputs/cat.jpg"
+    }
+   },
+   "rs": {
+    "type": "fugue/resize-megapixels",
+    "version": "1.0.0",
+    "inputs": {
+     "image": {
+      "from": "load.image"
+     },
+     "megapixels": 1
+    }
+   },
+   "size": {
+    "type": "fugue/empty-latent",
+    "version": "1.0.0",
+    "inputs": {
+     "width": {
+      "from": "rs.width"
+     },
+     "height": {
+      "from": "rs.height"
+     }
+    }
+   },
+   "lora0": {
+    "type": "fugue/apply-lora",
+    "version": "1.0.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "lora": {
+      "resource": "fugue/lora",
+      "name": "qwen/qwen-image-edit-2511-multiple-angles-lora.safetensors",
+      "hash": "sha256:42426ded4e25fd22879d9e198b857556445ef4ca56e8da3246d0345155bb6765"
+     },
+     "strength": 0.9
+    }
+   },
+   "lora1": {
+    "type": "fugue/apply-lora",
+    "version": "1.0.0",
+    "inputs": {
+     "model": {
+      "from": "lora0.model"
+     },
+     "lora": {
+      "resource": "fugue/lora",
+      "name": "qwen/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+      "hash": "sha256:22226e8d05d354bb356627d428809f5afd7819399b077238a2b70a82883a904f"
+     },
+     "strength": 1.0
+    }
+   },
+   "enc_front-right": {
+    "type": "fugue/text-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "lora1.model"
+     },
+     "prompt": "<sks> front-right quarter view eye-level shot medium shot",
+     "reference_size": "exact",
+     "references": [
+      {
+       "from": "rs.image"
+      }
+     ]
+    }
+   },
+   "sample_front-right": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "lora1.model"
+     },
+     "conditioning": {
+      "from": "enc_front-right.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 776,
+     "steps": 4,
+     "guidance": 1
+    }
+   },
+   "decode_front-right": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample_front-right.latent"
+     }
+    }
+   },
+   "save_front-right": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode_front-right.image"
+     },
+     "name": "camera-angles/front-right"
+    }
+   },
+   "enc_right-side": {
+    "type": "fugue/text-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "lora1.model"
+     },
+     "prompt": "<sks> right side view eye-level shot medium shot",
+     "reference_size": "exact",
+     "references": [
+      {
+       "from": "rs.image"
+      }
+     ]
+    }
+   },
+   "sample_right-side": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "lora1.model"
+     },
+     "conditioning": {
+      "from": "enc_right-side.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 776,
+     "steps": 4,
+     "guidance": 1
+    }
+   },
+   "decode_right-side": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample_right-side.latent"
+     }
+    }
+   },
+   "save_right-side": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode_right-side.image"
+     },
+     "name": "camera-angles/right-side"
+    }
+   },
+   "enc_left-side": {
+    "type": "fugue/text-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "lora1.model"
+     },
+     "prompt": "<sks> left side view eye-level shot medium shot",
+     "reference_size": "exact",
+     "references": [
+      {
+       "from": "rs.image"
+      }
+     ]
+    }
+   },
+   "sample_left-side": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "lora1.model"
+     },
+     "conditioning": {
+      "from": "enc_left-side.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 776,
+     "steps": 4,
+     "guidance": 1
+    }
+   },
+   "decode_left-side": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample_left-side.latent"
+     }
+    }
+   },
+   "save_left-side": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode_left-side.image"
+     },
+     "name": "camera-angles/left-side"
+    }
+   },
+   "enc_back": {
+    "type": "fugue/text-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "lora1.model"
+     },
+     "prompt": "<sks> back view eye-level shot medium shot",
+     "reference_size": "exact",
+     "references": [
+      {
+       "from": "rs.image"
+      }
+     ]
+    }
+   },
+   "sample_back": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "lora1.model"
+     },
+     "conditioning": {
+      "from": "enc_back.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 776,
+     "steps": 4,
+     "guidance": 1
+    }
+   },
+   "decode_back": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample_back.latent"
+     }
+    }
+   },
+   "save_back": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode_back.image"
+     },
+     "name": "camera-angles/back"
+    }
+   },
+   "enc_from-above": {
+    "type": "fugue/text-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "lora1.model"
+     },
+     "prompt": "<sks> front view high-angle shot medium shot",
+     "reference_size": "exact",
+     "references": [
+      {
+       "from": "rs.image"
+      }
+     ]
+    }
+   },
+   "sample_from-above": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "lora1.model"
+     },
+     "conditioning": {
+      "from": "enc_from-above.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 776,
+     "steps": 4,
+     "guidance": 1
+    }
+   },
+   "decode_from-above": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample_from-above.latent"
+     }
+    }
+   },
+   "save_from-above": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode_from-above.image"
+     },
+     "name": "camera-angles/from-above"
+    }
+   },
+   "enc_close-up": {
+    "type": "fugue/text-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "lora1.model"
+     },
+     "prompt": "<sks> front view eye-level shot close-up",
+     "reference_size": "exact",
+     "references": [
+      {
+       "from": "rs.image"
+      }
+     ]
+    }
+   },
+   "sample_close-up": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "lora1.model"
+     },
+     "conditioning": {
+      "from": "enc_close-up.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 776,
+     "steps": 4,
+     "guidance": 1
+    }
+   },
+   "decode_close-up": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample_close-up.latent"
+     }
+    }
+   },
+   "save_close-up": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode_close-up.image"
+     },
+     "name": "camera-angles/close-up"
+    }
+   },
+   "grid": {
+    "type": "fugue/image-grid",
+    "version": "1.0.0",
+    "inputs": {
+     "images": [
+      {
+       "from": "decode_front-right.image"
+      },
+      {
+       "from": "decode_right-side.image"
+      },
+      {
+       "from": "decode_left-side.image"
+      },
+      {
+       "from": "decode_back.image"
+      },
+      {
+       "from": "decode_from-above.image"
+      },
+      {
+       "from": "decode_close-up.image"
+      }
+     ],
+     "columns": 3,
+     "labels": "Front right\nRight side\nLeft side\nBack\nFrom above\nClose-up",
+     "gap": 12
+    }
+   },
+   "save_grid": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "grid.image"
+     },
+     "name": "camera-angles/all-views"
+    }
+   }
+  }
+ },
+ "layout": {
+  "nodes": {
+   "models": {
+    "pos": [
+     0,
+     0
+    ]
+   },
+   "load": {
+    "pos": [
+     0,
+     720
+    ]
+   },
+   "rs": {
+    "pos": [
+     340,
+     720
+    ]
+   },
+   "size": {
+    "pos": [
+     680,
+     720
+    ]
+   },
+   "lora0": {
+    "pos": [
+     340,
+     0
+    ]
+   },
+   "lora1": {
+    "pos": [
+     680,
+     0
+    ]
+   },
+   "enc_front-right": {
+    "pos": [
+     1020,
+     0
+    ]
+   },
+   "sample_front-right": {
+    "pos": [
+     1360,
+     0
+    ]
+   },
+   "decode_front-right": {
+    "pos": [
+     1700,
+     0
+    ]
+   },
+   "save_front-right": {
+    "pos": [
+     2040,
+     0
+    ]
+   },
+   "enc_right-side": {
+    "pos": [
+     1020,
+     720
+    ]
+   },
+   "sample_right-side": {
+    "pos": [
+     1360,
+     720
+    ]
+   },
+   "decode_right-side": {
+    "pos": [
+     1700,
+     720
+    ]
+   },
+   "save_right-side": {
+    "pos": [
+     2040,
+     720
+    ]
+   },
+   "enc_left-side": {
+    "pos": [
+     1020,
+     1440
+    ]
+   },
+   "sample_left-side": {
+    "pos": [
+     1360,
+     1440
+    ]
+   },
+   "decode_left-side": {
+    "pos": [
+     1700,
+     1440
+    ]
+   },
+   "save_left-side": {
+    "pos": [
+     2040,
+     1440
+    ]
+   },
+   "enc_back": {
+    "pos": [
+     1020,
+     2160
+    ]
+   },
+   "sample_back": {
+    "pos": [
+     1360,
+     2160
+    ]
+   },
+   "decode_back": {
+    "pos": [
+     1700,
+     2160
+    ]
+   },
+   "save_back": {
+    "pos": [
+     2040,
+     2160
+    ]
+   },
+   "enc_from-above": {
+    "pos": [
+     1020,
+     2880
+    ]
+   },
+   "sample_from-above": {
+    "pos": [
+     1360,
+     2880
+    ]
+   },
+   "decode_from-above": {
+    "pos": [
+     1700,
+     2880
+    ]
+   },
+   "save_from-above": {
+    "pos": [
+     2040,
+     2880
+    ]
+   },
+   "enc_close-up": {
+    "pos": [
+     1020,
+     3600
+    ]
+   },
+   "sample_close-up": {
+    "pos": [
+     1360,
+     3600
+    ]
+   },
+   "decode_close-up": {
+    "pos": [
+     1700,
+     3600
+    ]
+   },
+   "save_close-up": {
+    "pos": [
+     2040,
+     3600
+    ]
+   },
+   "grid": {
+    "pos": [
+     2380,
+     1440
+    ]
+   },
+   "save_grid": {
+    "pos": [
+     2720,
+     1440
+    ]
+   }
+  }
+ },
+ "requires": {
+  "fugue": "0.1.0",
+  "models": [
+   {
+    "resource": "fugue/diffusion-model",
+    "name": "qwen-image-edit-2511-Q4_K_M.gguf",
+    "hash": "sha256:8677bac90627adbbc11efab87b1870e701c4eb3689ee865a3de8ab81b705a723",
+    "source": "https://huggingface.co/unsloth/Qwen-Image-Edit-2511-GGUF/resolve/0d33d9692b4b26212297240d87b0d4719aa4fd06/qwen-image-edit-2511-Q4_K_M.gguf",
+    "size": 13244758624
+   },
+   {
+    "resource": "fugue/text-encoder",
+    "name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+    "hash": "sha256:cb5636d852a0ea6a9075ab1bef496c0db7aef13c02350571e388aea959c5c0b4",
+    "source": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+    "size": 9384670680
+   },
+   {
+    "resource": "fugue/vae",
+    "name": "qwen_image_vae.safetensors",
+    "hash": "sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
+    "source": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+    "size": 253806246
+   },
+   {
+    "resource": "fugue/lora",
+    "name": "qwen/qwen-image-edit-2511-multiple-angles-lora.safetensors",
+    "hash": "sha256:42426ded4e25fd22879d9e198b857556445ef4ca56e8da3246d0345155bb6765",
+    "source": "https://huggingface.co/fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA/resolve/main/qwen-image-edit-2511-multiple-angles-lora.safetensors",
+    "size": 295140688
+   },
+   {
+    "resource": "fugue/lora",
+    "name": "qwen/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+    "hash": "sha256:22226e8d05d354bb356627d428809f5afd7819399b077238a2b70a82883a904f",
+    "source": "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+    "size": 849608296
+   }
+  ]
+ }
+}

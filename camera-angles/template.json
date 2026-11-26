@@ -1,0 +1,17 @@
+{
+  "title": "Camera Angles",
+  "description": "Six new camera views of one picture, and a contact sheet of them: front right, right side, left side, back, from above and a close-up. Qwen-Image-Edit-2511 with the multiple-angles LoRA (96 camera poses) and the Lightning 4-step LoRA, so each view takes four steps.",
+  "category": "edit",
+  "tags": [
+    "Qwen-Image-Edit",
+    "Camera angles",
+    "Multiple angles LoRA",
+    "Lightning",
+    "Image grid"
+  ],
+  "app": {
+    "title": "Camera Angles",
+    "summary": "See one picture from six camera angles.",
+    "kind": "image"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Camera Angles (FLUX.2 Klein 9B)",
+  "description": "Six new camera views of one picture, and a contact sheet of them: turned right, side profile, back, low angle, from above and a close-up, each asked for in plain words. FLUX.2 Klein 9B at the settings of the DA workflows (6 steps, guidance 1): lighter and faster than the Qwen version, with less exact angles.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Camera angles",
+    "Image grid",
+    "DA workflow"
+  ],
+  "app": {
+    "title": "Camera Angles (FLUX.2 Klein 9B)",
+    "summary": "See one picture from six camera angles, faster.",
+    "kind": "image"
+  }
+}

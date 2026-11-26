@@ -1,0 +1,700 @@
+{
+ "fugue": 1,
+ "app": {
+  "format": 1,
+  "title": "Camera Angles (FLUX.2 Klein 9B)",
+  "description": "Makes six views of your picture from different camera positions, asked for in plain words, and a labelled sheet of all six. Lighter and faster than Camera Angles, with less exact angles.",
+  "defaultView": "app",
+  "inputs": [
+   {
+    "role": "image",
+    "name": "picture",
+    "targets": [
+     "load.file"
+    ],
+    "label": "Your picture"
+   },
+   {
+    "role": "seed",
+    "targets": [
+     "sample_turn-right.seed",
+     "sample_side-profile.seed",
+     "sample_back.seed",
+     "sample_low-angle.seed",
+     "sample_from-above.seed",
+     "sample_close-up.seed"
+    ],
+    "label": "Seed"
+   }
+  ],
+  "outputs": [
+   {
+    "node": "save_grid",
+    "label": "All views"
+   },
+   {
+    "node": "save_turn-right",
+    "label": "Turned right"
+   },
+   {
+    "node": "save_side-profile",
+    "label": "Side profile"
+   },
+   {
+    "node": "save_back",
+    "label": "Back"
+   },
+   {
+    "node": "save_low-angle",
+    "label": "Low angle"
+   },
+   {
+    "node": "save_from-above",
+    "label": "From above"
+   },
+   {
+    "node": "save_close-up",
+    "label": "Close-up"
+   }
+  ]
+ },
+ "graph": {
+  "nodes": {
+   "models": {
+    "type": "fugue/load-models",
+    "version": "1.2.0",
+    "inputs": {
+     "text_encoder": {
+      "resource": "fugue/text-encoder",
+      "name": "Qwen3-8B-Q8_0.gguf",
+      "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e"
+     },
+     "diffusion_model": {
+      "resource": "fugue/diffusion-model",
+      "name": "flux-2-klein-9b-Q8_0.gguf",
+      "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6"
+     },
+     "vae": {
+      "resource": "fugue/vae",
+      "name": "flux2-vae.safetensors",
+      "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5"
+     }
+    }
+   },
+   "load": {
+    "type": "fugue/load-image",
+    "version": "1.1.0",
+    "inputs": {
+     "file": "inputs/cat.jpg"
+    }
+   },
+   "rs": {
+    "type": "fugue/resize-megapixels",
+    "version": "1.0.0",
+    "inputs": {
+     "image": {
+      "from": "load.image"
+     },
+     "megapixels": 1
+    }
+   },
+   "size": {
+    "type": "fugue/empty-latent",
+    "version": "1.0.0",
+    "inputs": {
+     "width": {
+      "from": "rs.width"
+     },
+     "height": {
+      "from": "rs.height"
+     }
+    }
+   },
+   "enc_turn-right": {
+    "type": "fugue/text-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "prompt": "Rotate the camera 45 degrees to the right around the subject. Same subject, same scene, same lighting.",
+     "reference_size": "exact",
+     "references": [
+      {
+       "from": "rs.image"
+      }
+     ]
+    }
+   },
+   "sample_turn-right": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "conditioning": {
+      "from": "enc_turn-right.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 776,
+     "steps": 6,
+     "guidance": 1,
+     "flow_shift": 2.02,
+     "sampler": "euler",
+     "scheduler": "discrete"
+    }
+   },
+   "decode_turn-right": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample_turn-right.latent"
+     }
+    }
+   },
+   "save_turn-right": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode_turn-right.image"
+     },
+     "name": "camera-angles-klein/turn-right"
+    }
+   },
+   "enc_side-profile": {
+    "type": "fugue/text-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "prompt": "Rotate the camera 90 degrees to the right so we see the subject in side profile. Same subject, same scene, same lighting.",
+     "reference_size": "exact",
+     "references": [
+      {
+       "from": "rs.image"
+      }
+     ]
+    }
+   },
+   "sample_side-profile": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "conditioning": {
+      "from": "enc_side-profile.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 776,
+     "steps": 6,
+     "guidance": 1,
+     "flow_shift": 2.02,
+     "sampler": "euler",
+     "scheduler": "discrete"
+    }
+   },
+   "decode_side-profile": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample_side-profile.latent"
+     }
+    }
+   },
+   "save_side-profile": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode_side-profile.image"
+     },
+     "name": "camera-angles-klein/side-profile"
+    }
+   },
+   "enc_back": {
+    "type": "fugue/text-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "prompt": "Show the same scene from behind the subject, camera at the back.",
+     "reference_size": "exact",
+     "references": [
+      {
+       "from": "rs.image"
+      }
+     ]
+    }
+   },
+   "sample_back": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "conditioning": {
+      "from": "enc_back.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 776,
+     "steps": 6,
+     "guidance": 1,
+     "flow_shift": 2.02,
+     "sampler": "euler",
+     "scheduler": "discrete"
+    }
+   },
+   "decode_back": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample_back.latent"
+     }
+    }
+   },
+   "save_back": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode_back.image"
+     },
+     "name": "camera-angles-klein/back"
+    }
+   },
+   "enc_low-angle": {
+    "type": "fugue/text-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "prompt": "Show the same scene from a low camera angle near the floor, looking up.",
+     "reference_size": "exact",
+     "references": [
+      {
+       "from": "rs.image"
+      }
+     ]
+    }
+   },
+   "sample_low-angle": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "conditioning": {
+      "from": "enc_low-angle.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 776,
+     "steps": 6,
+     "guidance": 1,
+     "flow_shift": 2.02,
+     "sampler": "euler",
+     "scheduler": "discrete"
+    }
+   },
+   "decode_low-angle": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample_low-angle.latent"
+     }
+    }
+   },
+   "save_low-angle": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode_low-angle.image"
+     },
+     "name": "camera-angles-klein/low-angle"
+    }
+   },
+   "enc_from-above": {
+    "type": "fugue/text-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "prompt": "Move the camera high above and look down at the subject from above. Same subject, same scene, same lighting.",
+     "reference_size": "exact",
+     "references": [
+      {
+       "from": "rs.image"
+      }
+     ]
+    }
+   },
+   "sample_from-above": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "conditioning": {
+      "from": "enc_from-above.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 776,
+     "steps": 6,
+     "guidance": 1,
+     "flow_shift": 2.02,
+     "sampler": "euler",
+     "scheduler": "discrete"
+    }
+   },
+   "decode_from-above": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample_from-above.latent"
+     }
+    }
+   },
+   "save_from-above": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode_from-above.image"
+     },
+     "name": "camera-angles-klein/from-above"
+    }
+   },
+   "enc_close-up": {
+    "type": "fugue/text-encode",
+    "version": "1.1.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "prompt": "Move the camera closer for a close-up of the subject. Same subject, same scene, same lighting.",
+     "reference_size": "exact",
+     "references": [
+      {
+       "from": "rs.image"
+      }
+     ]
+    }
+   },
+   "sample_close-up": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "conditioning": {
+      "from": "enc_close-up.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 776,
+     "steps": 6,
+     "guidance": 1,
+     "flow_shift": 2.02,
+     "sampler": "euler",
+     "scheduler": "discrete"
+    }
+   },
+   "decode_close-up": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample_close-up.latent"
+     }
+    }
+   },
+   "save_close-up": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode_close-up.image"
+     },
+     "name": "camera-angles-klein/close-up"
+    }
+   },
+   "grid": {
+    "type": "fugue/image-grid",
+    "version": "1.0.0",
+    "inputs": {
+     "images": [
+      {
+       "from": "decode_turn-right.image"
+      },
+      {
+       "from": "decode_side-profile.image"
+      },
+      {
+       "from": "decode_back.image"
+      },
+      {
+       "from": "decode_low-angle.image"
+      },
+      {
+       "from": "decode_from-above.image"
+      },
+      {
+       "from": "decode_close-up.image"
+      }
+     ],
+     "columns": 3,
+     "labels": "Turned right\nSide profile\nBack\nLow angle\nFrom above\nClose-up",
+     "gap": 12
+    }
+   },
+   "save_grid": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "grid.image"
+     },
+     "name": "camera-angles-klein/all-views"
+    }
+   }
+  }
+ },
+ "layout": {
+  "nodes": {
+   "models": {
+    "pos": [
+     0,
+     0
+    ]
+   },
+   "load": {
+    "pos": [
+     0,
+     720
+    ]
+   },
+   "rs": {
+    "pos": [
+     340,
+     720
+    ]
+   },
+   "size": {
+    "pos": [
+     680,
+     720
+    ]
+   },
+   "enc_turn-right": {
+    "pos": [
+     1020,
+     0
+    ]
+   },
+   "sample_turn-right": {
+    "pos": [
+     1360,
+     0
+    ]
+   },
+   "decode_turn-right": {
+    "pos": [
+     1700,
+     0
+    ]
+   },
+   "save_turn-right": {
+    "pos": [
+     2040,
+     0
+    ]
+   },
+   "enc_side-profile": {
+    "pos": [
+     1020,
+     720
+    ]
+   },
+   "sample_side-profile": {
+    "pos": [
+     1360,
+     720
+    ]
+   },
+   "decode_side-profile": {
+    "pos": [
+     1700,
+     720
+    ]
+   },
+   "save_side-profile": {
+    "pos": [
+     2040,
+     720
+    ]
+   },
+   "enc_back": {
+    "pos": [
+     1020,
+     1440
+    ]
+   },
+   "sample_back": {
+    "pos": [
+     1360,
+     1440
+    ]
+   },
+   "decode_back": {
+    "pos": [
+     1700,
+     1440
+    ]
+   },
+   "save_back": {
+    "pos": [
+     2040,
+     1440
+    ]
+   },
+   "enc_low-angle": {
+    "pos": [
+     1020,
+     2160
+    ]
+   },
+   "sample_low-angle": {
+    "pos": [
+     1360,
+     2160
+    ]
+   },
+   "decode_low-angle": {
+    "pos": [
+     1700,
+     2160
+    ]
+   },
+   "save_low-angle": {
+    "pos": [
+     2040,
+     2160
+    ]
+   },
+   "enc_from-above": {
+    "pos": [
+     1020,
+     2880
+    ]
+   },
+   "sample_from-above": {
+    "pos": [
+     1360,
+     2880
+    ]
+   },
+   "decode_from-above": {
+    "pos": [
+     1700,
+     2880
+    ]
+   },
+   "save_from-above": {
+    "pos": [
+     2040,
+     2880
+    ]
+   },
+   "enc_close-up": {
+    "pos": [
+     1020,
+     3600
+    ]
+   },
+   "sample_close-up": {
+    "pos": [
+     1360,
+     3600
+    ]
+   },
+   "decode_close-up": {
+    "pos": [
+     1700,
+     3600
+    ]
+   },
+   "save_close-up": {
+    "pos": [
+     2040,
+     3600
+    ]
+   },
+   "grid": {
+    "pos": [
+     2380,
+     1440
+    ]
+   },
+   "save_grid": {
+    "pos": [
+     2720,
+     1440
+    ]
+   }
+  }
+ },
+ "requires": {
+  "fugue": "0.1.0",
+  "models": [
+   {
+    "resource": "fugue/text-encoder",
+    "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
+    "name": "Qwen3-8B-Q8_0.gguf",
+    "source": "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q8_0.gguf",
+    "size": 8709519168
+   },
+   {
+    "resource": "fugue/diffusion-model",
+    "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
+    "name": "flux-2-klein-9b-Q8_0.gguf",
+    "source": "https://huggingface.co/unsloth/FLUX.2-klein-9B-GGUF/resolve/main/flux-2-klein-9b-Q8_0.gguf",
+    "size": 10245691680
+   },
+   {
+    "resource": "fugue/vae",
+    "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+    "name": "flux2-vae.safetensors",
+    "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+    "size": 336213556
+   }
+  ]
+ }
+}
