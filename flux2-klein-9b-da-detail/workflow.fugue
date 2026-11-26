@@ -118,8 +118,8 @@
             "resource": "fugue/diffusion-model"
           },
           "text_encoder": {
-            "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
-            "name": "Qwen3-8B-Q8_0.gguf",
+            "hash": "sha256:408b955510e196121c1c375201744783b5c9a43c7956d73fc78df54c66e883d6",
+            "name": "qwen3/Qwen3-8B-Q8_0.gguf",
             "resource": "fugue/text-encoder"
           },
           "vae": {
@@ -362,25 +362,25 @@
     "fugue": "0.1.0",
     "models": [
       {
-        "hash": "sha256:0cfbf745760f07a76ddeb358dd025a27f2e11d1ca9c9a4169a373d52990fe86e",
-        "name": "Qwen3-8B-Q8_0.gguf",
+        "hash": "sha256:408b955510e196121c1c375201744783b5c9a43c7956d73fc78df54c66e883d6",
+        "name": "qwen3/Qwen3-8B-Q8_0.gguf",
         "resource": "fugue/text-encoder",
-        "size": 8709519168,
-        "source": "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q8_0.gguf"
+        "size": 8709518112,
+        "source": "https://huggingface.co/Qwen/Qwen3-8B-GGUF/resolve/7c41481f57cb95916b40956ab2f0b139b296d974/Qwen3-8B-Q8_0.gguf"
       },
       {
         "hash": "sha256:68957129335ce59ddadcb771f9c375f0ceb587b9c03a104e427fe303d3aab4c6",
         "name": "flux-2-klein-9b-Q8_0.gguf",
         "resource": "fugue/diffusion-model",
         "size": 10245691680,
-        "source": "https://huggingface.co/unsloth/FLUX.2-klein-9B-GGUF/resolve/main/flux-2-klein-9b-Q8_0.gguf"
+        "source": "https://huggingface.co/unsloth/FLUX.2-klein-9B-GGUF/resolve/6db9b2d0479c98795589c94c9beef5cc818c6966/flux-2-klein-9b-Q8_0.gguf"
       },
       {
         "hash": "sha256:d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
         "name": "flux2-vae.safetensors",
         "resource": "fugue/vae",
         "size": 336213556,
-        "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/main/split_files/vae/flux2-vae.safetensors"
+        "source": "https://huggingface.co/Comfy-Org/Flux-2-Dev/resolve/9630c1b4b6e690497ae0c19bb6b1b35d4ebedcb7/split_files/vae/flux2-vae.safetensors"
       },
       {
         "hash": "sha256:04c18d2db35569f11c47732f2e05ed3a71559a8903823fc581e90b0e3168c9ff",
