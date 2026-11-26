@@ -1,0 +1,16 @@
+{
+  "title": "Mystery Postcard",
+  "description": "Each run draws a vintage picture postcard of a random place, era, weather and art style, with a Greetings from caption naming the place. One Dynamic Prompt node does the picking with Fugue's built-in wildcards.",
+  "category": "image",
+  "tags": [
+    "Z-Image",
+    "Dynamic Prompt",
+    "Wildcards",
+    "Text on image"
+  ],
+  "app": {
+    "title": "Mystery Postcard",
+    "summary": "Get a vintage postcard of a surprise place, with its name on it.",
+    "kind": "image"
+  }
+}
