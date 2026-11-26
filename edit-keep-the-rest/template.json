@@ -1,0 +1,15 @@
+{
+  "title": "Edit a picture, keep the rest",
+  "description": "Change a picture with words (FLUX.2 Klein 9B), and everything you did not ask to change stays exactly as it was: only the areas the edit really changed are kept, the rest is the original, pixel for pixel. A second preview shows what changed.",
+  "category": "edit",
+  "tags": [
+    "FLUX.2 Klein",
+    "Image edit",
+    "Keep unchanged"
+  ],
+  "app": {
+    "title": "Edit, keep the rest",
+    "summary": "Edit a picture with words; the rest stays exactly as it was.",
+    "kind": "image"
+  }
+}
