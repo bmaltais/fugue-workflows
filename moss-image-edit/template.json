@@ -1,0 +1,16 @@
+{
+  "title": "MOSS-Image Edit (ComfyUI)",
+  "description": "Edit a picture with a sentence: MOSS-Image with its edit LoRA, scaled to one megapixel, as ComfyUI's image_moss_image_edit template does (30 steps, guidance 4). The edited picture keeps its size and everything you did not ask to change.",
+  "category": "edit",
+  "tags": [
+    "MOSS-Image Edit (ComfyUI)",
+    "MOSS-Image",
+    "Edit LoRA",
+    "ComfyUI"
+  ],
+  "app": {
+    "title": "MOSS-Image Edit",
+    "summary": "Change a picture by describing the change.",
+    "kind": "image"
+  }
+}
