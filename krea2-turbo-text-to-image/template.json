@@ -1,0 +1,14 @@
+{
+  "title": "Krea-2 Turbo, text to image",
+  "description": "A picture from a prompt with Krea 2 Turbo in 8 steps (euler, guidance 1). Runs on your GPU: ComfyUI's Krea 2 node calls Krea's paid cloud model (Krea 2 Medium), whose weights are not published. Krea 2 Community License: commercial use only under USD 1 M yearly revenue; deployments must filter content (https://krea.ai/krea-2-licensing). The preview was made with Fugue and this template.",
+  "category": "image",
+  "tags": [
+    "Krea 2",
+    "Text to image"
+  ],
+  "source": {
+    "name": "Krea 2 image (ComfyUI API node)",
+    "author": "Comfy-Org",
+    "note": "the cloud node's prompt, 1:1 at 1K and seed, on the local Krea 2 Turbo"
+  }
+}
