@@ -1,0 +1,16 @@
+{
+  "title": "Krea 2 Turbo, edit an image",
+  "description": "Edits a picture from a plain instruction (recolor, relight, add or swap objects, change the background, the season, the text on a sign or the outfit, restyle) and keeps the rest of it, with Krea 2 Turbo and the Krea 2 General Edit V2 LoRA in 8 steps: reference boost 4, aligned, as its model card suggests. Removals want Krea 2 Raw at guidance 3 and about 20 steps. The sample picture and the preview were made with Fugue. Licences: the Edit LoRAs (V2) are free for personal and non-commercial use only; commercial use needs a licence from their author (https://huggingface.co/conradlocke/krea2-identity-edit/blob/main/LICENSE_V2.md), and the Krea 2 Community License applies on top (commercial use only under USD 1 M yearly revenue; deployments must filter content; https://krea.ai/krea-2-licensing).",
+  "category": "edit",
+  "tags": [
+    "Krea 2",
+    "Krea 2 Edit",
+    "Edit",
+    "General Edit"
+  ],
+  "source": {
+    "name": "ComfyUI-Krea2Edit (krea2_identity_edit.json, v2.0.0)",
+    "author": "lbouaraba (Apache-2.0); LoRAs by conradlocke",
+    "note": "the pack's nodes are Text Encode's edit format Krea 2 Edit (fugue #718); settings from the LoRAs' model card"
+  }
+}
