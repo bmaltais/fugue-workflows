@@ -2,7 +2,16 @@
 
 Ready-to-run workflows for [Fugue](https://github.com/bmaltais/fugue), listed in its window under
 File > Browse templates and by `fugue template list`. Each Fugue release bundles this repo at a
-pinned commit (the `templates` submodule), so the templates work offline.
+pinned commit (the `templates` submodule), so a first run works offline.
+
+Fugue also follows `main` on its own (Settings > General > Get new templates, on by default): at most
+every 6 hours it reads the file list of `main`'s latest commit and downloads only the files that
+differ from what it has (`fugue template update` does it at once). **What merges to `main` reaches
+every Fugue within hours, without a release.** A fetched template ranks after the person's own and
+before the bundled one of the same id. One that this Fugue cannot open (a node it lacks, a newer
+node version) leaves the bundled one in place, so a template that needs a newer Fugue is safe to
+merge. Only plain files are taken (no links, no submodules; dot files are skipped), at most 50 MB
+each, 200 MB and 5000 files in all.
 
 ## A template
 
