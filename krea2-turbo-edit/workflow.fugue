@@ -1,0 +1,368 @@
+{
+ "fugue": 1,
+ "requires": {
+  "fugue": "0.1.0",
+  "models": [
+   {
+    "hash": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
+    "name": "qwen3vl_4b_int8_convrot.safetensors",
+    "resource": "fugue/text-encoder",
+    "size": 4858559240,
+    "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/text_encoders/qwen3vl_4b_int8_convrot.safetensors"
+   },
+   {
+    "hash": "sha256:8e4eeda70dd5037ab1ba2bef6b417f9f901e26093117cf397f741fc1fdaaf3f1",
+    "name": "krea2_turbo_int8_convrot.safetensors",
+    "resource": "fugue/diffusion-model",
+    "size": 13492686496,
+    "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/diffusion_models/krea2_turbo_int8_convrot.safetensors"
+   },
+   {
+    "hash": "sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
+    "name": "qwen_image_vae.safetensors",
+    "resource": "fugue/vae",
+    "size": 253806246,
+    "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/vae/qwen_image_vae.safetensors"
+   },
+   {
+    "hash": "sha256:fbca6ab74b9bef3db8de1d4a49b93d4fe7a778f5d4ae6995e0769ea8de736f00",
+    "name": "krea2_general_edit_v2_r128.safetensors",
+    "resource": "fugue/lora",
+    "size": 914188760,
+    "source": "https://huggingface.co/conradlocke/krea2-identity-edit/resolve/f33b26291c640e8ec50b0da420bfee3c9a660daa/krea2_general_edit_v2_r128.safetensors"
+   }
+  ]
+ },
+ "graph": {
+  "nodes": {
+   "load": {
+    "type": "fugue/load-image",
+    "version": "1.1.0",
+    "inputs": {
+     "file": "inputs/street.jpg"
+    }
+   },
+   "scale": {
+    "type": "fugue/resize-megapixels",
+    "version": "1.0.0",
+    "inputs": {
+     "image": {
+      "from": "load.image"
+     },
+     "megapixels": 1,
+     "multiple": 16,
+     "method": "lanczos"
+    }
+   },
+   "edit": {
+    "type": "local/krea2-edit",
+    "version": "1.0.0",
+    "inputs": {
+     "image": {
+      "from": "scale.image"
+     },
+     "prompt": "Recolor the car to matte black.",
+     "width": {
+      "from": "scale.width"
+     },
+     "height": {
+      "from": "scale.height"
+     },
+     "seed": 41020,
+     "lora": {
+      "resource": "fugue/lora",
+      "name": "krea2_general_edit_v2_r128.safetensors",
+      "hash": "sha256:fbca6ab74b9bef3db8de1d4a49b93d4fe7a778f5d4ae6995e0769ea8de736f00"
+     },
+     "strength": 1,
+     "ref_boost": 4,
+     "ref_position": "aligned",
+     "diffusion_model": {
+      "resource": "fugue/diffusion-model",
+      "name": "krea2_turbo_int8_convrot.safetensors",
+      "hash": "sha256:8e4eeda70dd5037ab1ba2bef6b417f9f901e26093117cf397f741fc1fdaaf3f1"
+     },
+     "text_encoder": {
+      "resource": "fugue/text-encoder",
+      "name": "qwen3vl_4b_int8_convrot.safetensors",
+      "hash": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+     },
+     "vae": {
+      "resource": "fugue/vae",
+      "name": "qwen_image_vae.safetensors",
+      "hash": "sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f"
+     }
+    }
+   },
+   "save": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "edit.image"
+     },
+     "name": "Krea2_turbo_edit"
+    }
+   }
+  }
+ },
+ "groups": {
+  "local/krea2-edit": {
+   "version": "1.0.0",
+   "name": "Krea 2 Edit",
+   "category": "Image/Edit",
+   "description": "Edits a picture from a plain instruction with Krea 2 Turbo and a Krea 2 Edit LoRA (Identity Edit or General Edit, V2): 8 steps, euler, simple, guidance 1. The picture goes to the model twice, as the text encoder's vision input and as clean reference tokens, in the layout the LoRAs were trained on (Text Encode's edit format Krea 2 Edit, ported from the ComfyUI-Krea2Edit pack, Apache-2.0, github.com/lbouaraba/comfyui-krea2edit). Reference boost sets how hard the output copies the picture, Reference placement whether it is pinned on the output's layout (aligned, for edits) or beside it (to restage a person). Use one Edit LoRA at a time. Removals want Krea 2 Raw at guidance 3 and about 20 steps. Keep the output at 2 megapixels or less. Licences: the Edit LoRAs (V2) are free for personal and non-commercial use only; commercial use needs a licence from their author (https://huggingface.co/conradlocke/krea2-identity-edit/blob/main/LICENSE_V2.md), and the Krea 2 Community License applies on top (commercial use only under USD 1 M yearly revenue; deployments must filter content; https://krea.ai/krea-2-licensing).",
+   "inputs": [
+    {
+     "name": "image",
+     "label": "Picture",
+     "targets": [
+      "encode.references"
+     ]
+    },
+    {
+     "name": "prompt",
+     "label": "Instruction",
+     "targets": [
+      "encode.prompt"
+     ]
+    },
+    {
+     "name": "width",
+     "label": "Width",
+     "targets": [
+      "size.width"
+     ]
+    },
+    {
+     "name": "height",
+     "label": "Height",
+     "targets": [
+      "size.height"
+     ]
+    },
+    {
+     "name": "seed",
+     "label": "Seed",
+     "targets": [
+      "sample.seed"
+     ]
+    },
+    {
+     "name": "lora",
+     "label": "Edit LoRA",
+     "targets": [
+      "edit.lora"
+     ]
+    },
+    {
+     "name": "strength",
+     "label": "LoRA strength",
+     "default": 1,
+     "targets": [
+      "edit.strength"
+     ]
+    },
+    {
+     "name": "ref_boost",
+     "label": "Reference boost",
+     "default": 4,
+     "targets": [
+      "encode.ref_boost"
+     ]
+    },
+    {
+     "name": "ref_position",
+     "label": "Reference placement",
+     "default": "aligned",
+     "targets": [
+      "encode.ref_position"
+     ]
+    },
+    {
+     "name": "diffusion_model",
+     "label": "Diffusion model",
+     "targets": [
+      "models.diffusion_model"
+     ]
+    },
+    {
+     "name": "text_encoder",
+     "label": "Text encoder",
+     "targets": [
+      "models.text_encoder"
+     ]
+    },
+    {
+     "name": "vae",
+     "label": "VAE",
+     "targets": [
+      "models.vae"
+     ]
+    },
+    {
+     "name": "vision_size",
+     "label": "Vision size",
+     "default": 768,
+     "section": "Advanced",
+     "targets": [
+      "encode.vision_size"
+     ]
+    },
+    {
+     "name": "steps",
+     "label": "Steps",
+     "default": 8,
+     "section": "Advanced",
+     "targets": [
+      "sample.steps"
+     ]
+    },
+    {
+     "name": "guidance",
+     "label": "Guidance",
+     "default": 1,
+     "section": "Advanced",
+     "targets": [
+      "sample.guidance"
+     ]
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "label": "Image",
+     "from": "decode.image"
+    }
+   ],
+   "nodes": {
+    "models": {
+     "type": "fugue/load-models",
+     "version": "1.4.0",
+     "inputs": {}
+    },
+    "edit": {
+     "type": "fugue/apply-lora",
+     "version": "1.0.0",
+     "inputs": {
+      "model": {
+       "from": "models.model"
+      }
+     }
+    },
+    "encode": {
+     "type": "fugue/text-encode",
+     "version": "1.3.0",
+     "inputs": {
+      "model": {
+       "from": "edit.model"
+      },
+      "edit_format": "Krea 2 Edit"
+     }
+    },
+    "size": {
+     "type": "fugue/empty-latent",
+     "version": "1.0.0",
+     "inputs": {}
+    },
+    "sample": {
+     "type": "fugue/sampler",
+     "version": "1.5.0",
+     "inputs": {
+      "model": {
+       "from": "edit.model"
+      },
+      "conditioning": {
+       "from": "encode.conditioning"
+      },
+      "latent": {
+       "from": "size.latent"
+      },
+      "sampler": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+     }
+    },
+    "decode": {
+     "type": "fugue/vae-decode",
+     "version": "1.0.0",
+     "inputs": {
+      "latent": {
+       "from": "sample.latent"
+      }
+     }
+    }
+   }
+  }
+ },
+ "layout": {
+  "nodes": {
+   "load": {
+    "pos": [
+     0,
+     0
+    ]
+   },
+   "scale": {
+    "pos": [
+     0,
+     520
+    ]
+   },
+   "edit": {
+    "pos": [
+     380,
+     0
+    ]
+   },
+   "save": {
+    "pos": [
+     760,
+     0
+    ]
+   }
+  },
+  "groups": {
+   "local/krea2-edit": {
+    "nodes": {
+     "models": {
+      "pos": [
+       0,
+       0
+      ]
+     },
+     "edit": {
+      "pos": [
+       0,
+       420
+      ]
+     },
+     "encode": {
+      "pos": [
+       340,
+       0
+      ]
+     },
+     "size": {
+      "pos": [
+       340,
+       520
+      ]
+     },
+     "sample": {
+      "pos": [
+       680,
+       0
+      ]
+     },
+     "decode": {
+      "pos": [
+       1020,
+       0
+      ]
+     }
+    }
+   }
+  }
+ }
+}

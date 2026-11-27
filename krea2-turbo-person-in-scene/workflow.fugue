@@ -1,0 +1,260 @@
+{
+ "fugue": 1,
+ "requires": {
+  "fugue": "0.1.0",
+  "models": [
+   {
+    "hash": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
+    "name": "qwen3vl_4b_int8_convrot.safetensors",
+    "resource": "fugue/text-encoder",
+    "size": 4858559240,
+    "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/text_encoders/qwen3vl_4b_int8_convrot.safetensors"
+   },
+   {
+    "hash": "sha256:8e4eeda70dd5037ab1ba2bef6b417f9f901e26093117cf397f741fc1fdaaf3f1",
+    "name": "krea2_turbo_int8_convrot.safetensors",
+    "resource": "fugue/diffusion-model",
+    "size": 13492686496,
+    "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/diffusion_models/krea2_turbo_int8_convrot.safetensors"
+   },
+   {
+    "hash": "sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
+    "name": "qwen_image_vae.safetensors",
+    "resource": "fugue/vae",
+    "size": 253806246,
+    "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/vae/qwen_image_vae.safetensors"
+   },
+   {
+    "hash": "sha256:2082515f1eb66532f5efb5343eb15048a29e3abe9f356e35e784cc60d00b45f7",
+    "name": "krea2_identity_edit_v2_r128.safetensors",
+    "resource": "fugue/lora",
+    "size": 914188768,
+    "source": "https://huggingface.co/conradlocke/krea2-identity-edit/resolve/f33b26291c640e8ec50b0da420bfee3c9a660daa/krea2_identity_edit_v2_r128.safetensors"
+   }
+  ]
+ },
+ "graph": {
+  "nodes": {
+   "scene": {
+    "type": "fugue/load-image",
+    "version": "1.1.0",
+    "inputs": {
+     "file": "inputs/scene.jpg"
+    }
+   },
+   "person": {
+    "type": "fugue/load-image",
+    "version": "1.1.0",
+    "inputs": {
+     "file": "inputs/person.jpg"
+    }
+   },
+   "scale_scene": {
+    "type": "fugue/resize-megapixels",
+    "version": "1.0.0",
+    "inputs": {
+     "image": {
+      "from": "scene.image"
+     },
+     "megapixels": 1,
+     "multiple": 16,
+     "method": "lanczos"
+    }
+   },
+   "scale_person": {
+    "type": "fugue/resize-megapixels",
+    "version": "1.0.0",
+    "inputs": {
+     "image": {
+      "from": "person.image"
+     },
+     "megapixels": 1,
+     "multiple": 16,
+     "method": "lanczos"
+    }
+   },
+   "models": {
+    "type": "fugue/load-models",
+    "version": "1.4.0",
+    "inputs": {
+     "diffusion_model": {
+      "resource": "fugue/diffusion-model",
+      "name": "krea2_turbo_int8_convrot.safetensors",
+      "hash": "sha256:8e4eeda70dd5037ab1ba2bef6b417f9f901e26093117cf397f741fc1fdaaf3f1"
+     },
+     "text_encoder": {
+      "resource": "fugue/text-encoder",
+      "name": "qwen3vl_4b_int8_convrot.safetensors",
+      "hash": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+     },
+     "vae": {
+      "resource": "fugue/vae",
+      "name": "qwen_image_vae.safetensors",
+      "hash": "sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f"
+     }
+    }
+   },
+   "identity": {
+    "type": "fugue/apply-lora",
+    "version": "1.0.0",
+    "inputs": {
+     "model": {
+      "from": "models.model"
+     },
+     "lora": {
+      "resource": "fugue/lora",
+      "name": "krea2_identity_edit_v2_r128.safetensors",
+      "hash": "sha256:2082515f1eb66532f5efb5343eb15048a29e3abe9f356e35e784cc60d00b45f7"
+     },
+     "strength": 1
+    }
+   },
+   "encode": {
+    "type": "fugue/text-encode",
+    "version": "1.3.0",
+    "inputs": {
+     "model": {
+      "from": "identity.model"
+     },
+     "prompt": "Place this woman standing on the sidewalk beside the car, full body, wearing a long navy wool coat, one hand resting on the car roof.",
+     "references": [
+      {
+       "from": "scale_scene.image"
+      },
+      {
+       "from": "scale_person.image"
+      }
+     ],
+     "edit_format": "Krea 2 Edit",
+     "ref_boost": 3,
+     "ref_position": "beside",
+     "scene_boost": 1,
+     "scene_position": "aligned",
+     "vision_size": 768
+    }
+   },
+   "size": {
+    "type": "fugue/empty-latent",
+    "version": "1.0.0",
+    "inputs": {
+     "width": {
+      "from": "scale_scene.width"
+     },
+     "height": {
+      "from": "scale_scene.height"
+     }
+    }
+   },
+   "sample": {
+    "type": "fugue/sampler",
+    "version": "1.5.0",
+    "inputs": {
+     "model": {
+      "from": "identity.model"
+     },
+     "conditioning": {
+      "from": "encode.conditioning"
+     },
+     "latent": {
+      "from": "size.latent"
+     },
+     "seed": 5,
+     "steps": 8,
+     "guidance": 1,
+     "sampler": "euler",
+     "scheduler": "simple",
+     "denoise": 1
+    }
+   },
+   "decode": {
+    "type": "fugue/vae-decode",
+    "version": "1.0.0",
+    "inputs": {
+     "latent": {
+      "from": "sample.latent"
+     }
+    }
+   },
+   "save": {
+    "type": "fugue/save-image",
+    "version": "1.1.0",
+    "inputs": {
+     "image": {
+      "from": "decode.image"
+     },
+     "name": "Krea2_turbo_person_in_scene"
+    }
+   }
+  }
+ },
+ "layout": {
+  "nodes": {
+   "scene": {
+    "pos": [
+     0,
+     0
+    ]
+   },
+   "person": {
+    "pos": [
+     0,
+     520
+    ]
+   },
+   "scale_scene": {
+    "pos": [
+     340,
+     0
+    ]
+   },
+   "scale_person": {
+    "pos": [
+     340,
+     520
+    ]
+   },
+   "models": {
+    "pos": [
+     340,
+     900
+    ]
+   },
+   "identity": {
+    "pos": [
+     680,
+     900
+    ]
+   },
+   "encode": {
+    "pos": [
+     680,
+     0
+    ]
+   },
+   "size": {
+    "pos": [
+     680,
+     620
+    ]
+   },
+   "sample": {
+    "pos": [
+     1020,
+     0
+    ]
+   },
+   "decode": {
+    "pos": [
+     1360,
+     0
+    ]
+   },
+   "save": {
+    "pos": [
+     1700,
+     0
+    ]
+   }
+  }
+ }
+}

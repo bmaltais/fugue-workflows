@@ -1,0 +1,17 @@
+{
+  "title": "Krea 2 Turbo, restage a person",
+  "description": "Puts the person from one photo into a new scene, pose, outfit and light, keeping their likeness, with Krea 2 Turbo and the Krea 2 Identity Edit V2 LoRA in 8 steps: reference boost 2 and the person placed beside the output, so the scene is free, as its model card suggests (aligned keeps the photo's framing). Say how much of the person shows and describe the outfit. The sample photo and the preview were made with Fugue. Licences: the Edit LoRAs (V2) are free for personal and non-commercial use only; commercial use needs a licence from their author (https://huggingface.co/conradlocke/krea2-identity-edit/blob/main/LICENSE_V2.md), and the Krea 2 Community License applies on top (commercial use only under USD 1 M yearly revenue; deployments must filter content; https://krea.ai/krea-2-licensing).",
+  "category": "edit",
+  "tags": [
+    "Krea 2",
+    "Krea 2 Edit",
+    "Identity Edit",
+    "Restage",
+    "Person"
+  ],
+  "source": {
+    "name": "ComfyUI-Krea2Edit (krea2_identity_edit.json, v2.0.0)",
+    "author": "lbouaraba (Apache-2.0); LoRAs by conradlocke",
+    "note": "the pack's nodes are Text Encode's edit format Krea 2 Edit (fugue #718); settings from the LoRAs' model card"
+  }
+}
