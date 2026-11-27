@@ -1,6 +1,6 @@
 {
   "title": "Krea-2 Turbo, style reference",
-  "description": "A new picture from a prompt in the style of one reference picture, with Krea 2 Turbo and the ostris style-reference LoRA (8 steps); an optional first step rewrites the prompt with a text model. Krea 2 Community License: commercial use only under USD 1 M yearly revenue; deployments must filter content (https://krea.ai/krea-2-licensing). The sample picture and preview are placeholders until #686 replaces them with Fugue's own.",
+  "description": "A new picture from a prompt in the style of one reference picture, with Krea 2 Turbo and the ostris style-reference LoRA (8 steps); an optional first step rewrites the prompt with a text model. Krea 2 Community License: commercial use only under USD 1 M yearly revenue; deployments must filter content (https://krea.ai/krea-2-licensing). The sample picture and the preview were made with Fugue (Z-Image Turbo and this template).",
   "category": "image",
   "tags": [
     "Krea 2",
