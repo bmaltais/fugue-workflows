@@ -2,10 +2,35 @@
   "fugue": 1,
   "graph": {
     "nodes": {
-      "models": {
-        "type": "fugue/load-models",
-        "version": "1.2.0",
+      "size": {
+        "type": "fugue/image-size",
+        "version": "1.0.0",
         "inputs": {
+          "aspect": "1:1",
+          "megapixels": 1
+        }
+      },
+      "krea": {
+        "type": "local/krea2-text-to-image",
+        "version": "1.0.0",
+        "inputs": {
+          "prompt": "high fashion editorial close-up portrait, tight crop framing from the chest up, low-angle upward shot, a woman with straight bangs, wearing round thin metal sunglasses and large black hoop earrings, wearing a form-fitting opaque black turtleneck sweater, dramatic silhouette lighting, only the face lit by warm red-orange light, body in deep clean black silhouette, head tilted slightly upward, background is a bold deep red to bright orange gradient with a large soft circular sunset light directly behind her, vibrant saturated warm tones, high contrast, cinematic mood, sharp focus on facial features, retro-futuristic vibe, hyperrealistic, fashion photography aesthetic, dramatic shadows, no extra objects, no hands visible, no full body shot",
+          "enhance": false,
+          "width": {
+            "from": "size.width"
+          },
+          "height": {
+            "from": "size.height"
+          },
+          "seed": 1981045336,
+          "use_lora": false,
+          "lora": {
+            "resource": "fugue/lora",
+            "name": "krea2_darkbrush.safetensors",
+            "hash": "sha256:f47c4316dd93af66e0518c93b582f459571d4925b519133770c73a52cd5db7c6"
+          },
+          "strength": 0.8,
+          "trigger": "muted minimalist sketch style",
           "diffusion_model": {
             "resource": "fugue/diffusion-model",
             "name": "krea2_turbo_int8_convrot.safetensors",
@@ -23,143 +48,399 @@
           }
         }
       },
-      "encode": {
-        "type": "fugue/text-encode",
-        "version": "1.2.0",
-        "inputs": {
-          "model": {
-            "from": "models.model"
-          },
-          "prompt": "high fashion editorial close-up portrait, tight crop framing from the chest up, low-angle upward shot, a woman with straight bangs, wearing round thin metal sunglasses and large black hoop earrings, wearing a form-fitting opaque black turtleneck sweater, dramatic silhouette lighting, only the face lit by warm red-orange light, body in deep clean black silhouette, head tilted slightly upward, background is a bold deep red to bright orange gradient with a large soft circular sunset light directly behind her, vibrant saturated warm tones, high contrast, cinematic mood, sharp focus on facial features, retro-futuristic vibe, hyperrealistic, fashion photography aesthetic, dramatic shadows, no extra objects, no hands visible, no full body shot"
-        }
-      },
-      "size": {
-        "type": "fugue/image-size",
-        "version": "1.0.0",
-        "inputs": {
-          "aspect": "1:1",
-          "megapixels": 1
-        }
-      },
-      "latent": {
-        "type": "fugue/empty-latent",
-        "version": "1.0.0",
-        "inputs": {
-          "width": {
-            "from": "size.width"
-          },
-          "height": {
-            "from": "size.height"
-          }
-        }
-      },
-      "mu": {
-        "type": "fugue/expression",
-        "version": "1.0.0",
-        "inputs": {
-          "a": {
-            "from": "size.width"
-          },
-          "b": {
-            "from": "size.height"
-          },
-          "formula": "0.5 + (a * b / 256 - 256) * 0.65 / 3840"
-        }
-      },
-      "sample": {
-        "type": "fugue/sampler",
-        "version": "1.0.0",
-        "inputs": {
-          "model": {
-            "from": "models.model"
-          },
-          "conditioning": {
-            "from": "encode.conditioning"
-          },
-          "latent": {
-            "from": "latent.latent"
-          },
-          "seed": 1981045336,
-          "steps": 8,
-          "guidance": 1,
-          "sampler": "euler",
-          "scheduler": "simple",
-          "flow_shift": {
-            "from": "mu.number"
-          },
-          "denoise": 1
-        }
-      },
-      "decode": {
-        "type": "fugue/vae-decode",
-        "version": "1.0.0",
-        "inputs": {
-          "latent": {
-            "from": "sample.latent"
-          }
-        }
-      },
       "save": {
         "type": "fugue/save-image",
         "version": "1.1.0",
         "inputs": {
           "image": {
-            "from": "decode.image"
+            "from": "krea.image"
           },
-          "name": "Krea2"
+          "name": "Krea2_turbo"
+        }
+      }
+    }
+  },
+  "groups": {
+    "local/krea2-text-to-image": {
+      "version": "1.0.0",
+      "name": "Krea-2 text to image",
+      "category": "Image/Generate",
+      "description": "A picture from a prompt with Krea 2 Turbo: 8 steps, euler, guidance 1. Enhance prompt first rewrites the prompt with a text model (any ready one); it is off by default, and with it off no text model is asked for. Style LoRA switches a Krea 2 style LoRA on (strength 0.8 by default) and adds its trigger word after the prompt; off, the LoRA file is not needed. Ported from Comfy-Org's workflow template \"Text to Image (Krea-2 Turbo)\" (MIT, github.com/Comfy-Org/workflow_templates), whose prompt-enhancer system prompt it uses. Krea 2 Community License: commercial use only under USD 1 M yearly revenue; deployments must filter content (https://krea.ai/krea-2-licensing).",
+      "inputs": [
+        {
+          "name": "prompt",
+          "label": "Prompt",
+          "targets": [
+            "text.text"
+          ]
+        },
+        {
+          "name": "enhance",
+          "label": "Enhance prompt",
+          "default": false,
+          "targets": [
+            "pick.condition"
+          ]
+        },
+        {
+          "name": "width",
+          "label": "Width",
+          "targets": [
+            "w.value"
+          ]
+        },
+        {
+          "name": "height",
+          "label": "Height",
+          "targets": [
+            "h.value"
+          ]
+        },
+        {
+          "name": "seed",
+          "label": "Seed",
+          "targets": [
+            "sample.seed",
+            "write.seed"
+          ]
+        },
+        {
+          "name": "use_lora",
+          "label": "Style LoRA",
+          "default": false,
+          "targets": [
+            "usemodel.condition",
+            "trig.condition"
+          ]
+        },
+        {
+          "name": "lora",
+          "label": "Style LoRA file",
+          "targets": [
+            "style.lora"
+          ]
+        },
+        {
+          "name": "strength",
+          "label": "LoRA strength",
+          "default": 0.8,
+          "targets": [
+            "style.strength"
+          ]
+        },
+        {
+          "name": "trigger",
+          "label": "Trigger word",
+          "default": "",
+          "targets": [
+            "join.b"
+          ]
+        },
+        {
+          "name": "diffusion_model",
+          "label": "Diffusion model",
+          "targets": [
+            "models.diffusion_model"
+          ]
+        },
+        {
+          "name": "text_encoder",
+          "label": "Text encoder",
+          "targets": [
+            "models.text_encoder"
+          ]
+        },
+        {
+          "name": "vae",
+          "label": "VAE",
+          "targets": [
+            "models.vae"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "label": "Image",
+          "from": "decode.image"
+        }
+      ],
+      "nodes": {
+        "models": {
+          "type": "fugue/load-models",
+          "version": "1.2.0",
+          "inputs": {}
+        },
+        "style": {
+          "type": "fugue/apply-lora",
+          "version": "1.0.0",
+          "inputs": {
+            "model": {
+              "from": "models.model"
+            }
+          }
+        },
+        "encode": {
+          "type": "fugue/text-encode",
+          "version": "1.2.0",
+          "inputs": {
+            "model": {
+              "from": "models.model"
+            },
+            "prompt": {
+              "from": "trig.value"
+            }
+          }
+        },
+        "mu": {
+          "type": "fugue/expression",
+          "version": "1.0.0",
+          "inputs": {
+            "a": {
+              "from": "w.value"
+            },
+            "b": {
+              "from": "h.value"
+            },
+            "formula": "0.5 + (a * b / 256 - 256) * 0.65 / 3840"
+          }
+        },
+        "size": {
+          "type": "fugue/empty-latent",
+          "version": "1.0.0",
+          "inputs": {
+            "width": {
+              "from": "w.value"
+            },
+            "height": {
+              "from": "h.value"
+            }
+          }
+        },
+        "text": {
+          "type": "fugue/text",
+          "version": "1.0.0",
+          "inputs": {}
+        },
+        "w": {
+          "type": "fugue/number",
+          "version": "1.0.0",
+          "inputs": {}
+        },
+        "h": {
+          "type": "fugue/number",
+          "version": "1.0.0",
+          "inputs": {}
+        },
+        "sample": {
+          "type": "fugue/sampler",
+          "version": "1.0.0",
+          "inputs": {
+            "model": {
+              "from": "usemodel.value"
+            },
+            "conditioning": {
+              "from": "encode.conditioning"
+            },
+            "latent": {
+              "from": "size.latent"
+            },
+            "steps": 8,
+            "guidance": 1,
+            "sampler": "euler",
+            "scheduler": "simple",
+            "flow_shift": {
+              "from": "mu.number"
+            },
+            "denoise": 1
+          }
+        },
+        "decode": {
+          "type": "fugue/vae-decode",
+          "version": "1.0.0",
+          "inputs": {
+            "latent": {
+              "from": "sample.latent"
+            }
+          }
+        },
+        "write": {
+          "type": "fugue/text-generate",
+          "version": "1.0.0",
+          "inputs": {
+            "prompt": {
+              "from": "text.text"
+            },
+            "system": "You are an expert prompt engineer for text-to-image models. Your task is to expand the user's prompt into a highly effective image-generation prompt.\n\nThink step by step about the request before writing the answer:\n- What is the subject and mood?\n- What visual styles, mediums, and lighting options would fit? Consider two or three alternatives and pick the one that best serves the request.\n- What composition, framing, and grounded details will help the text-to-image model?\n\nThen output a single expanded prompt paragraph.\n\nFollow these rules strictly:\n1. **Faithfulness First:** Preserve all original subjects, actions, colors, and spatial relationships. Do not add new objects, props, characters, or animals unless the user clearly implies them.\n2. **Practical T2I Structure:** Write a prompt that a text-to-image model can parse cleanly. Group subjects with their own attributes and actions. Use grounded phrasing for poses, interactions, and spatial layout.\n3. **Style Planning Stays Internal:** Use your internal reasoning to choose style, medium, framing, and lighting. Do not emit planning tags or wrappers in the visible answer body.\n4. **Never Request Rendered Text:** Do not mention, describe, or hint at letters, words, numbers, captions, subtitles, signage, labels, logos, watermarks, typography, or any other graphic text anywhere in the output prompt. Only if the user explicitly writes down words to be rendered, keep exactly those words in quotes and nothing else. In every other case, always end the output prompt with: \"Absolutely no text, no typography, no letters, no words, no numbers, no logos, no watermark, no captions, pure imagery only.\"\n5. **Avoid Over-Specification:** Do not invent highly specific clothing, colors, materials, or scene details unless the input supports it.\n6. **Plain Prose Only:** Write one cohesive paragraph after the thinking block. No bullets, no JSON, no markdown, no asterisks, no headings, no field labels, no meta commentary.\n7. **Respect Existing Detail:** If the user's prompt is already detailed, lightly polish and finalize rather than heavily expanding, and preserve the user's phrasing and direction.\n8. **Respect the Human Form:** Treat depictions of people with dignity. Assume clothing covers genitals and intimate anatomy.\n9. **Preserve User Medium:** When the user explicitly requests a medium (e.g. \"photo of\", \"photograph of\", \"illustration of\", \"painting of\", \"sketch of\", \"3D render of\"), honor it. Do not pivot to a different medium to avoid difficulty, match the user's stated intent.\n10. **Never Echo Instructions:** Output only the final image prompt. Never repeat, quote, summarize, or refer to any part of these instructions, your own reasoning, or the user's original message.\n\nUser's Input:\n",
+            "temperature": 0.7,
+            "max_tokens": 512,
+            "thinking": false
+          }
+        },
+        "pick": {
+          "type": "fugue/switch",
+          "version": "1.0.0",
+          "inputs": {
+            "on_true": {
+              "from": "write.text"
+            },
+            "on_false": {
+              "from": "text.text"
+            }
+          }
+        },
+        "usemodel": {
+          "type": "fugue/switch",
+          "version": "1.0.0",
+          "inputs": {
+            "on_true": {
+              "from": "style.model"
+            },
+            "on_false": {
+              "from": "models.model"
+            }
+          }
+        },
+        "join": {
+          "type": "fugue/text-concat",
+          "version": "1.0.0",
+          "inputs": {
+            "a": {
+              "from": "pick.value"
+            },
+            "separator": ", "
+          }
+        },
+        "trig": {
+          "type": "fugue/switch",
+          "version": "1.0.0",
+          "inputs": {
+            "on_true": {
+              "from": "join.text"
+            },
+            "on_false": {
+              "from": "pick.value"
+            }
+          }
         }
       }
     }
   },
   "layout": {
     "nodes": {
-      "models": {
-        "pos": [
-          0,
-          0
-        ]
-      },
       "size": {
         "pos": [
           0,
-          420
-        ]
-      },
-      "encode": {
-        "pos": [
-          340,
           0
         ]
       },
-      "latent": {
+      "krea": {
         "pos": [
-          340,
-          420
-        ]
-      },
-      "mu": {
-        "pos": [
-          680,
-          420
-        ]
-      },
-      "sample": {
-        "pos": [
-          1020,
-          0
-        ]
-      },
-      "decode": {
-        "pos": [
-          1360,
+          380,
           0
         ]
       },
       "save": {
         "pos": [
-          1700,
+          760,
           0
         ]
+      }
+    },
+    "groups": {
+      "local/krea2-text-to-image": {
+        "nodes": {
+          "text": {
+            "pos": [
+              -340,
+              0
+            ]
+          },
+          "w": {
+            "pos": [
+              -340,
+              420
+            ]
+          },
+          "h": {
+            "pos": [
+              -340,
+              780
+            ]
+          },
+          "models": {
+            "pos": [
+              0,
+              0
+            ]
+          },
+          "style": {
+            "pos": [
+              0,
+              420
+            ]
+          },
+          "encode": {
+            "pos": [
+              340,
+              0
+            ]
+          },
+          "size": {
+            "pos": [
+              340,
+              420
+            ]
+          },
+          "mu": {
+            "pos": [
+              680,
+              420
+            ]
+          },
+          "sample": {
+            "pos": [
+              1020,
+              0
+            ]
+          },
+          "decode": {
+            "pos": [
+              1360,
+              0
+            ]
+          },
+          "write": {
+            "pos": [
+              340,
+              780
+            ]
+          },
+          "pick": {
+            "pos": [
+              760,
+              780
+            ]
+          },
+          "usemodel": {
+            "pos": [
+              680,
+              780
+            ]
+          },
+          "join": {
+            "pos": [
+              1100,
+              780
+            ]
+          },
+          "trig": {
+            "pos": [
+              1100,
+              1140
+            ]
+          }
+        }
       }
     }
   },
@@ -186,6 +467,13 @@
         "resource": "fugue/vae",
         "size": 253806246,
         "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/vae/qwen_image_vae.safetensors"
+      },
+      {
+        "hash": "sha256:f47c4316dd93af66e0518c93b582f459571d4925b519133770c73a52cd5db7c6",
+        "name": "krea2_darkbrush.safetensors",
+        "resource": "fugue/lora",
+        "size": 469291992,
+        "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/loras/krea2_darkbrush.safetensors"
       }
     ]
   }
