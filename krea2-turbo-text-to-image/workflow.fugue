@@ -1,0 +1,192 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "models": {
+        "type": "fugue/load-models",
+        "version": "1.2.0",
+        "inputs": {
+          "diffusion_model": {
+            "resource": "fugue/diffusion-model",
+            "name": "krea2_turbo_int8_convrot.safetensors",
+            "hash": "sha256:8e4eeda70dd5037ab1ba2bef6b417f9f901e26093117cf397f741fc1fdaaf3f1"
+          },
+          "text_encoder": {
+            "resource": "fugue/text-encoder",
+            "name": "qwen3vl_4b_int8_convrot.safetensors",
+            "hash": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+          },
+          "vae": {
+            "resource": "fugue/vae",
+            "name": "qwen_image_vae.safetensors",
+            "hash": "sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f"
+          }
+        }
+      },
+      "encode": {
+        "type": "fugue/text-encode",
+        "version": "1.2.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "prompt": "high fashion editorial close-up portrait, tight crop framing from the chest up, low-angle upward shot, a woman with straight bangs, wearing round thin metal sunglasses and large black hoop earrings, wearing a form-fitting opaque black turtleneck sweater, dramatic silhouette lighting, only the face lit by warm red-orange light, body in deep clean black silhouette, head tilted slightly upward, background is a bold deep red to bright orange gradient with a large soft circular sunset light directly behind her, vibrant saturated warm tones, high contrast, cinematic mood, sharp focus on facial features, retro-futuristic vibe, hyperrealistic, fashion photography aesthetic, dramatic shadows, no extra objects, no hands visible, no full body shot"
+        }
+      },
+      "size": {
+        "type": "fugue/image-size",
+        "version": "1.0.0",
+        "inputs": {
+          "aspect": "1:1",
+          "megapixels": 1
+        }
+      },
+      "latent": {
+        "type": "fugue/empty-latent",
+        "version": "1.0.0",
+        "inputs": {
+          "width": {
+            "from": "size.width"
+          },
+          "height": {
+            "from": "size.height"
+          }
+        }
+      },
+      "mu": {
+        "type": "fugue/expression",
+        "version": "1.0.0",
+        "inputs": {
+          "a": {
+            "from": "size.width"
+          },
+          "b": {
+            "from": "size.height"
+          },
+          "formula": "0.5 + (a * b / 256 - 256) * 0.65 / 3840"
+        }
+      },
+      "sample": {
+        "type": "fugue/sampler",
+        "version": "1.0.0",
+        "inputs": {
+          "model": {
+            "from": "models.model"
+          },
+          "conditioning": {
+            "from": "encode.conditioning"
+          },
+          "latent": {
+            "from": "latent.latent"
+          },
+          "seed": 1981045336,
+          "steps": 8,
+          "guidance": 1,
+          "sampler": "euler",
+          "scheduler": "simple",
+          "flow_shift": {
+            "from": "mu.number"
+          },
+          "denoise": 1
+        }
+      },
+      "decode": {
+        "type": "fugue/vae-decode",
+        "version": "1.0.0",
+        "inputs": {
+          "latent": {
+            "from": "sample.latent"
+          }
+        }
+      },
+      "save": {
+        "type": "fugue/save-image",
+        "version": "1.1.0",
+        "inputs": {
+          "image": {
+            "from": "decode.image"
+          },
+          "name": "Krea2"
+        }
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "models": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "size": {
+        "pos": [
+          0,
+          420
+        ]
+      },
+      "encode": {
+        "pos": [
+          340,
+          0
+        ]
+      },
+      "latent": {
+        "pos": [
+          340,
+          420
+        ]
+      },
+      "mu": {
+        "pos": [
+          680,
+          420
+        ]
+      },
+      "sample": {
+        "pos": [
+          1020,
+          0
+        ]
+      },
+      "decode": {
+        "pos": [
+          1360,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          1700,
+          0
+        ]
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "hash": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
+        "name": "qwen3vl_4b_int8_convrot.safetensors",
+        "resource": "fugue/text-encoder",
+        "size": 4858559240,
+        "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/text_encoders/qwen3vl_4b_int8_convrot.safetensors"
+      },
+      {
+        "hash": "sha256:8e4eeda70dd5037ab1ba2bef6b417f9f901e26093117cf397f741fc1fdaaf3f1",
+        "name": "krea2_turbo_int8_convrot.safetensors",
+        "resource": "fugue/diffusion-model",
+        "size": 13492686496,
+        "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/diffusion_models/krea2_turbo_int8_convrot.safetensors"
+      },
+      {
+        "hash": "sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
+        "name": "qwen_image_vae.safetensors",
+        "resource": "fugue/vae",
+        "size": 253806246,
+        "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/vae/qwen_image_vae.safetensors"
+      }
+    ]
+  }
+}
