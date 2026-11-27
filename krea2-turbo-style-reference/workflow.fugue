@@ -1,0 +1,441 @@
+{
+  "fugue": 1,
+  "graph": {
+    "nodes": {
+      "load": {
+        "type": "fugue/load-image",
+        "version": "1.1.0",
+        "inputs": {
+          "file": "inputs/style.jpg"
+        }
+      },
+      "size": {
+        "type": "fugue/image-size",
+        "version": "1.0.0",
+        "inputs": {
+          "aspect": "1:1",
+          "megapixels": 1
+        }
+      },
+      "style": {
+        "type": "local/krea2-style-reference",
+        "version": "1.0.0",
+        "inputs": {
+          "image": {
+            "from": "load.image"
+          },
+          "prompt": "a white yeti with horns reading a book that is titled \"Ostris + Krea2 Style Reference\"",
+          "enhance": false,
+          "width": {
+            "from": "size.width"
+          },
+          "height": {
+            "from": "size.height"
+          },
+          "seed": 251161685108094,
+          "lora": {
+            "resource": "fugue/lora",
+            "name": "krea2_style_reference.safetensors",
+            "hash": "sha256:f50df5a9e62e4be8aa926a63dd5bb1a64770c4004f763c1208007ae13daa82b8"
+          },
+          "strength": 1,
+          "diffusion_model": {
+            "resource": "fugue/diffusion-model",
+            "name": "krea2_turbo_int8_convrot.safetensors",
+            "hash": "sha256:8e4eeda70dd5037ab1ba2bef6b417f9f901e26093117cf397f741fc1fdaaf3f1"
+          },
+          "text_encoder": {
+            "resource": "fugue/text-encoder",
+            "name": "qwen3vl_4b_int8_convrot.safetensors",
+            "hash": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+          },
+          "vae": {
+            "resource": "fugue/vae",
+            "name": "qwen_image_vae.safetensors",
+            "hash": "sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f"
+          }
+        }
+      },
+      "save": {
+        "type": "fugue/save-image",
+        "version": "1.1.0",
+        "inputs": {
+          "image": {
+            "from": "style.image"
+          },
+          "name": "Krea2_turbo_style_reference"
+        }
+      }
+    }
+  },
+  "groups": {
+    "local/krea2-style-reference": {
+      "version": "1.0.0",
+      "name": "Krea-2 style reference",
+      "category": "Image/Generate",
+      "description": "A new picture from a prompt in the style of one reference picture (Krea 2 Turbo with the ostris style-reference LoRA): 8 steps, euler, guidance 1. The picture goes to the model twice, as the text encoder's vision input and as a reference latent. Enhance prompt first rewrites the prompt with a text model (any ready one) and is off by default; with it off no text model is asked for. Ported from Comfy-Org's workflow template \"Image Style Reference (Krea-2 Turbo)\" (MIT, github.com/Comfy-Org/workflow_templates), whose prompt-enhancer system prompt it uses. Krea 2 Community License: commercial use only under USD 1 M yearly revenue; deployments must filter content (https://krea.ai/krea-2-licensing).",
+      "inputs": [
+        {
+          "name": "image",
+          "label": "Style picture",
+          "targets": [
+            "encode.references"
+          ]
+        },
+        {
+          "name": "prompt",
+          "label": "Prompt",
+          "targets": [
+            "text.text"
+          ]
+        },
+        {
+          "name": "enhance",
+          "label": "Enhance prompt",
+          "default": false,
+          "targets": [
+            "pick.condition"
+          ]
+        },
+        {
+          "name": "width",
+          "label": "Width",
+          "targets": [
+            "w.value"
+          ]
+        },
+        {
+          "name": "height",
+          "label": "Height",
+          "targets": [
+            "h.value"
+          ]
+        },
+        {
+          "name": "seed",
+          "label": "Seed",
+          "targets": [
+            "sample.seed",
+            "write.seed"
+          ]
+        },
+        {
+          "name": "lora",
+          "label": "LoRA",
+          "targets": [
+            "style.lora"
+          ]
+        },
+        {
+          "name": "strength",
+          "label": "LoRA strength",
+          "default": 1,
+          "targets": [
+            "style.strength"
+          ]
+        },
+        {
+          "name": "diffusion_model",
+          "label": "Diffusion model",
+          "targets": [
+            "models.diffusion_model"
+          ]
+        },
+        {
+          "name": "text_encoder",
+          "label": "Text encoder",
+          "targets": [
+            "models.text_encoder"
+          ]
+        },
+        {
+          "name": "vae",
+          "label": "VAE",
+          "targets": [
+            "models.vae"
+          ]
+        },
+        {
+          "name": "reference_size",
+          "label": "Reference size",
+          "section": "Advanced",
+          "targets": [
+            "encode.reference_size"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "label": "Image",
+          "from": "decode.image"
+        }
+      ],
+      "nodes": {
+        "models": {
+          "type": "fugue/load-models",
+          "version": "1.2.0",
+          "inputs": {}
+        },
+        "style": {
+          "type": "fugue/apply-lora",
+          "version": "1.0.0",
+          "inputs": {
+            "model": {
+              "from": "models.model"
+            }
+          }
+        },
+        "encode": {
+          "type": "fugue/text-encode",
+          "version": "1.2.0",
+          "inputs": {
+            "model": {
+              "from": "style.model"
+            },
+            "prompt": {
+              "from": "pick.value"
+            },
+            "reference_size": "auto"
+          }
+        },
+        "mu": {
+          "type": "fugue/expression",
+          "version": "1.0.0",
+          "inputs": {
+            "a": {
+              "from": "w.value"
+            },
+            "b": {
+              "from": "h.value"
+            },
+            "formula": "0.5 + (a * b / 256 - 256) * 0.65 / 3840"
+          }
+        },
+        "size": {
+          "type": "fugue/empty-latent",
+          "version": "1.0.0",
+          "inputs": {
+            "width": {
+              "from": "w.value"
+            },
+            "height": {
+              "from": "h.value"
+            }
+          }
+        },
+        "text": {
+          "type": "fugue/text",
+          "version": "1.0.0",
+          "inputs": {}
+        },
+        "w": {
+          "type": "fugue/number",
+          "version": "1.0.0",
+          "inputs": {}
+        },
+        "h": {
+          "type": "fugue/number",
+          "version": "1.0.0",
+          "inputs": {}
+        },
+        "sample": {
+          "type": "fugue/sampler",
+          "version": "1.0.0",
+          "inputs": {
+            "model": {
+              "from": "style.model"
+            },
+            "conditioning": {
+              "from": "encode.conditioning"
+            },
+            "latent": {
+              "from": "size.latent"
+            },
+            "steps": 8,
+            "guidance": 1,
+            "sampler": "euler",
+            "scheduler": "simple",
+            "flow_shift": {
+              "from": "mu.number"
+            },
+            "denoise": 1
+          }
+        },
+        "decode": {
+          "type": "fugue/vae-decode",
+          "version": "1.0.0",
+          "inputs": {
+            "latent": {
+              "from": "sample.latent"
+            }
+          }
+        },
+        "write": {
+          "type": "fugue/text-generate",
+          "version": "1.0.0",
+          "inputs": {
+            "prompt": {
+              "from": "text.text"
+            },
+            "system": "You are an expert prompt engineer for text-to-image models. Your task is to expand the user's prompt into a highly effective image-generation prompt.\n\nThink step by step about the request before writing the answer:\n- What is the subject and mood?\n- What visual styles, mediums, and lighting options would fit? Consider two or three alternatives and pick the one that best serves the request.\n- What composition, framing, and grounded details will help the text-to-image model?\n\nThen output a single expanded prompt paragraph.\n\nFollow these rules strictly:\n1. **Faithfulness First:** Preserve all original subjects, actions, colors, and spatial relationships. Do not add new objects, props, characters, or animals unless the user clearly implies them.\n2. **Practical T2I Structure:** Write a prompt that a text-to-image model can parse cleanly. Group subjects with their own attributes and actions. Use grounded phrasing for poses, interactions, and spatial layout.\n3. **Style Planning Stays Internal:** Use your internal reasoning to choose style, medium, framing, and lighting. Do not emit planning tags or wrappers in the visible answer body.\n4. **Never Request Rendered Text:** Do not mention, describe, or hint at letters, words, numbers, captions, subtitles, signage, labels, logos, watermarks, typography, or any other graphic text anywhere in the output prompt. Only if the user explicitly writes down words to be rendered, keep exactly those words in quotes and nothing else. In every other case, always end the output prompt with: \"Absolutely no text, no typography, no letters, no words, no numbers, no logos, no watermark, no captions, pure imagery only.\"\n5. **Avoid Over-Specification:** Do not invent highly specific clothing, colors, materials, or scene details unless the input supports it.\n6. **Plain Prose Only:** Write one cohesive paragraph after the thinking block. No bullets, no JSON, no markdown, no asterisks, no headings, no field labels, no meta commentary.\n7. **Respect Existing Detail:** If the user's prompt is already detailed, lightly polish and finalize rather than heavily expanding, and preserve the user's phrasing and direction.\n8. **Respect the Human Form:** Treat depictions of people with dignity. Assume clothing covers genitals and intimate anatomy.\n9. **Preserve User Medium:** When the user explicitly requests a medium (e.g. \"photo of\", \"photograph of\", \"illustration of\", \"painting of\", \"sketch of\", \"3D render of\"), honor it. Do not pivot to a different medium to avoid difficulty, match the user's stated intent.\n10. **Never Echo Instructions:** Output only the final image prompt. Never repeat, quote, summarize, or refer to any part of these instructions, your own reasoning, or the user's original message.\n\nUser's Input:\n",
+            "temperature": 0.7,
+            "max_tokens": 512,
+            "thinking": false
+          }
+        },
+        "pick": {
+          "type": "fugue/switch",
+          "version": "1.0.0",
+          "inputs": {
+            "on_true": {
+              "from": "write.text"
+            },
+            "on_false": {
+              "from": "text.text"
+            }
+          }
+        }
+      }
+    }
+  },
+  "layout": {
+    "nodes": {
+      "load": {
+        "pos": [
+          0,
+          0
+        ]
+      },
+      "size": {
+        "pos": [
+          340,
+          420
+        ]
+      },
+      "style": {
+        "pos": [
+          720,
+          0
+        ]
+      },
+      "save": {
+        "pos": [
+          1100,
+          0
+        ]
+      }
+    },
+    "groups": {
+      "local/krea2-style-reference": {
+        "nodes": {
+          "text": {
+            "pos": [
+              -340,
+              0
+            ]
+          },
+          "w": {
+            "pos": [
+              -340,
+              420
+            ]
+          },
+          "h": {
+            "pos": [
+              -340,
+              780
+            ]
+          },
+          "models": {
+            "pos": [
+              0,
+              0
+            ]
+          },
+          "style": {
+            "pos": [
+              0,
+              420
+            ]
+          },
+          "encode": {
+            "pos": [
+              340,
+              0
+            ]
+          },
+          "size": {
+            "pos": [
+              340,
+              420
+            ]
+          },
+          "mu": {
+            "pos": [
+              680,
+              420
+            ]
+          },
+          "sample": {
+            "pos": [
+              1020,
+              0
+            ]
+          },
+          "decode": {
+            "pos": [
+              1360,
+              0
+            ]
+          },
+          "write": {
+            "pos": [
+              340,
+              780
+            ]
+          },
+          "pick": {
+            "pos": [
+              760,
+              780
+            ]
+          }
+        }
+      }
+    }
+  },
+  "requires": {
+    "fugue": "0.1.0",
+    "models": [
+      {
+        "hash": "sha256:32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
+        "name": "qwen3vl_4b_int8_convrot.safetensors",
+        "resource": "fugue/text-encoder",
+        "size": 4858559240,
+        "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/text_encoders/qwen3vl_4b_int8_convrot.safetensors"
+      },
+      {
+        "hash": "sha256:8e4eeda70dd5037ab1ba2bef6b417f9f901e26093117cf397f741fc1fdaaf3f1",
+        "name": "krea2_turbo_int8_convrot.safetensors",
+        "resource": "fugue/diffusion-model",
+        "size": 13492686496,
+        "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/diffusion_models/krea2_turbo_int8_convrot.safetensors"
+      },
+      {
+        "hash": "sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
+        "name": "qwen_image_vae.safetensors",
+        "resource": "fugue/vae",
+        "size": 253806246,
+        "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/vae/qwen_image_vae.safetensors"
+      },
+      {
+        "hash": "sha256:f50df5a9e62e4be8aa926a63dd5bb1a64770c4004f763c1208007ae13daa82b8",
+        "name": "krea2_style_reference.safetensors",
+        "resource": "fugue/lora",
+        "size": 457111760,
+        "source": "https://huggingface.co/Comfy-Org/Krea-2/resolve/588feaf955b08b9ac4723eeb751752ab045dba71/loras/krea2_style_reference.safetensors"
+      }
+    ]
+  }
+}
