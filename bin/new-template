@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""bin/new-template <id> [--from my.fugue] [--category C] [--title T]
+
+Starts a template folder. With --from, the saved workflow is copied in as workflow.fugue and the pictures
+its Load Image nodes name (an absolute path, or a path beside the file) go to <id>/inputs/ with the
+nodes pointed at `inputs/<name>`. Without it you get template.json and put workflow.fugue in yourself.
+For a workflow you exported with File > Export for sharing..., use bin/import-fuguepack.
+"""
+import argparse
+import json
+import os
+import shutil
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.dont_write_bytecode = True
+import _contrib as c  # noqa: E402
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Start a template folder.")
+    ap.add_argument("id")
+    ap.add_argument("--from", dest="source", metavar="FILE.fugue")
+    ap.add_argument("--category")
+    ap.add_argument("--title")
+    args = ap.parse_args()
+
+    folder = c.check_id(args.id)
+    c.check_category(args.category)
+    title = args.title or args.id.replace("-", " ").capitalize()
+    description = "TODO: what it makes, and what it needs, in two sentences"
+    workflow, notes, extra = None, [], []
+    if args.source:
+        try:
+            with open(args.source, encoding="utf-8") as f:
+                workflow = json.load(f)
+        except (OSError, ValueError) as e:
+            c.die(f"cannot read {args.source}: {e}")
+        base = os.path.dirname(os.path.abspath(args.source))
+        os.makedirs(folder)
+        try:
+            def find(value):
+                path = os.path.expanduser(value)
+                path = path if os.path.isabs(path) else os.path.join(base, path)
+                return path if os.path.isfile(path) else None
+
+            notes, missing = c.gather_inputs(workflow, folder, find)
+            extra = [f"not found, put it in inputs/ yourself: {m}" for m in missing]
+            block = workflow.get("app") if isinstance(workflow.get("app"), dict) else {}
+            title = args.title or block.get("title") or title
+            description = block.get("description") or description
+            c.write_template(folder, workflow, title, description, args.category)
+        except BaseException:
+            shutil.rmtree(folder, ignore_errors=True)
+            raise
+    else:
+        os.makedirs(folder)
+        c.write_template(folder, {}, title, description, args.category)
+        os.remove(os.path.join(folder, "workflow.fugue"))
+        extra.append("workflow.fugue: put your saved workflow here as workflow.fugue, or start again with --from")
+    for note in notes:
+        print(f"  put in {note}")
+    c.report(args.id, c.todo(folder, extra))
+
+
+if __name__ == "__main__":
+    main()

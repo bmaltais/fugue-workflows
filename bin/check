@@ -56,6 +56,8 @@ for name in sorted(os.listdir(ROOT)):
         for key in ("title", "description", "category"):
             if not isinstance(about.get(key), str) or not about[key].strip():
                 problems.append(f"{name}/template.json: needs a {key}")
+            elif "TODO" in about[key]:
+                problems.append(f"{name}/template.json: the {key} is still a TODO")
         if about.get("category") not in known:
             problems.append(f"{name}/template.json: category {about.get('category')!r} is not in categories.json")
         if not isinstance(about.get("tags", []), list):

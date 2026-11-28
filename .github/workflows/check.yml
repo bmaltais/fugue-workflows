@@ -1,8 +1,7 @@
 name: Check
 
 # Every template: its shape (bin/check), then Fugue's own reading of it against Fugue's main
-# branch: `fugue template list` with no warnings, every workflow validates, and every app (a workflow with an
-# `app` block) reads (bin/check-apps).
+# branch. The checks are bin/check-all, the same script a contributor runs.
 on:
   pull_request:
   push:
@@ -48,20 +47,8 @@ jobs:
       - name: Build fugue
         run: fugue/bin/build fugue
 
-      - name: Fugue lists every template, with no warnings
-        run: |
-          FUGUE_TEMPLATES=$PWD/templates fugue/build/fugue template list --json > list.json
-          python3 -c "
-          import json, sys
-          reply = json.load(open('list.json'))
-          for w in reply.get('warnings', []): print(w['message'], file=sys.stderr)
-          listed = len(reply['data']['templates'])
-          print(listed, 'templates listed')
-          sys.exit(1 if reply.get('warnings') or listed == 0 else 0)"
-
-      # A node of a pack the template carries is allowed: CI cannot install and trust packs (bin/validate-all).
-      - name: Every workflow validates
-        run: templates/bin/validate-all "$GITHUB_WORKSPACE/fugue/build/fugue"
-
-      - name: Every app reads
-        run: templates/bin/check-apps "$GITHUB_WORKSPACE/fugue/build/fugue"
+      # bin/check-all is what a contributor runs: bin/check, `fugue template list` with no warnings, every workflow
+      # validates (a node of a pack the template carries is allowed: CI cannot install and trust packs, see bin/validate-all),
+      # and every app reads (bin/check-apps).
+      - name: Check every template
+        run: templates/bin/check-all "$GITHUB_WORKSPACE/fugue/build/fugue"

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# bin/check-all [fugue binary]: every check CI runs, in the same order.
+#
+#   1. bin/check          the shape of every template (no Fugue needed)
+#   2. fugue template list   Fugue reads every template, with no warnings
+#   3. bin/validate-all   every workflow validates
+#   4. bin/check-apps     every app block reads
+#
+# The Fugue binary is the argument, else $FUGUE, else `fugue` on the PATH, else ../fugue/build/fugue.
+# With none, only step 1 runs; CI runs the rest.
+set -euo pipefail
+root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+
+"$root/bin/check"
+
+fugue=${1:-${FUGUE:-}}
+if [[ -z $fugue ]]; then
+  if command -v fugue >/dev/null; then fugue=$(command -v fugue)
+  elif [[ -x $root/../fugue/build/fugue ]]; then fugue=$root/../fugue/build/fugue
+  fi
+fi
+if [[ -z $fugue || ! -x $fugue ]]; then
+  echo "No fugue binary found (pass one, or set \$FUGUE): the rest of the checks run in CI."
+  exit 0
+fi
+fugue=$(realpath "$fugue")
+echo "Using $fugue"
+
+list=$(mktemp)
+trap 'rm -f "$list"' EXIT
+FUGUE_TEMPLATES=$root "$fugue" template list --json >"$list"
+python3 - "$list" <<'PY'
+import json, sys
+reply = json.load(open(sys.argv[1]))
+for w in reply.get("warnings", []):
+    print(w["message"], file=sys.stderr)
+listed = len(reply["data"]["templates"])
+print(listed, "templates listed")
+sys.exit(1 if reply.get("warnings") or listed == 0 else 0)
+PY
+
+"$root/bin/validate-all" "$fugue"
+"$root/bin/check-apps" "$fugue"
+echo "All checks passed."
