@@ -4,21 +4,44 @@ Ready-to-run workflows for [Fugue](https://github.com/bmaltais/fugue), listed in
 File > Browse templates and by `fugue template list`. Each Fugue release bundles this repo at a
 pinned commit (the `templates` submodule), so a first run works offline.
 
-Fugue also follows `main` on its own (Settings > General > Get new templates, on by default): at most
-every 6 hours it reads the file list of `main`'s latest commit and downloads only the files that
-differ from what it has (`fugue template update` does it at once). **What merges to `main` reaches
-every Fugue within hours, without a release.** A fetched template ranks after the person's own and
-before the bundled one of the same id. One that this Fugue cannot open (a node it lacks, a newer
-node version) leaves the bundled one in place, so a template that needs a newer Fugue is safe to
-merge. Only plain files are taken (no links, no submodules; dot files are skipped), at most 50 MB
-each, 200 MB and 5000 files in all.
+## New templates without a release
+
+Fugue follows `main` on its own, so a merged template reaches people without a Fugue release
+(spec 11.10 in the fugue repo, `src/engine/template_feed.h`).
+
+- **When.** Once after the window shows, and at most once in 6 hours (a failed try counts). `fugue template update`
+  checks at once, whatever the setting says.
+- **Setting.** Settings > General > Get new templates, on by default. Off: only the bundled templates and the
+  person's own. Settings shows "Last checked" with the time, or the last error.
+- **What it downloads.** It asks GitHub for the latest commit of `main` and its file list, then downloads only
+  the files whose git blob sha it does not already have, and checks each against that sha. The new copy is built
+  aside and switched in whole; any failure keeps the copy in use and shows no notice.
+- **Limits.** Plain files only (no links, no submodules; dot files such as `.github` are left out), at most 50 MB per
+  file, 200 MB and 5000 files in all. A list that breaks a limit refuses the whole update.
+- **Which template wins, by id.** The person's own, then the fetched one, then the bundled one.
+  - A fetched template that this Fugue cannot open (a node it lacks, an older node version, an unreadable
+    `template.json` or workflow, no title) does not take its id: the bundled one of that id stays. A template
+    that needs a newer Fugue is safe to merge.
+  - While a fetched copy is in use, a bundled template whose id is not in it (deleted or renamed here) is hidden.
+  - `categories.json` is taken from the fetched copy when it has one.
+- **Who does not fetch on their own.** A `FUGUE_HOME` or `--home` root (scripts, tests), a development build of
+  Fugue (its `templates` folder is the developer's own checkout), and any session with `FUGUE_TEMPLATES` set
+  (it reads that folder only). `fugue template update` still works in a `FUGUE_HOME` root.
+- **Nothing runs from the feed.** A pack a template carries still asks Install and Trust before anything of it runs.
+
+What this means when you merge:
+
+- **A merge reaches every user within hours.** Review it as a release.
+- **Renaming a folder deletes the template for everyone**, and adds a new one. Ids are permanent.
+- **An edit replaces the template everywhere**. Test an edit to a
+  template that people use as carefully as a new one.
 
 ## A template
 
 One folder per template; the folder's name is its id.
 
 ```
-<id>/template.json    {"title", "description", "category", "tags": [...]}
+<id>/template.json    {"title", "description", "category", "tags": [...]}, and optionally "app", "preview", "poster", "source"
 <id>/workflow.fugue   the workflow
 <id>/preview.webp     what it makes (preview.png or .jpg also work)
 <id>/preview.webm     optional: a moving preview (VP9, no audio, 640x640, a 3 to 4 s loop); template.json names it
@@ -27,6 +50,12 @@ One folder per template; the folder's name is its id.
                       mask's PNG (8-bit gray, white is redrawn) when a node has one
 ```
 
+- `source` (optional) says where a workflow comes from: `{"name", "author", "url", "note"}`, each optional text, `url` starting
+  `http://` or `https://`. The card says "Based on <name> by <author>" and links to the `url`. A field that is not as said, or an unknown one, is
+  left out and is a warning of `fugue template list` (CI fails on warnings).
+- `community` (optional) marks a template that came from a contributor: `{"author": "<GitHub login or name>", "issue": <number>}` (`issue` optional).
+  Fugue's card shows "Community · by <author>". A community template uses built-in nodes only and carries no `packs/`;
+  `bin/check` enforces it (CONTRIBUTING.md has the details).
 - `category` is one of the ids in `categories.json`, which also orders the categories.
 - A template whose `workflow.fugue` has a top-level `action` block is also a **canvas action**: the Canvas view's
   task bar lists it (category `canvas`, by convention). The block names the inputs the canvas fills in (design:
@@ -50,16 +79,10 @@ One folder per template; the folder's name is its id.
   so the window can offer to install it; `remove-background` and `pose-from-description-keep-background` carry `io.github.bmaltais.fugue-remove-background`, `flux2-klein-9b-da-edit-depth` carries `io.github.bmaltais.fugue-depth`,
   copied from `examples/packs/` in the fugue repo. Copy it again when the pack changes, and keep `requires.packs`
   at the same version.
-- No models in this repo. Sample pictures are small JPEGs made with Fugue itself.
+- No models in this repo. Sample pictures are small JPEGs.
 
 ## Adding one
 
-1. Make the workflow in Fugue and save it. Put the pictures it loads in `<id>/inputs/` and point
-   its Load Image nodes at `inputs/<name>`.
-2. Add `template.json` and a preview (about 768 px wide, WebP).
-3. Give each model in `requires.models` a `source` and a `size`. For a Hugging Face file,
-   `curl -sI <source>` shows both checks: `x-linked-size` and `x-linked-etag` (the sha256).
-4. Run `bin/check`, then `bin/check-apps <fugue binary>` (when it has an `app` block), then `FUGUE_TEMPLATES=$PWD fugue template list` (no warnings) and
-   `bin/validate-all <fugue binary>` (every workflow validates; a node of a pack the template carries in `packs/` is allowed, since CI cannot install and trust packs).
-
-CI runs the same checks, the last two against Fugue's main branch.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Short version: export your workflow with File > Export for sharing…, and
+either open a "Submit a template" issue with the file, or turn it into a folder with `bin/import-fuguepack` and open a
+pull request. `bin/check-all` runs the checks CI runs.

@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# bin/check-all [fugue binary]: every check CI runs.
+#
+#   1. bin/check          the shape of every template; with a Fugue binary it also knows which nodes are built in
+#   2. bin/test-import    the import scripts against hostile packages (only when checking this repo itself)
+#   3. fugue template list   Fugue reads every template, with no warnings
+#   4. bin/validate-all   every workflow validates
+#   5. bin/check-apps     every app block reads
+#
+# The Fugue binary is the argument, else $FUGUE, else `fugue` on the PATH, else ../fugue/build/fugue.
+# With none, only steps 1 and 2 run, and a community template's nodes are judged by their `fugue/` prefix; CI runs the rest.
+# $FUGUE_TEMPLATES_ROOT names another templates folder to check (bin/test-import uses it).
+set -euo pipefail
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+root=${FUGUE_TEMPLATES_ROOT:-$here}
+export FUGUE_TEMPLATES_ROOT=$root
+
+fugue=${1:-${FUGUE:-}}
+if [[ -z $fugue ]]; then
+  if command -v fugue >/dev/null; then fugue=$(command -v fugue)
+  elif [[ -x $root/../fugue/build/fugue ]]; then fugue=$root/../fugue/build/fugue
+  fi
+elif [[ $fugue != */* ]]; then
+  fugue=$(command -v -- "$fugue" || true)  # a bare name is looked up on the PATH
+fi
+if [[ -n $fugue && ( $fugue != */* || ! -f $fugue || ! -x $fugue ) ]]; then
+  echo "error: $fugue is not an executable file." >&2
+  exit 1
+fi
+
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+# What Fugue says may come from a stranger's package (a node or model name): it is escaped before it is shown.
+show() { python3 -I -c 'import sys; sys.dont_write_bytecode = True; sys.path.insert(0, sys.argv[1]); import _contrib as c; sys.stdout.write(c.safe(sys.stdin.read()))' "$here/bin"; }
+
+if [[ -z $fugue ]]; then
+  "$here/bin/check"
+else
+  fugue=$(realpath "$fugue")
+  echo "Using $fugue"
+  # Fugue gets a scratch home, so a check never touches the person's own settings, projects or templates.
+  export FUGUE_HOME=$scratch/home
+  mkdir -p "$FUGUE_HOME"
+  "$fugue" node list --json >"$scratch/nodes.json" 2>"$scratch/err" || { show <"$scratch/err" >&2; exit 1; }
+  "$here/bin/check" --nodes "$scratch/nodes.json"
+fi
+if [[ $root == "$here" ]]; then
+  "$here/bin/test-import" >"$scratch/test.out" 2>&1 || { cat "$scratch/test.out"; exit 1; }
+fi
+if [[ -z $fugue ]]; then
+  echo "No fugue binary found (pass one, or set \$FUGUE): the rest of the checks run in CI."
+  exit 0
+fi
+
+FUGUE_TEMPLATES=$root "$fugue" template list --json >"$scratch/list.json" 2>"$scratch/err" || true
+show <"$scratch/err" >&2
+python3 -I - "$scratch/list.json" "$here/bin" <<'PY'
+import json, sys
+sys.dont_write_bytecode = True
+sys.path.insert(0, sys.argv[2])
+import _contrib as c
+reply = json.load(open(sys.argv[1]))
+for w in reply.get("warnings", []):
+    print(c.safe(w["message"]), file=sys.stderr)
+listed = len(reply["data"]["templates"])
+print(listed, "templates listed")
+sys.exit(1 if reply.get("warnings") or listed == 0 else 0)
+PY
+
+"$here/bin/validate-all" "$fugue"
+"$here/bin/check-apps" "$fugue"
+echo "All checks passed."

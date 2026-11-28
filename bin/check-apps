@@ -12,7 +12,11 @@ import os
 import subprocess
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.dont_write_bytecode = True
+import _contrib as c  # noqa: E402  (safe(): what a package says is never printed raw)
+
+ROOT = c.ROOT
 fugue = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("FUGUE", "fugue")
 env = dict(os.environ, FUGUE_TEMPLATES=ROOT)
 problems = []
@@ -51,7 +55,7 @@ def ports(name, node):
     if group:
         return {i["name"] for i in group.get("inputs", [])}
     if kind not in described:
-        reply = run("node", "describe", kind)
+        reply = run("node", "describe", "--", kind)
         found = (reply.get("data") or {}).get("nodes") or [None]
         data = found[0]
         described[kind] = {i["name"] for i in data.get("inputs", [])} if isinstance(data, dict) else None
@@ -114,6 +118,6 @@ for name in with_block:
                 problems.append(f"{name}: input {item.get('name') or item.get('role')} targets {target}, and the node has no input {port}")
 
 for problem in problems:
-    print(problem, file=sys.stderr)
+    print(c.safe(problem), file=sys.stderr)
 print(f"{len(with_block)} apps, {len(problems)} problems")
 sys.exit(1 if problems else 0)

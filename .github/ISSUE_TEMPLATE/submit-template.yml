@@ -1,0 +1,74 @@
+name: Submit a template
+description: Share a workflow you made in Fugue. No git needed.
+title: "Template: "
+labels: ["template"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        In Fugue: run your workflow once, then File > Export for sharing…. This writes a `.fuguepack` file with your
+        workflow and its sample pictures (no models).
+
+        GitHub does not accept `.fuguepack` on an issue, but it is a zip: rename it to `my-template.zip` and drag it in below.
+        A maintainer turns it into a template folder and opens the pull request. A merged template reaches every Fugue user
+        within hours, so it is reviewed first.
+  - type: textarea
+    id: package
+    attributes:
+      label: The package
+      description: Drag your renamed `.zip` here. Add a preview picture (PNG or JPEG) of what it makes too, if you can.
+    validations:
+      required: true
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: Short, what a person would look for.
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What it makes and what it needs, in two sentences. Name any model licence limit (non-commercial, gated).
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Text to image (image)
+        - Image editing (edit)
+        - Canvas actions (canvas)
+        - Video (video)
+        - Music (audio)
+        - Upscaling (upscale)
+        - Text (text)
+    validations:
+      required: true
+  - type: textarea
+    id: models
+    attributes:
+      label: Models used
+      description: One per line, with a link to the file (Hugging Face is best) and its licence.
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Based on someone else's work?
+      description: Name, author and link, if the workflow comes from elsewhere.
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirm
+      options:
+        - label: I made this workflow, or I may share it.
+          required: true
+        - label: It may be released under this repo's MIT licence.
+          required: true
+        - label: The sample pictures are mine to share and show no one without their consent.
+          required: true
+        - label: The models are ones I may point people to, and their licence limits are in the description.
+          required: true
