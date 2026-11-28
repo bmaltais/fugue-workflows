@@ -14,10 +14,9 @@ import re
 import shutil
 import struct
 import sys
-import unicodedata
 import zlib
 
-ROOT = os.environ.get("FUGUE_TEMPLATES_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # the env var is for bin/test-import
+ROOT = os.environ.get("FUGUE_TEMPLATES_TEST_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # the env var is for bin/test-import only
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 PREVIEWS = ("preview.webp", "preview.png", "preview.jpg")
 MAX_PREVIEW = 300 * 1024  # as bin/check
@@ -41,6 +40,26 @@ def safe(value):
         n = ord(m.group())
         return f"\\x{n:02x}" if n < 256 else f"\\u{n:04x}" if n < 0x10000 else f"\\U{n:08x}"
     return DANGEROUS.sub(one, str(value))
+
+
+def _no_duplicates(pairs):
+    out = {}
+    for key, value in pairs:
+        if key in out:
+            raise ValueError(f"the key {key!r} appears twice in one object")
+        out[key] = value
+    return out
+
+
+def json_load(path):
+    """json.load that refuses an object with a repeated key (two readers could pick different values)."""
+    with open(path, encoding="utf-8") as f:
+        return json.load(f, object_pairs_hook=_no_duplicates)
+
+
+def safe_text(value):
+    """Like safe(), for a log or a report that keeps its lines: newline and tab stay, every other dangerous character is escaped."""
+    return "\n".join("\t".join(safe(part) for part in line.split("\t")) for line in str(value).replace("\r\n", "\n").replace("\r", "\n").split("\n"))
 
 
 def say(message=""):
@@ -80,7 +99,11 @@ def check_category(category):
 
 
 # What a file's first bytes say it is. Nothing here decodes a file.
-MAX_SIDE = 8192
+MAX_SIDE = 4096  # per side, for a preview and for a sample
+MAX_PIXELS = 16 << 20  # 16 megapixels of area
+MAX_SOS = 64  # scans in one JPEG (a progressive JPEG has about 10; 64 is generous)
+MAX_FRAMES = 64  # frames in one animated WebP
+MAX_ANIM_PIXELS = 64 << 20  # all the frames of an animated WebP together
 PICTURE_EXTS = ("png", "jpg", "webp")
 
 
@@ -114,6 +137,57 @@ def sniff(path):
     return None, None
 
 
+# The file extensions a sample may have, by what its bytes are (mp4 also covers .m4a and .mov containers).
+MEDIA_EXTS = {"png": ("png",), "jpg": ("jpg", "jpeg"), "webp": ("webp",), "mp3": ("mp3",), "flac": ("flac",), "ogg": ("ogg", "oga", "opus"),
+              "wav": ("wav",), "mp4": ("mp4", "m4v", "m4a", "mov"), "webm": ("webm",), "avi": ("avi",)}
+# A community template points at a model by an immutable Hugging Face link: a commit, never a branch.
+HF_SOURCE = re.compile(r"^https://huggingface\.co/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/resolve/[0-9a-f]{40}/[A-Za-z0-9._/-]+$")
+MODEL_EXTS = (".safetensors", ".gguf")
+SAVE_TYPES = ("fugue/save-image", "fugue/save-audio", "fugue/save-video")
+
+
+def community_problems(workflow, builtin=None):
+    """Why a workflow may not be a community template, from what it holds (the folder's own rules are in bin/check): a list of text."""
+    out = []
+    requires = workflow.get("requires") if isinstance(workflow.get("requires"), dict) else {}
+    if requires.get("packs"):
+        out.append("requires.packs: a community template uses built-in nodes only and needs no pack")
+    for model in dicts(requires.get("models")):
+        source = model.get("source")
+        if source is None:
+            continue  # a missing source is its own problem, reported for every template
+        if not isinstance(source, str) or not HF_SOURCE.match(source) or ".." in source.split("/"):
+            out.append(f"requires.models: {safe(model.get('name', model.get('hash')))}'s source must be https://huggingface.co/<owner>/<repo>/resolve/<40-hex commit>/<file>")
+        elif not source.lower().endswith(MODEL_EXTS):
+            out.append(f"requires.models: {safe(model.get('name', model.get('hash')))}'s file must be a .safetensors or .gguf")
+    for node in nodes_of(workflow):
+        inputs = node.get("inputs")
+        if node.get("type") in SAVE_TYPES and isinstance(inputs, dict):
+            for key in ("name", "folder"):
+                value = inputs.get(key)
+                if isinstance(value, str) and (".." in value or value.startswith(("/", "\\", "~")) or LOCAL_PATH.match(value)):
+                    out.append(f"a {node['type']} node's {key} ({safe(value)[:60]!r}) goes outside the output folder: no .., no absolute path, no ~")
+    return out
+
+
+NUM = r"[-+0-9.eE]+"
+CUBE_LINE = re.compile(rf'^(#[ -~\t]*|TITLE[ \t]+"[ -~]*"|LUT_(1D|3D)_SIZE[ \t]+[0-9]{{1,4}}|(DOMAIN_(MIN|MAX)|LUT_(1D|3D)_INPUT_RANGE)([ \t]+{NUM}){{2,3}}|{NUM}([ \t]+{NUM}){{2}})?$')
+
+
+def cube_problem(path):
+    """A .cube colour look-up table is plain ASCII text of the format's lines only (title, size, domain or input range, numbers,
+    comments; spaces and tabs between fields). The patterns have no overlapping repeats, so reading is linear. None when sound."""
+    try:
+        with open(path, "rb") as f:
+            text = f.read().decode("ascii")
+    except (OSError, UnicodeDecodeError):
+        return "a .cube file must be plain ASCII text"
+    for line in text.splitlines():
+        if not CUBE_LINE.match(line.strip(" \t")):
+            return "a .cube file with a line that is not part of the format"
+    return None
+
+
 def media_kind(path):
     return sniff(path)[0]
 
@@ -121,6 +195,172 @@ def media_kind(path):
 def preview_ext(path):
     kind, ext = sniff(path)
     return ext if kind == "image" else None
+
+
+def _dims_problem(kind, width, height):
+    if not (0 < width <= MAX_SIDE and 0 < height <= MAX_SIDE and width * height <= MAX_PIXELS):
+        return f"a {kind} of {width}x{height} (at most {MAX_SIDE}x{MAX_SIDE} and {MAX_PIXELS >> 20} megapixels)"
+    return None
+
+
+PNG_CRITICAL = (b"IHDR", b"PLTE", b"IDAT", b"IEND")
+# Ancillary chunks a preview or sample may carry. Anything else (a private chunk, APNG's acTL, fcTL and fdAT) is refused.
+PNG_ANCILLARY = (b"tEXt", b"iTXt", b"zTXt", b"gAMA", b"cHRM", b"sRGB", b"iCCP", b"pHYs", b"tIME", b"bKGD", b"tRNS", b"sBIT")
+PNG_PROFILE = 1 << 20  # iCCP, deflated
+PNG_COMPRESSED_TEXT = 64 * 1024  # zTXt and iTXt stay small: they are deflated, and a reader may inflate them
+
+
+def _png_problem(data):
+    pos, first, idat = 8, True, 0
+    while pos + 12 <= len(data):
+        length, kind = struct.unpack(">I4s", data[pos:pos + 8])
+        end = pos + 12 + length
+        if end > len(data):
+            return "a PNG chunk runs past the end of the file"
+        if kind == b"IHDR" and not first:
+            return "a PNG with a second IHDR"
+        if first:
+            if kind != b"IHDR" or length != 13:
+                return "a PNG must start with its IHDR"
+            width, height = struct.unpack(">II", data[pos + 8:pos + 16])
+            problem = _dims_problem("PNG", width, height)
+            if problem:
+                return problem
+            first = False
+        if kind == b"iCCP" and length > PNG_PROFILE:
+            return f"a PNG with a colour profile over {PNG_PROFILE >> 20} MB"
+        if kind not in PNG_CRITICAL and kind not in PNG_ANCILLARY:
+            return f"a PNG with a {kind.decode('latin-1')!r} chunk (private, unknown or animated: only {', '.join(k.decode() for k in PNG_ANCILLARY)} are allowed)"
+        if kind in (b"zTXt", b"iTXt") and length > PNG_COMPRESSED_TEXT:
+            return f"a PNG with a {kind.decode()} chunk over {PNG_COMPRESSED_TEXT // 1024} KB"
+        if zlib.crc32(data[pos + 4:end - 4]) != struct.unpack(">I", data[end - 4:end])[0]:
+            return "a PNG chunk has a wrong checksum"
+        idat += kind == b"IDAT"
+        pos = end
+        if kind == b"IEND":
+            if pos != len(data):
+                return "bytes after the PNG's IEND"
+            return None if idat else "a PNG with no IDAT (no picture data)"
+    return "a PNG with no IEND at its end"
+
+
+def _riff_chunks(data, start, stop):
+    """(kind, body) of each RIFF chunk in data[start:stop]; ValueError when one runs past the end."""
+    pos, out = start, []
+    while pos < stop:
+        if pos + 8 > stop:
+            raise ValueError("a WebP chunk runs past the end of the file")
+        kind, length = data[pos:pos + 4], struct.unpack("<I", data[pos + 4:pos + 8])[0]
+        if pos + 8 + length > stop:
+            raise ValueError("a WebP chunk runs past the end of the file")
+        out.append((kind, data[pos + 8:pos + 8 + length]))
+        pos += 8 + length + (length & 1)
+    return out
+
+
+def _vp8_problem(kind, body):
+    """The start code, signature and size of a lossy (VP8) or lossless (VP8L) bitstream."""
+    if kind == b"VP8 ":
+        if len(body) < 10 or body[3:6] != b"\x9d\x01\x2a":
+            return "a WebP whose VP8 data lacks its start code"
+        return _dims_problem("WebP", struct.unpack("<H", body[6:8])[0] & 0x3FFF, struct.unpack("<H", body[8:10])[0] & 0x3FFF)
+    if len(body) < 5 or body[0] != 0x2F:
+        return "a WebP whose VP8L data lacks its signature"
+    bits = int.from_bytes(body[1:5], "little")
+    return _dims_problem("WebP", (bits & 0x3FFF) + 1, ((bits >> 14) & 0x3FFF) + 1)
+
+
+def _webp_problem(data):
+    if struct.unpack("<I", data[4:8])[0] != len(data) - 8:
+        return "a WebP whose RIFF size is not the file's size"
+    try:
+        items = _riff_chunks(data, 12, len(data))
+        if not items:
+            return "a WebP with no picture data"
+        first, head = items[0]
+        if first in (b"VP8 ", b"VP8L"):
+            return _vp8_problem(first, head) if len(items) == 1 else "a WebP with chunks after its picture data"
+        if first != b"VP8X" or len(head) < 10:
+            return "a WebP must start with a VP8, VP8L or VP8X chunk"
+        problem = _dims_problem("WebP", int.from_bytes(head[4:7], "little") + 1, int.from_bytes(head[7:10], "little") + 1)
+        pictures = frames = area = 0
+        for kind, body in items[1:]:
+            if problem:
+                return problem
+            if kind in (b"VP8 ", b"VP8L"):
+                pictures += 1
+                problem = _vp8_problem(kind, body)
+            elif kind == b"ANMF":
+                frames += 1
+                if frames > MAX_FRAMES:
+                    return f"a WebP with more than {MAX_FRAMES} frames"
+                if len(body) < 16:
+                    return "a WebP with a broken ANMF frame"
+                fw, fh = int.from_bytes(body[6:9], "little") + 1, int.from_bytes(body[9:12], "little") + 1
+                problem = _dims_problem("WebP frame", fw, fh)
+                area += fw * fh
+                if area > MAX_ANIM_PIXELS:
+                    return f"an animated WebP of more than {MAX_ANIM_PIXELS >> 20} megapixels in all its frames"
+                inner = _riff_chunks(body, 16, len(body))
+                if not inner or inner[-1][0] not in (b"VP8 ", b"VP8L") or any(k not in (b"ALPH", b"VP8 ", b"VP8L") for k, _ in inner):
+                    return "a WebP frame with no VP8 or VP8L picture data"
+                problem = problem or _vp8_problem(*inner[-1])
+            elif kind not in (b"ALPH", b"ANIM", b"ICCP", b"EXIF", b"XMP "):
+                return f"a WebP with an unknown {kind.decode('latin-1')!r} chunk"
+        if problem:
+            return problem
+        return None if pictures or frames else "a WebP with no picture data"
+    except ValueError as e:
+        return str(e)
+
+
+def _jpeg_problem(data):
+    pos, frame, scans = 2, False, 0
+    while True:
+        if pos + 2 > len(data) or data[pos] != 0xFF:
+            return "a JPEG with a broken marker or no end marker"
+        marker = data[pos + 1]
+        if marker == 0xFF:
+            pos += 1
+            continue
+        if marker == 0xD9:  # the first EOI must be the end of the file
+            if not frame or not scans:
+                return "a JPEG with no frame header or no scan before its end marker"
+            return None if pos + 2 == len(data) else "bytes after the JPEG's end marker"
+        if marker in (0x00, 0x01, 0xD8) or 0xD0 <= marker <= 0xD7:
+            return "a JPEG with a marker where none belongs"
+        if pos + 4 > len(data):
+            return "a JPEG with a broken marker or no end marker"
+        length = struct.unpack(">H", data[pos + 2:pos + 4])[0]
+        if length < 2 or pos + 2 + length > len(data):
+            return "a JPEG segment runs past the end of the file"
+        if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+            if length < 8 or frame:
+                return "a JPEG with a broken or repeated frame header"
+            height, width = struct.unpack(">HH", data[pos + 5:pos + 9])
+            problem = _dims_problem("JPEG", width, height)
+            if problem:
+                return problem
+            frame = True
+        pos += 2 + length
+        if marker == 0xDA:
+            if not frame:
+                return "a JPEG scan before its frame header"
+            scans += 1
+            if scans > MAX_SOS:
+                return f"a JPEG with more than {MAX_SOS} scans"
+            while True:  # entropy-coded data: FF00 is a stuffed byte, FFD0 to FFD7 a restart, FFFF a fill; anything else ends it
+                i = data.find(b"\xff", pos)
+                if i < 0 or i + 1 >= len(data):
+                    return "a JPEG with no end marker"
+                nxt = data[i + 1]
+                if nxt == 0x00 or 0xD0 <= nxt <= 0xD7:
+                    pos = i + 2
+                elif nxt == 0xFF:
+                    pos = i + 1
+                else:
+                    pos = i
+                    break
 
 
 def picture_problem(path):
@@ -135,72 +375,11 @@ def picture_problem(path):
         return str(e)
     ext = preview_ext(path)
     if ext == "png":
-        pos, first = 8, True
-        while pos + 12 <= len(data):
-            length, kind = struct.unpack(">I4s", data[pos:pos + 8])
-            end = pos + 12 + length
-            if end > len(data):
-                return "a PNG chunk runs past the end of the file"
-            if first:
-                if kind != b"IHDR" or length != 13:
-                    return "a PNG must start with its IHDR"
-                width, height = struct.unpack(">II", data[pos + 8:pos + 16])
-                if not (0 < width <= MAX_SIDE and 0 < height <= MAX_SIDE):
-                    return f"a PNG of {width}x{height} (at most {MAX_SIDE}x{MAX_SIDE})"
-                first = False
-            if zlib.crc32(data[pos + 4:end - 4]) != struct.unpack(">I", data[end - 4:end])[0]:
-                return "a PNG chunk has a wrong checksum"
-            pos = end
-            if kind == b"IEND":
-                return None if pos == len(data) else "bytes after the PNG's IEND"
-        return "a PNG with no IEND at its end"
+        return _png_problem(data)
     if ext == "webp":
-        if struct.unpack("<I", data[4:8])[0] != len(data) - 8:
-            return "a WebP whose RIFF size is not the file's size"
-        pos = 12
-        while pos + 8 <= len(data):
-            kind, length = data[pos:pos + 4], struct.unpack("<I", data[pos + 4:pos + 8])[0]
-            body = data[pos + 8:pos + 8 + length]
-            if pos + 8 + length > len(data):
-                return "a WebP chunk runs past the end of the file"
-            dims = None
-            if kind == b"VP8X" and len(body) >= 10:
-                dims = (int.from_bytes(body[4:7], "little") + 1, int.from_bytes(body[7:10], "little") + 1)
-            elif kind == b"VP8L" and len(body) >= 5:
-                bits = int.from_bytes(body[1:5], "little")
-                dims = ((bits & 0x3FFF) + 1, ((bits >> 14) & 0x3FFF) + 1)
-            elif kind == b"VP8 " and len(body) >= 10:
-                dims = (struct.unpack("<H", body[6:8])[0] & 0x3FFF, struct.unpack("<H", body[8:10])[0] & 0x3FFF)
-            if dims and not (0 < dims[0] <= MAX_SIDE and 0 < dims[1] <= MAX_SIDE):
-                return f"a WebP of {dims[0]}x{dims[1]} (at most {MAX_SIDE}x{MAX_SIDE})"
-            pos += 8 + length + (length & 1)
-        return None
+        return _webp_problem(data)
     if ext == "jpg":
-        if not data.endswith(b"\xff\xd9"):
-            return "a JPEG that does not end with its end marker"
-        pos = 2
-        while pos + 4 <= len(data):
-            if data[pos] != 0xFF:
-                return "a JPEG with a broken marker"
-            marker = data[pos + 1]
-            if marker == 0xFF:
-                pos += 1
-                continue
-            if marker in (0x01, *range(0xD0, 0xD8)):
-                pos += 2
-                continue
-            length = struct.unpack(">H", data[pos + 2:pos + 4])[0]
-            if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
-                if length < 8 or pos + 9 > len(data):
-                    return "a JPEG with a broken frame header"
-                height, width = struct.unpack(">HH", data[pos + 5:pos + 9])
-                if not (0 < width <= MAX_SIDE and 0 < height <= MAX_SIDE):
-                    return f"a JPEG of {width}x{height} (at most {MAX_SIDE}x{MAX_SIDE})"
-                return None
-            if marker == 0xDA:
-                break
-            pos += 2 + length
-        return "a JPEG with no frame header"
+        return _jpeg_problem(data)
     return "not a PNG, JPEG or WebP"
 
 
@@ -232,7 +411,7 @@ def file_inputs(workflow):
                     yield inputs, key, node
 
 
-def gather_inputs(workflow, folder, find, show_real=False):
+def gather_inputs(workflow, folder, find, show_real=False, images_only=False):
     """Copy the files that load nodes name into folder/inputs/ and point the nodes at `inputs/<name>`.
 
     `find(value)` returns the path of the file a node names, or None when it is not there. Only a file whose first bytes
@@ -256,6 +435,9 @@ def gather_inputs(workflow, folder, find, show_real=False):
         real = os.path.realpath(source)
         if real not in done:
             found, ext = sniff(real)
+            if images_only and wanted != "image":
+                missing.append(f"{safe(value)} is not a picture: a community template's samples are pictures only (a maintainer adds audio and video by hand)")
+                continue
             if found != wanted:
                 missing.append(f"{safe(value)} is not a {wanted} file by its first bytes: not copied")
                 continue

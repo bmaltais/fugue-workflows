@@ -4,19 +4,47 @@ name: Check
 # branch. The checks are bin/check-all, the same script a contributor runs.
 on:
   pull_request:
+    branches: [main]
   push:
     branches: [main]
 
 permissions:
   contents: read
 
+# A pull request's own copy of the scripts is not trusted (it could weaken them to pass): the checks run from the BASE branch
+# (`base/`) against the pull request's folders (`pr/` or `templates/`). A change to the scripts themselves, from someone with write
+# access, is also run with its own copy, so a new check is exercised before it is merged.
 jobs:
   shape:
     name: Template shape
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: bin/check
+      # actions/checkout v7.0.1 (every third-party action is pinned to a commit)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: pr
+          fetch-depth: 2  # the pull request's merge commit and its base, for bin/check-pr-scope
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: base
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Shape of every template (the base branch's script)
+        run: python3 -I base/bin/check --root pr
+
+      - name: Shape of every template (the pull request's own script)
+        if: (github.event_name != 'pull_request' || contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association))
+        run: python3 -I pr/bin/check --root pr
+
+      # Someone without write access may only add or change their own community templates, and nothing else.
+      # The bot's own pull requests (the import Action) are made from a branch of this repo by a maintainer's label.
+      - name: A pull request from outside changes its own community templates only
+        if: github.event_name == 'pull_request' && !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association) && github.event.pull_request.user.login != 'github-actions[bot]'
+        env:
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: python3 -I base/bin/check-pr-scope --repo pr --author "$AUTHOR" HEAD^1 HEAD
 
   fugue:
     name: Fugue reads every template
@@ -29,9 +57,15 @@ jobs:
       - name: Install git for the checkouts
         run: pacman -Syu --noconfirm --needed git python
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: templates
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: base
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
 
       - name: Check out Fugue's main branch
         run: git clone --depth 1 https://github.com/bmaltais/fugue.git fugue
@@ -49,6 +83,10 @@ jobs:
 
       # bin/check-all is what a contributor runs: bin/check, `fugue template list` with no warnings, every workflow
       # validates (a node of a pack the template carries is allowed: CI cannot install and trust packs, see bin/validate-all),
-      # and every app reads (bin/check-apps).
-      - name: Check every template
+      # and every app reads (bin/check-apps). The base branch's copy judges the folders of the pull request.
+      - name: Check every template (the base branch's scripts)
+        run: base/bin/check-all --root templates "$GITHUB_WORKSPACE/fugue/build/fugue"
+
+      - name: Check every template (the pull request's own scripts)
+        if: (github.event_name != 'pull_request' || contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association))
         run: templates/bin/check-all "$GITHUB_WORKSPACE/fugue/build/fugue"
