@@ -36,8 +36,6 @@ What this means when you merge:
 - **An edit replaces the template everywhere**. Test an edit to a
   template that people use as carefully as a new one.
 
-Each Fugue release also bundles this repo at a pinned commit (the `templates` submodule), so a first run works offline.
-
 ## A template
 
 One folder per template; the folder's name is its id.

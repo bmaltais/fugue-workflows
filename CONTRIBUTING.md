@@ -11,7 +11,7 @@ A merged template reaches every Fugue user within hours (see the README), so a m
 2. File > Export for sharing…. Fugue writes a `.fuguepack` file with your workflow and its sample pictures.
    No model is in it.
 3. GitHub does not take `.fuguepack` files on an issue, but the file is a zip. Rename it to `my-template.zip`
-   (or zip it) and it attaches fine. Fugue opens a renamed zip the same way.
+   (or zip it) and it attaches fine.
 4. Open a [Submit a template](../../issues/new?template=submit-template.yml) issue. Drag the zip in. Fill in the
    title, a description, the category, and the models it uses with a link to each. Drag in a preview picture too
    (PNG or JPEG), if the package has none.
@@ -32,6 +32,8 @@ A merged template reaches every Fugue user within hours (see the README), so a m
 4. Add a preview (below).
 5. Run `bin/check-all`. Without a Fugue binary it runs the shape check only. With one it runs everything CI runs:
    `bin/check-all path/to/fugue` (also read from `$FUGUE`, `fugue` on your PATH, or `../fugue/build/fugue`).
+   CI checks against Fugue's `main` branch. An installed Fugue that is older may not list a template that uses a
+   newer node: build Fugue from `main`, or let CI judge.
 6. Push and open a pull request. CI runs the same checks.
 
 ## The rules
