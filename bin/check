@@ -9,27 +9,29 @@ import json
 import os
 import re
 import sys
+import unicodedata
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.dont_write_bytecode = True
+import _contrib as c  # noqa: E402  (safe(), the picture checks, the local path and built-in node rules)
+
+ROOT = c.ROOT
 SHA = re.compile(r"^sha256:[0-9a-f]{64}$")
 PREVIEWS = ("preview.webp", "preview.png", "preview.jpg")
 MAX_PREVIEW = 300 * 1024
 MAX_INPUT = 600 * 1024
 MAX_CLIP = 600 * 1024  # a moving preview (preview.webm) and its poster
-# A path on somebody's machine: absolute, `~`, a Windows drive or share. A workflow carries `inputs/<name>` and bare names only.
-LOCAL_PATH = re.compile(r"^(/[^\s/]|~(/|\\|$)|[A-Za-z]:[\\/]|\\\\)")
 problems = []
 
-
-def local_paths(value, out):
-    if isinstance(value, dict):
-        for item in value.values():
-            local_paths(item, out)
-    elif isinstance(value, list):
-        for item in value:
-            local_paths(item, out)
-    elif isinstance(value, str) and LOCAL_PATH.match(value):
-        out.append(value)
+# bin/check [--nodes FILE]: FILE is `fugue node list --json` (bin/check-all makes it); without it a built-in node is one whose
+# type starts with `fugue/`, which is only an approximation.
+builtin = None
+if len(sys.argv) == 3 and sys.argv[1] == "--nodes":
+    try:
+        with open(sys.argv[2], encoding="utf-8") as f:
+            builtin = {n["id"] for n in json.load(f)["data"]["nodes"]}
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        sys.exit(f"cannot read the node list {sys.argv[2]}: {e}")
 
 
 def load(path):
@@ -101,14 +103,52 @@ for name in sorted(os.listdir(ROOT)):
         for f in os.listdir(inputs):
             if os.path.getsize(os.path.join(inputs, f)) > MAX_INPUT:
                 problems.append(f"{name}/inputs/{f}: over {MAX_INPUT // 1024} KB")
+    # Names under inputs/ and packs/: no control or invisible characters, no two that differ only by case or Unicode form.
+    for sub in ("inputs", "packs"):
+        for here, dirs, files in os.walk(os.path.join(folder, sub)):
+            seen = {}
+            for entry in dirs + files:
+                rel = os.path.relpath(os.path.join(here, entry), folder)
+                if c.DANGEROUS.search(entry):
+                    problems.append(f"{rel}: the name has a control or invisible character")
+                key = unicodedata.normalize("NFC", entry).casefold()
+                if key in seen:
+                    problems.append(f"{rel}: the name matches {seen[key]!r} by case or Unicode form")
+                seen[key] = entry
+    # Pictures are sound by their structure (no decoding) and named by what they are.
+    for here, _dirs, files in os.walk(folder):
+        if os.sep + "packs" in here.replace(folder, "", 1):
+            continue
+        for f in files:
+            ext = os.path.splitext(f)[1].lower().lstrip(".")
+            if ext in ("png", "jpg", "jpeg", "webp"):
+                path = os.path.join(here, f)
+                rel = os.path.relpath(path, folder)
+                problem = c.picture_problem(path)
+                if problem:
+                    problems.append(f"{name}/{rel}: {problem}")
+                elif c.preview_ext(path) != ("jpg" if ext == "jpeg" else ext):
+                    problems.append(f"{name}/{rel}: its bytes are a {c.preview_ext(path)}, not a .{ext}")
     if not isinstance(flow, dict):
         if flow is not None:
             problems.append(f"{name}/workflow.fugue: is not a workflow (a JSON object)")
         continue
-    paths = []
-    local_paths(flow, paths)
-    for path in paths[:3]:
+    for path in c.local_path_values(flow)[:3]:
         problems.append(f"{name}/workflow.fugue: a path on a local machine, {path[:60]!r} (use inputs/<name>)")
+    if isinstance(about, dict) and "community" in about:
+        community = about["community"]
+        if not isinstance(community, dict) or set(community) != {"author", "issue"}:
+            problems.append(f"{name}/template.json: community is {{\"author\": text, \"issue\": number}}")
+        else:
+            who, issue = community["author"], community["issue"]
+            if not isinstance(who, str) or not who.strip() or len(who) > 80 or c.DANGEROUS.search(who):
+                problems.append(f"{name}/template.json: community.author is plain text, at most 80 characters")
+            if not isinstance(issue, int) or isinstance(issue, bool) or issue < 1:
+                problems.append(f"{name}/template.json: community.issue is a positive number")
+        if os.path.exists(os.path.join(folder, "packs")):
+            problems.append(f"{name}: a community template carries no packs/")
+        for kind in c.foreign_nodes(flow, builtin)[:5]:
+            problems.append(f"{name}/workflow.fugue: a community template may use only built-in nodes; {kind} is not one")
     used = {}
     handles(flow.get("graph", {}), used)
     handles(flow.get("groups", {}), used)
@@ -131,6 +171,6 @@ for name in sorted(os.listdir(ROOT)):
 if count == 0:
     problems.append("no templates")
 for problem in problems:
-    print(problem, file=sys.stderr)
+    print(c.safe(problem), file=sys.stderr)
 print(f"{count} templates, {len(problems)} problems")
 sys.exit(1 if problems else 0)

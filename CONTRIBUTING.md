@@ -22,9 +22,12 @@ A merged template reaches every Fugue user within hours (see the README), so a m
 
 1. Fork this repo and clone it.
 2. Start the folder, one of two ways:
-   - From a package you exported: `bin/import-fuguepack my-template.fuguepack my-id --category edit`
+   - From a package you exported: `bin/import-fuguepack my-template.fuguepack my-id --category edit --author <your GitHub login> --issue <number>`
    - From a workflow you saved: `bin/new-template my-id --from my.fugue --category edit`
      (without `--from` you get an empty folder to fill)
+
+   `--issue` is the issue the template came from (open a short one first if you have none), and marks it as a community
+   template (below). `new-template` leaves the marking to a maintainer.
 
    Both copy the pictures your Load nodes use into `my-id/inputs/` and point the nodes at `inputs/<name>`. They
    print what is still missing.
@@ -63,6 +66,21 @@ my-id/packs/<pack id>/ a pack it needs, copied in (optional)
   `{"name": "...", "author": "...", "url": "https://...", "note": "..."}`. Each field is optional. The card says "Based on
   name by author" and links to the `url`.
 
+### Community templates
+
+A template that comes from a contributor is marked in `template.json`:
+`"community": {"author": "<GitHub login or name>", "issue": 12}`. `bin/import-fuguepack` writes it. In Fugue the card shows a
+"Community · by <author>" badge (Fugue is still to show it; the file is already read and ignored without a warning).
+What it means:
+
+- It may use **built-in Fugue nodes only**: no pack, no `packs/` folder. Packs run code on every user's machine, so
+  a template with a pack is added only by the maintainer, as the maintainer's own, with `bin/import-fuguepack --allow-packs`
+  (which marks nothing as community).
+- `bin/check` fails a community template that has a pack node or a `packs/` folder. With a Fugue binary
+  (`bin/check-all`) a node is built in when `fugue node list` lists it, or the workflow defines it as an embedded group;
+  without a binary only the `fugue/` prefix is checked.
+- `author` is plain text, `issue` a positive number.
+
 ### Preview
 
 - `preview.webp` (or `.png` or `.jpg`), at most **300 KB**, about 768 px wide. It shows what the template makes.
@@ -77,7 +95,9 @@ my-id/packs/<pack id>/ a pack it needs, copied in (optional)
 
 ### Sample inputs
 
-- Each file in `inputs/` is at most **600 KB**. Small JPEGs are best.
+- Each file in `inputs/` is at most **600 KB**. Small JPEGs are best. Pictures must be real PNG, JPEG or WebP files, at most
+  8192 x 8192, named by what they are (`.png` for a PNG): `bin/check` reads their structure (it never decodes them) and
+  the import scripts copy only files that pass. No local paths in the workflow: a Load node names `inputs/<name>`.
 - Make them with Fugue, or use a picture you have the right to share. No photos of other people without their
   consent, and no private pictures.
 - If a node has a painted mask, its file goes in `inputs/` too (an 8-bit gray PNG, white is redrawn).

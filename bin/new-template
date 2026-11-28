@@ -46,7 +46,7 @@ def main():
                 path = path if os.path.isabs(path) else os.path.join(base, path)
                 return path if os.path.isfile(path) else None
 
-            notes, missing = c.gather_inputs(workflow, folder, find)
+            notes, missing = c.gather_inputs(workflow, folder, find, show_real=True)
             extra = [f"not found, put it in inputs/ yourself: {m}" for m in missing]
             extra += c.finish_paths(workflow)
             block = workflow.get("app") if isinstance(workflow.get("app"), dict) else {}

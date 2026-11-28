@@ -12,14 +12,19 @@ node whose type is a built-in group (`runtime.kind` "group" in `fugue node descr
 its definition in the workflow's `groups`, or the template fails Fugue's own test.
 """
 import json
+import os
 import pathlib
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.dont_write_bytecode = True
+import _contrib as c  # noqa: E402  (safe(): Fugue's messages and a package's names are never printed raw)
+
 if len(sys.argv) != 2:
     sys.exit("usage: bin/validate-all <fugue binary>")
 fugue = str(pathlib.Path(sys.argv[1]).resolve())
-root = pathlib.Path(__file__).resolve().parent.parent
+root = pathlib.Path(c.ROOT)
 failed = 0
 kinds = {}
 
@@ -50,12 +55,12 @@ for flow in sorted(root.glob("*/workflow.fugue")):
     try:
         reply = json.loads(done.stdout)
     except json.JSONDecodeError:
-        print(f"invalid: {folder.name}: no JSON reply ({done.stderr.strip()})")
+        print(c.safe(f"invalid: {folder.name}: no JSON reply ({done.stderr.strip()})"))
         failed += 1
         continue
     try:
         for type_id in not_embedded(json.loads(flow.read_text(encoding="utf-8"))):
-            print(f"invalid: {folder.name}: the group {type_id} is used but not embedded in the workflow's groups")
+            print(c.safe(f"invalid: {folder.name}: the group {type_id} is used but not embedded in the workflow's groups"))
             failed += 1
     except (OSError, ValueError, AttributeError):
         pass  # validate reports an unreadable file
@@ -64,6 +69,6 @@ for flow in sorted(root.glob("*/workflow.fugue")):
     if left or (not reply.get("ok") and not errors):
         failed += 1
         for e in left or [{"code": "?", "message": "validate failed with no error"}]:
-            print(f"invalid: {folder.name}: [{e.get('code')}] {e.get('message')}")
+            print(c.safe(f"invalid: {folder.name}: [{e.get('code')}] {e.get('message')}"))
 print(f"{len(list(root.glob('*/workflow.fugue')))} workflows checked, {failed} invalid")
 sys.exit(1 if failed else 0)

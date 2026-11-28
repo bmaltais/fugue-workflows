@@ -1,28 +1,47 @@
 #!/usr/bin/env python3
-"""bin/test-import: hostile and odd packages against bin/import-fuguepack and bin/new-template. No Fugue needed.
+"""bin/test-import: hostile and odd packages against bin/import-fuguepack, bin/new-template and bin/check. No Fugue needed.
 
-Builds each package in a temporary folder, imports it under a throwaway id and checks the result. The id folders
-it makes in the repo are removed at the end.
+Builds each package in a temporary folder and imports it into a scratch templates folder ($FUGUE_TEMPLATES_ROOT points
+the scripts at it), so nothing is written into this repo. Every file an import writes must parse, and bin/check-all must pass on it.
 """
 import json
 import os
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
 import zipfile
+import zlib
 
 sys.dont_write_bytecode = True
 BIN = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(BIN)
-PNG = b"\x89PNG\r\n\x1a\n" + b"\0" * 32
-JPG = b"\xff\xd8\xff\xe0" + b"\0" * 32
+REPO = os.path.dirname(BIN)
 failures = []
-made = []
 
 
-def flow(extra=None, file="inputs/a.png"):
-    doc = {"fugue": 1, "graph": {"nodes": {"load": {"type": "fugue/load-image", "version": "1.0.0", "inputs": {"file": file}}}}}
+def chunk(kind, data):
+    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+
+def png(extra=0, width=1):
+    body = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, 1, 8, 0, 0, 0, 0))
+    if extra:
+        body += chunk(b"tEXt", b"k\0" + b"v" * extra)
+    return body + chunk(b"IDAT", zlib.compress(b"\0\0")) + chunk(b"IEND", b"")
+
+
+PNG = png()
+JPG = b"\xff\xd8\xff\xc0\x00\x11\x08\x00\x01\x00\x01\x03\x01\x11\x00\x02\x11\x00\x03\x11\x00\xff\xd9"
+WEBP = b"RIFF" + struct.pack("<I", 18) + b"WEBPVP8L" + struct.pack("<I", 5) + b"/\0\0\0\0" + b"\0"
+ABOUT = json.dumps({"title": "A title", "description": "What it makes."})
+
+
+def flow(extra=None, file="inputs/a.png", prompt=None):
+    nodes = {"load": {"type": "fugue/load-image", "version": "1.0.0", "inputs": {"file": file}}}
+    if prompt:
+        nodes["text"] = {"type": "fugue/text", "inputs": {"text": prompt}}
+    doc = {"fugue": 1, "graph": {"nodes": nodes}}
     doc.update(extra or {})
     return json.dumps(doc)
 
@@ -37,8 +56,9 @@ def zip_of(path, entries):
             z.writestr(info, data)
 
 
-def run(*args):
-    done = subprocess.run([sys.executable, *args], capture_output=True, text=True, cwd=ROOT)
+def run(script, *args, env=None):
+    cmd = ["bash", os.path.join(BIN, script)] if script == "check-all" else [sys.executable, os.path.join(BIN, script)]
+    done = subprocess.run([*cmd, *args], capture_output=True, text=True, env={**os.environ, **(env or {})})
     return done.returncode, done.stdout + done.stderr
 
 
@@ -46,90 +66,159 @@ def expect(name, ok, detail=""):
     print(("ok   " if ok else "FAIL ") + name)
     if not ok:
         failures.append(name)
-        print("     " + detail.replace("\n", "\n     ")[:600])
-
-
-def importing(tmp, name, entries, *flags, id_="zz-test-import"):
-    pkg = os.path.join(tmp, name)
-    zip_of(pkg, entries)
-    made.append(id_)
-    shutil.rmtree(os.path.join(ROOT, id_), ignore_errors=True)
-    code, out = run(os.path.join(BIN, "import-fuguepack"), pkg, id_, "--category", "edit", *flags)
-    return code, out, os.path.join(ROOT, id_)
+        print("     " + detail.replace("\n", "\n     ")[:700])
 
 
 with tempfile.TemporaryDirectory() as tmp:
-    base = {"p/workflow.fugue": flow(), "p/template.json": '{"title": "workflow"}', "p/inputs/a.png": PNG}
+    root = os.path.join(tmp, "templates")
+    os.makedirs(root)
+    shutil.copy(os.path.join(REPO, "categories.json"), root)
+    env = {"FUGUE_TEMPLATES_ROOT": root, "PYTHONDONTWRITEBYTECODE": "1"}
+    ID = "zz-test-import"
 
-    code, out, folder = importing(tmp, "ok.fuguepack", {**base, "p/preview.png": PNG})
-    expect("a normal package imports", code == 0 and os.path.isfile(folder + "/inputs/a.png") and os.path.isfile(folder + "/preview.png"), out)
+    def importing(name, entries, *flags, author=True):
+        pkg = os.path.join(tmp, name)
+        zip_of(pkg, entries)
+        shutil.rmtree(os.path.join(root, ID), ignore_errors=True)
+        extra = ["--author", "someone", "--issue", "12"] if author else []
+        code, out = run("import-fuguepack", pkg, ID, "--category", "edit", *extra, *flags, env=env)
+        folder = os.path.join(root, ID)
+        if code == 0:  # what an import writes must parse, and never says "unreadable"
+            for f in ("workflow.fugue", "template.json"):
+                try:
+                    json.load(open(os.path.join(folder, f), encoding="utf-8"))
+                except (OSError, ValueError) as e:
+                    expect(f"{name}: {f} parses", False, str(e))
+            if "unreadable" in out:
+                expect(f"{name}: no 'unreadable' in the report", False, out)
+        return code, out, folder
 
-    code, out, folder = importing(tmp, "mvg.fuguepack", {**base, "p/preview.mvg": b"push graphic-context\nimage over 0,0 0,0 'text:@/etc/hostname'\n"})
+    base = {"p/workflow.fugue": flow(), "p/template.json": ABOUT, "p/inputs/a.png": PNG}
+
+    code, out, folder = importing("ok.fuguepack", {**base, "p/preview.png": PNG})
+    about = json.load(open(folder + "/template.json")) if code == 0 else {}
+    expect("a normal package imports, marked community", code == 0 and os.path.isfile(folder + "/inputs/a.png")
+           and about.get("community") == {"author": "someone", "issue": 12}, out)
+    code2, out2 = run("check-all", env=env)
+    expect("bin/check-all passes on an imported folder", code2 == 0, out2)
+    code, out = run("import-fuguepack", os.path.join(tmp, "ok.fuguepack"), "zz-other", "--category", "edit", env=env)
+    expect("--author and --issue are required", code != 0 and "--author" in out and not os.path.exists(os.path.join(root, "zz-other")), out)
+
+    code, out, folder = importing("mvg.fuguepack", {**base, "p/preview.mvg": b"push graphic-context\nimage over 0,0 0,0 'text:@/etc/hostname'\n"})
     expect("an .mvg preview is not copied or converted", code == 0 and not [f for f in os.listdir(folder) if f.startswith("preview")] and "ImageMagick" in out, out)
 
-    code, out, folder = importing(tmp, "fake.fuguepack", {**base, "p/preview.png": b"push graphic-context\n"})
+    code, out, folder = importing("fake.fuguepack", {**base, "p/preview.png": b"push graphic-context\n"})
     expect("a .png that is not a PNG is not copied", code == 0 and not os.path.exists(folder + "/preview.png"), out)
 
-    code, out, folder = importing(tmp, "big.fuguepack", {**base, "p/preview.png": PNG + b"\0" * (301 * 1024)})
+    code, out, folder = importing("big.fuguepack", {**base, "p/preview.png": png(extra=301 * 1024)})
     expect("a preview over 300 KB is not copied", code == 0 and not os.path.exists(folder + "/preview.png"), out)
 
-    code, out, folder = importing(tmp, "ctl.fuguepack", {**base, "p/workflow.fugue": flow(file="inputs/\x1b]52;c;QUJD\x07‮.png"), "p/inputs/\x1b]52;c;QUJD\x07‮.png": PNG})
-    expect("control characters in names are never printed raw", code == 0 and "\x1b" not in out and "‮" not in out and "\\x1b" in out, repr(out))
+    for label, data in (("a PNG with no IEND", PNG[:-12]), ("a PNG of 20000 px", png(width=20000)), ("a JPEG without its end marker", JPG[:-2]),
+                        ("a WebP with a wrong RIFF size", WEBP[:4] + struct.pack("<I", 99) + WEBP[8:])):
+        code, out, folder = importing("bad.fuguepack", {**base, "p/preview.png": data, "p/preview.jpg": data} if False else {**base, "p/preview." + ("webp" if data[:4] == b"RIFF" else "jpg" if data[:2] == b"\xff\xd8" else "png"): data})
+        expect(f"{label} is not copied as a preview", code == 0 and not [f for f in os.listdir(folder) if f.startswith("preview")], out)
 
-    code, out, folder = importing(tmp, "ctl2.fuguepack", {**base, "p/template.json": json.dumps({"title": "x‮\x85y"})})
-    text = open(folder + "/template.json", encoding="utf-8").read() if os.path.isdir(folder) else ""
-    expect("bidi and C1 characters in written JSON are escaped", code == 0 and "‮" not in text and "\x85" not in text, text)
+    code, out, folder = importing("ext.fuguepack", {**base, "p/workflow.fugue": flow(file="inputs/pic.jpg"), "p/inputs/pic.jpg": PNG})
+    expect("a sample is named by its bytes, not its extension", code == 0 and os.path.isfile(folder + "/inputs/pic.png") and "inputs/pic.png" in open(folder + "/workflow.fugue").read(), out)
 
-    code, out, folder = importing(tmp, "dirname.fuguepack", {"\x1b]52;c;QUJD\x07/workflow.fugue": flow(), "\x1b]52;c;QUJD\x07/x": "1"})
-    expect("a hostile top folder name is not printed raw", "\x1b" not in out, repr(out))
+    osc = "\x1b]52;c;QUJD\x07\u202e\u200b\U000e0041"
+    raw = "\x1b\x07\u202e\u200b\U000e0041"
+    code, out, folder = importing("ctl.fuguepack", {**base, "p/workflow.fugue": flow(file=f"inputs/{osc}.png"), f"p/inputs/{osc}.png": PNG})
+    expect("control, bidi, zero-width and tag characters in names are never printed raw", code == 0 and not any(ch in out for ch in raw) and "\\x1b" in out, repr(out))
 
-    code, out, folder = importing(tmp, "packs.fuguepack", {**base, "p/packs/my.pack/pack.json": "{}", "p/packs/my.pack/run.sh": (b"#!/bin/sh\n", 0o100755), "p/packs/my.pack/bin": (b"\0\1\2", 0o100755),
-                                                          "p/packs/my.pack/n/node.json": '{"runtime": {"entry": "./go.sh"}}', "p/packs/my.pack/n/go.sh": (b"#!/bin/sh\n", 0o100755)})
+    code, out, folder = importing("ctl2.fuguepack", {**base, "p/template.json": json.dumps({"title": "x\u202e\x85\u200by", "description": "d\U000e0041"})})
+    text = open(folder + "/template.json", encoding="utf-8").read() if code == 0 else ""
+    expect("bidi, C1, zero-width and tag characters in written JSON are escaped", code == 0 and not any(ch in text for ch in "\u202e\x85\u200b\U000e0041"), text)
+
+    code, out, folder = importing("dirname.fuguepack", {f"{osc}/workflow.fugue": flow(), f"{osc}/x": "1"})
+    expect("a hostile top folder name is not printed raw", not any(ch in out for ch in raw), repr(out))
+
+    packs = {**base, "p/packs/my.pack/pack.json": "{}", "p/packs/my.pack/run.sh": (b"#!/bin/sh\n", 0o100755), "p/packs/my.pack/bin": (b"\0\1\2", 0o100755),
+             "p/packs/my.pack/tests/t.py": "x", "p/packs/my.pack/n/node.json": '{"runtime": {"entry": "./go.sh"}}', "p/packs/my.pack/n/go.sh": (b"#!/bin/sh\n", 0o100755)}
+    code, out, folder = importing("packs.fuguepack", packs)
     expect("a package with packs is refused", code != 0 and "--allow-packs" in out and not os.path.exists(folder), out)
-    code, out, folder = importing(tmp, "packs.fuguepack", {**base, "p/packs/my.pack/pack.json": "{}", "p/packs/my.pack/run.sh": (b"#!/bin/sh\n", 0o100755), "p/packs/my.pack/bin": (b"\0\1\2", 0o100755),
-                                                          "p/packs/my.pack/tests/t.py": "x", "p/packs/my.pack/n/node.json": '{"runtime": {"entry": "./go.sh"}}', "p/packs/my.pack/n/go.sh": (b"#!/bin/sh\n", 0o100755)}, "--allow-packs")
+    code, out, folder = importing("packs.fuguepack", packs, "--allow-packs", author=False)
     pack = folder + "/packs/my.pack"
-    expect("--allow-packs lists files, keeps only the named run script executable, drops tests",
+    expect("--allow-packs lists files, keeps only the named run script executable, drops tests, marks nothing community",
            code == 0 and "NOT TEXT" in out and os.access(pack + "/n/go.sh", os.X_OK) and not os.access(pack + "/run.sh", os.X_OK)
-           and not os.access(pack + "/bin", os.X_OK) and not os.path.exists(pack + "/tests"), out)
+           and not os.access(pack + "/bin", os.X_OK) and not os.path.exists(pack + "/tests") and "community" not in json.load(open(folder + "/template.json")), out)
 
-    code, out, folder = importing(tmp, "mac.fuguepack", {**base, "__MACOSX/p/._workflow.fugue": "junk", "p/.DS_Store": "junk"})
+    code, out, folder = importing("mac.fuguepack", {**base, "__MACOSX/p/._workflow.fugue": "junk", "p/.DS_Store": "junk"})
     expect("__MACOSX and dot entries are ignored", code == 0 and os.path.isfile(folder + "/workflow.fugue"), out)
 
-    code, out, folder = importing(tmp, "flat.fuguepack", {"workflow.fugue": flow(), "template.json": '{"title": "Flat"}', "inputs/a.png": PNG})
+    code, out, folder = importing("flat.fuguepack", {"workflow.fugue": flow(), "template.json": ABOUT, "inputs/a.png": PNG})
     expect("a flat package imports", code == 0 and os.path.isfile(folder + "/inputs/a.png"), out)
 
     inner = os.path.join(tmp, "inner.fuguepack")
     zip_of(inner, base)
-    code, out, folder = importing(tmp, "nested.zip", {"inner.fuguepack": open(inner, "rb").read()})
+    code, out, folder = importing("nested.zip", {"inner.fuguepack": open(inner, "rb").read()})
     expect("a package inside a zip imports", code == 0 and os.path.isfile(folder + "/inputs/a.png"), out)
 
     for label, requires in (("a list", []), ("a model that is not an object", {"models": [1, "x"]}), ("an unhashable hash", {"models": [{"hash": ["x"], "resource": "r"}]})):
-        code, out, folder = importing(tmp, "req.fuguepack", {**base, "p/workflow.fugue": flow({"requires": requires})})
+        code, out, folder = importing("req.fuguepack", {**base, "p/workflow.fugue": flow({"requires": requires})})
         expect(f"malformed requires ({label}) does not crash", code == 0 and "Traceback" not in out, out)
 
-    code, out, folder = importing(tmp, "dots.fuguepack", {**base, "p/../../x": "no"})
+    code, out, folder = importing("dots.fuguepack", {**base, "p/../../x": "no"})
     expect("a ../ entry is refused", code != 0 and not os.path.exists(folder), out)
-
-    code, out, folder = importing(tmp, "link.fuguepack", {**base, "p/l": (b"/etc/passwd", 0o120777)})
+    code, out, folder = importing("link.fuguepack", {**base, "p/l": (b"/etc/passwd", 0o120777)})
     expect("a link is refused", code != 0 and not os.path.exists(folder), out)
-
-    code, out, folder = importing(tmp, "case.fuguepack", {**base, "p/inputs/A.png": PNG})
+    code, out, folder = importing("case.fuguepack", {**base, "p/inputs/A.png": PNG})
     expect("names that differ only by case are refused", code != 0 and not os.path.exists(folder), out)
-
-    code, out, folder = importing(tmp, "nfc.fuguepack", {**base, "p/inputs/é.png": PNG, "p/inputs/é.png": PNG})
+    code, out, folder = importing("nfc.fuguepack", {**base, "p/inputs/\u00e9.png": PNG, "p/inputs/e\u0301.png": PNG})
     expect("names that differ only by Unicode form are refused", code != 0 and not os.path.exists(folder), out)
+    code, out, folder = importing("dircase.fuguepack", {**base, "p/packs/x/A/f": "1", "p/packs/x/a/g": "2"})
+    expect("folders that differ only by case are refused", code != 0 and not os.path.exists(folder), out)
+    code, out, folder = importing("filedir.fuguepack", {**base, "p/inputs/a.png/x": "1"})
+    expect("a name that is both a file and a folder is refused", code != 0 and not os.path.exists(folder), out)
 
-    code, out, folder = importing(tmp, "path.fuguepack", {**base, "p/workflow.fugue": flow({"x": {"note": "/home/someone/secret.txt"}}, file="/home/someone/cat.png")})
-    text = open(folder + "/workflow.fugue", encoding="utf-8").read() if os.path.isdir(folder) else ""
-    expect("local paths are cut to bare names, with a note", code == 0 and "/home/someone" not in text and "bare name" in out, out + text)
+    code, out, folder = importing("path.fuguepack", {**base, "p/workflow.fugue": flow(file="/home/someone/cat.png", prompt="/imagine a cat in ~/art")})
+    text = open(folder + "/workflow.fugue", encoding="utf-8").read() if code == 0 else ""
+    expect("a local file path is cut to its bare name; a prompt that starts with / is left alone",
+           code == 0 and "/home/someone" not in text and "bare name" in out and "/imagine a cat" in text, out + text)
+    code, out, folder = importing("fileurl.fuguepack", {**base, "p/workflow.fugue": flow(file="file:///home/x/a.png")})
+    expect("a file:// path is cut too", code == 0 and "file:" not in open(folder + "/workflow.fugue").read(), out)
 
-    code, out, folder = importing(tmp, "notpng.fuguepack", {**base, "p/inputs/a.png": b"not a picture at all, an svg or mvg maybe"})
+    code, out, folder = importing("notpng.fuguepack", {**base, "p/inputs/a.png": b"not a picture at all, an svg or mvg maybe"})
     expect("a sample that is not a picture is not copied", code == 0 and not os.path.exists(folder + "/inputs/a.png"), out)
 
     twice = {"p/workflow.fugue": json.dumps({"graph": {"nodes": {n: {"type": "fugue/load-image", "inputs": {"file": "inputs/a.png"}} for n in ("l1", "l2")}}}), "p/inputs/a.png": PNG}
-    code, out, folder = importing(tmp, "twice.fuguepack", twice)
+    code, out, folder = importing("twice.fuguepack", twice)
     expect("a file two nodes name is copied once", code == 0 and os.listdir(folder + "/inputs") == ["a.png"], out)
+
+    shutil.rmtree(os.path.join(root, ID), ignore_errors=True)
+
+    # bin/check: community templates use built-in nodes only; a hostile model name is not printed raw
+    def checked(template, flowdoc, *flags):
+        folder = os.path.join(root, "zz-check")
+        shutil.rmtree(folder, ignore_errors=True)
+        os.makedirs(folder)
+        json.dump(template, open(folder + "/template.json", "w"))
+        json.dump(flowdoc, open(folder + "/workflow.fugue", "w"))
+        open(folder + "/preview.png", "wb").write(PNG)
+        result = run("check", *flags, env=env)
+        shutil.rmtree(folder)
+        return result
+
+    about = {"title": "t", "description": "d", "category": "edit", "community": {"author": "a", "issue": 3}}
+    ok = {"fugue": 1, "graph": {"nodes": {"a": {"type": "fugue/text", "inputs": {}}}}}
+    code, out = checked(about, ok)
+    expect("a community template of built-in nodes passes bin/check", code == 0, out)
+    code, out = checked(about, {"fugue": 1, "graph": {"nodes": {"a": {"type": "io.example.pack/thing", "inputs": {}}}}})
+    expect("a community template with a pack node fails bin/check", code != 0 and "built-in" in out, out)
+    nodes = os.path.join(tmp, "nodes.json")
+    json.dump({"data": {"nodes": [{"id": "fugue/text"}]}}, open(nodes, "w"))
+    code, out = checked(about, {"fugue": 1, "graph": {"nodes": {"a": {"type": "fugue/unknown", "inputs": {}}}}}, "--nodes", nodes)
+    expect("with a node list, a fugue/ id that Fugue does not list is not built in", code != 0 and "built-in" in out, out)
+    for label, community in (("a zero issue", {"author": "a", "issue": 0}), ("a boolean issue", {"author": "a", "issue": True}), ("an empty author", {"author": " ", "issue": 1}), ("an extra key", {"author": "a", "issue": 1, "x": 1})):
+        code, out = checked({**about, "community": community}, ok)
+        expect(f"community with {label} fails bin/check", code != 0, out)
+    hostile = {"fugue": 1, "graph": {"nodes": {"m": {"type": "fugue/load-models", "inputs": {"a": {"resource": "r", "hash": "sha256:" + "0" * 64, "name": osc}}}}}}
+    code, out = checked({k: v for k, v in about.items() if k != "community"}, hostile)
+    expect("a hostile model name with no requires.models is reported without raw control characters", code != 0 and "no source" in out and not any(ch in out for ch in raw), repr(out))
+    code, out = checked({k: v for k, v in about.items() if k != "community"}, {"fugue": 1, "graph": {"nodes": {"l": {"type": "fugue/load-image", "inputs": {"file": "/home/x/a.png"}}}}})
+    expect("bin/check refuses an absolute path in a file input", code != 0 and "local machine" in out, out)
+    code, out = checked({k: v for k, v in about.items() if k != "community"}, {"fugue": 1, "graph": {"nodes": {"t": {"type": "fugue/text", "inputs": {"text": "/imagine a cat"}}}}})
+    expect("bin/check leaves a prompt that starts with / alone", code == 0, out)
 
     # new-template --from: absolute path, and a file that is not a picture
     pic = os.path.join(tmp, "cat.jpg")
@@ -138,13 +227,19 @@ with tempfile.TemporaryDirectory() as tmp:
     open(fake, "w").write("not a picture")
     mine = os.path.join(tmp, "my.fugue")
     open(mine, "w").write(json.dumps({"graph": {"nodes": {"a": {"type": "fugue/load-image", "inputs": {"file": pic}}, "b": {"type": "fugue/load-image", "inputs": {"file": fake}}}}}))
-    made.append("zz-test-new")
-    code, out = run(os.path.join(BIN, "new-template"), "zz-test-new", "--from", mine, "--category", "edit")
-    text = open(ROOT + "/zz-test-new/workflow.fugue").read() if code == 0 else ""
-    expect("new-template copies a real picture, prints source -> destination, cuts the rest to a bare name",
-           code == 0 and os.path.isfile(ROOT + "/zz-test-new/inputs/cat.jpg") and "-> inputs/cat.jpg" in out and not os.path.exists(ROOT + "/zz-test-new/inputs/fake.png") and tmp not in text, out + text)
+    code, out = run("new-template", "zz-test-new", "--from", mine, "--category", "edit", env=env)
+    text = open(root + "/zz-test-new/workflow.fugue").read() if code == 0 else ""
+    expect("new-template copies a real picture, prints the real source -> destination, cuts the rest to a bare name",
+           code == 0 and os.path.isfile(root + "/zz-test-new/inputs/cat.jpg") and f"{os.path.realpath(pic)} -> inputs/cat.jpg" in out
+           and not os.path.exists(root + "/zz-test-new/inputs/fake.png") and tmp not in text, out + text)
 
-for id_ in set(made):
-    shutil.rmtree(os.path.join(ROOT, id_), ignore_errors=True)
+    hidden = os.path.join(tmp, ".hidden.png")
+    open(hidden, "wb").write(PNG)
+    open(mine, "w").write(json.dumps({"graph": {"nodes": {"a": {"type": "fugue/load-image", "inputs": {"file": hidden}}}}}))
+    shutil.rmtree(root + "/zz-test-new")
+    code, out = run("new-template", "zz-test-new", "--from", mine, "--category", "edit", env=env)
+    expect("a sample that starts with a dot gets a plain name (the feed skips dot files)",
+           code == 0 and os.listdir(root + "/zz-test-new/inputs") == ["hidden.png"], out)
+
 print(f"{len(failures)} failed" if failures else "all passed")
 sys.exit(1 if failures else 0)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""bin/import-fuguepack <file.fuguepack> <id> [--category C] [--title T] [--allow-packs]
+"""bin/import-fuguepack <file.fuguepack> <id> --author A --issue N [--category C] [--title T] [--allow-packs]
 
 Turns a package made with File > Export for sharing... (a .fuguepack or .fugueapp, a zip) into the template folder
 <id>/: workflow.fugue, inputs/, a template.json skeleton and, when the package has a result picture, the preview.
@@ -10,7 +10,8 @@ The package comes from a stranger, so it is never trusted:
   `__MACOSX/` and dot files are ignored;
 - no file is decoded or converted: a preview is copied only when its first bytes say PNG, JPEG or WebP and it is at most 300 KB;
 - a package with packs/ is refused unless you pass --allow-packs, which lists every file and drops every executable
-  bit except the run script a node.json names;
+  bit except the run script a node.json names. --allow-packs is for a maintainer's own template: nothing is marked
+  community then. Without it --author and --issue are required and `"community": {"author", "issue"}` goes in template.json;
 - everything the package says that is printed is escaped first.
 The package is unpacked under the temporary folder ($TMPDIR, often /tmp, which can be RAM) and removed at the end.
 """
@@ -47,7 +48,7 @@ def unzip_safely(path, dest):
         infos = archive.infolist()
         if len(infos) > MAX_ENTRIES:
             c.die(f"the package has {len(infos)} entries (at most {MAX_ENTRIES}).")
-        total, seen = 0, set()
+        total, seen = 0, {}
         for info in infos:
             name = info.filename
             parts = name.split("/")
@@ -57,10 +58,15 @@ def unzip_safely(path, dest):
                 c.die(f"the package holds a link: {c.safe(repr(name))}. Refused.")
             if ignored([p for p in parts if p]):
                 continue
-            key = unicodedata.normalize("NFC", name.rstrip("/")).casefold()
-            if key in seen:
-                c.die(f"the package has two entries with one name (also by case or Unicode form): {c.safe(repr(name))}. Refused.")
-            seen.add(key)
+            # Every folder on the way and the entry itself: one name by case and Unicode form, one kind (file or folder).
+            clean = [q for q in parts if q]
+            for n in range(1, len(clean) + 1):
+                prefix = "/".join(clean[:n])
+                is_dir = n < len(clean) or name.endswith("/")
+                key = unicodedata.normalize("NFC", prefix).casefold()
+                if key in seen and (seen[key] != (prefix, is_dir) or not is_dir):
+                    c.die(f"the package has two entries with one name (also by case or Unicode form, or a file and a folder): {c.safe(repr(name))}. Refused.")
+                seen[key] = (prefix, is_dir)
             if info.file_size > MAX_FILE:
                 c.die(f"{c.safe(repr(name))} is over {MAX_FILE >> 20} MB. Refused.")
             total += info.file_size
@@ -172,9 +178,20 @@ def main():
     ap.add_argument("id")
     ap.add_argument("--category")
     ap.add_argument("--title")
-    ap.add_argument("--allow-packs", action="store_true", help="also take the packs the package carries (a maintainer, after reading them)")
+    ap.add_argument("--author", help="who made it: a GitHub login or a name (marks the template as a community one)")
+    ap.add_argument("--issue", type=int, help="the number of the issue it came from")
+    ap.add_argument("--allow-packs", action="store_true",
+                    help="a maintainer's own template: also take the packs the package carries, and mark nothing as community")
     args = ap.parse_args()
 
+    community = None
+    if not args.allow_packs:
+        if not args.author or args.issue is None:
+            c.die("--author and --issue are required: a template imported from a stranger is marked community (its author and issue). "
+                  "A maintainer's own template with packs: --allow-packs.")
+        if args.issue < 1 or c.DANGEROUS.search(args.author) or not args.author.strip() or len(args.author) > 80:
+            c.die("--author is plain text (at most 80 characters) and --issue a positive number.")
+        community = {"author": args.author.strip(), "issue": args.issue}
     folder = c.check_id(args.id)
     c.check_category(args.category)
     if not zipfile.is_zipfile(args.package):
@@ -215,7 +232,9 @@ def main():
             description = c.text_of(block.get("description"), None) or c.text_of(packaged.get("description"), "TODO: what it makes, and what it needs, in two sentences")
             extra = [f"not in the package, put it in inputs/ yourself: {m}" for m in missing]
             extra += c.finish_paths(workflow)
-            c.write_template(folder, workflow, title, description, args.category)
+            if os.path.isdir(os.path.join(source, "packs")) and community:
+                c.die("a community template carries no packs.")
+            c.write_template(folder, workflow, title, description, args.category, {"community": community} if community else None)
 
             if os.path.isdir(os.path.join(source, "packs")):
                 extra += copy_packs(source, folder, execs)
