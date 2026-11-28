@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # bin/check-all [fugue binary]: every check CI runs, in the same order.
 #
-#   1. bin/check          the shape of every template (no Fugue needed)
+#   1. bin/check          the shape of every template (no Fugue needed), then bin/test-import (the import scripts)
 #   2. fugue template list   Fugue reads every template, with no warnings
 #   3. bin/validate-all   every workflow validates
 #   4. bin/check-apps     every app block reads
@@ -12,22 +12,33 @@ set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 "$root/bin/check"
+"$root/bin/test-import" >/dev/null || { "$root/bin/test-import"; exit 1; }
 
 fugue=${1:-${FUGUE:-}}
 if [[ -z $fugue ]]; then
   if command -v fugue >/dev/null; then fugue=$(command -v fugue)
   elif [[ -x $root/../fugue/build/fugue ]]; then fugue=$root/../fugue/build/fugue
   fi
+elif [[ $fugue != */* ]]; then
+  fugue=$(command -v -- "$fugue" || true)  # a bare name is looked up on the PATH
 fi
-if [[ -z $fugue || ! -x $fugue ]]; then
+if [[ -z $fugue ]]; then
   echo "No fugue binary found (pass one, or set \$FUGUE): the rest of the checks run in CI."
   exit 0
+fi
+if [[ $fugue != */* || ! -f $fugue || ! -x $fugue ]]; then
+  echo "error: $fugue is not an executable file." >&2
+  exit 1
 fi
 fugue=$(realpath "$fugue")
 echo "Using $fugue"
 
+# Fugue gets a scratch home, so a check never touches the person's own settings, projects or templates.
+FUGUE_HOME=$(mktemp -d)
+export FUGUE_HOME
+
 list=$(mktemp)
-trap 'rm -f "$list"' EXIT
+trap 'rm -rf "$list" "$FUGUE_HOME"' EXIT
 FUGUE_TEMPLATES=$root "$fugue" template list --json >"$list"
 python3 - "$list" <<'PY'
 import json, sys

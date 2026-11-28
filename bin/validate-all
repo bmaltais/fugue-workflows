@@ -26,7 +26,7 @@ kinds = {}
 
 def is_group(type_id):
     if type_id not in kinds:
-        done = subprocess.run([fugue, "node", "describe", type_id, "--json"], capture_output=True, text=True)
+        done = subprocess.run([fugue, "node", "describe", "--", type_id, "--json"], capture_output=True, text=True)
         try:
             nodes = json.loads(done.stdout)["data"]["nodes"]
             kinds[type_id] = bool(nodes) and nodes[0].get("runtime", {}).get("kind") == "group"

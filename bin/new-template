@@ -35,7 +35,9 @@ def main():
             with open(args.source, encoding="utf-8") as f:
                 workflow = json.load(f)
         except (OSError, ValueError) as e:
-            c.die(f"cannot read {args.source}: {e}")
+            c.die(f"cannot read {c.safe(args.source)}: {c.safe(e)}")
+        if not isinstance(workflow, dict):
+            c.die(f"{c.safe(args.source)} is not a Fugue workflow.")
         base = os.path.dirname(os.path.abspath(args.source))
         os.makedirs(folder)
         try:
@@ -46,10 +48,12 @@ def main():
 
             notes, missing = c.gather_inputs(workflow, folder, find)
             extra = [f"not found, put it in inputs/ yourself: {m}" for m in missing]
+            extra += c.finish_paths(workflow)
             block = workflow.get("app") if isinstance(workflow.get("app"), dict) else {}
-            title = args.title or block.get("title") or title
-            description = block.get("description") or description
+            title = args.title or c.text_of(block.get("title"), title)
+            description = c.text_of(block.get("description"), description)
             c.write_template(folder, workflow, title, description, args.category)
+            items = c.todo(folder, extra)
         except BaseException:
             shutil.rmtree(folder, ignore_errors=True)
             raise
@@ -58,9 +62,10 @@ def main():
         c.write_template(folder, {}, title, description, args.category)
         os.remove(os.path.join(folder, "workflow.fugue"))
         extra.append("workflow.fugue: put your saved workflow here as workflow.fugue, or start again with --from")
+        items = c.todo(folder, extra)
     for note in notes:
-        print(f"  put in {note}")
-    c.report(args.id, c.todo(folder, extra))
+        print(f"  copied {note}")
+    c.report(args.id, items)
 
 
 if __name__ == "__main__":

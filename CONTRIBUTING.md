@@ -66,8 +66,12 @@ my-id/packs/<pack id>/ a pack it needs, copied in (optional)
 ### Preview
 
 - `preview.webp` (or `.png` or `.jpg`), at most **300 KB**, about 768 px wide. It shows what the template makes.
-- To make one from any picture: `magick result.png -resize 768x -quality 80 my-id/preview.webp`
-  (ImageMagick), or use any image tool that writes WebP.
+- To make one from your own result picture: `cwebp -resize 768 0 -q 80 result.png -o my-id/preview.webp`
+  (`cwebp` is part of libwebp and reads only PNG, JPEG, TIFF and WebP), or use any image tool that writes WebP.
+- Maintainers: `bin/import-fuguepack` copies a package's preview only when its first bytes say PNG, JPEG or WebP and it is at
+  most 300 KB. It never converts or decodes a picture. **Do not convert a stranger's file with ImageMagick**: its formats
+  (MVG, SVG, EPS) can read files from your machine into the picture. Ask the contributor for a smaller PNG, or make a
+  preview yourself by running the workflow.
 - A moving preview is optional: `preview.webm` (VP9, no audio, 640x640, a 3 to 4 second loop, at most 600 KB) with
   `"preview": "preview.webm"` and a `"poster": "poster.png"` in `template.json`. Keep the still preview as well.
 
@@ -100,7 +104,8 @@ the `description`. Do not add a template for a model you may not point people to
 
 A template that needs a pack carries a copy as `my-id/packs/<pack id>/` (the pack folder without its tests), so
 Fugue can offer to install it. Keep `requires.packs` in the workflow at the same version. Nothing of the pack runs
-before the person says Install and Trust. A `.fugueapp` export carries its packs, and `bin/import-fuguepack` copies them in. Otherwise copy
+before the person says Install and Trust. A `.fugueapp` export carries its packs. `bin/import-fuguepack` refuses a package with packs unless a maintainer passes
+`--allow-packs`, then lists every file so it can be read before the pack is published. Otherwise copy
 the pack folder from its repo or from `examples/packs/` in the fugue repo.
 
 ### Apps and canvas actions

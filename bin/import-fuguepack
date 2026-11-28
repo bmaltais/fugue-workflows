@@ -1,19 +1,27 @@
 #!/usr/bin/env python3
-"""bin/import-fuguepack <file.fuguepack> <id> [--category C] [--title T]
+"""bin/import-fuguepack <file.fuguepack> <id> [--category C] [--title T] [--allow-packs]
 
 Turns a package made with File > Export for sharing... (a .fuguepack or .fugueapp, a zip) into the template folder
-<id>/: workflow.fugue, inputs/, packs/ (without tests), a template.json skeleton and, when the package has
-a result picture, the preview. Prints what is still missing. The package is untrusted: names outside the folder,
-links and oversized entries are refused. Python 3 standard library only.
+<id>/: workflow.fugue, inputs/, a template.json skeleton and, when the package has a result picture, the preview.
+Prints what is still missing. Python 3 standard library only.
+
+The package comes from a stranger, so it is never trusted:
+- names outside the folder, links, duplicate names (also by case or Unicode form), 256 MB files and 400 MB in all are refused;
+  `__MACOSX/` and dot files are ignored;
+- no file is decoded or converted: a preview is copied only when its first bytes say PNG, JPEG or WebP and it is at most 300 KB;
+- a package with packs/ is refused unless you pass --allow-packs, which lists every file and drops every executable
+  bit except the run script a node.json names;
+- everything the package says that is printed is escaped first.
+The package is unpacked under the temporary folder ($TMPDIR, often /tmp, which can be RAM) and removed at the end.
 """
 import argparse
 import json
 import os
-import posixpath
 import shutil
 import stat
 import sys
 import tempfile
+import unicodedata
 import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -21,46 +29,141 @@ sys.dont_write_bytecode = True
 import _contrib as c  # noqa: E402
 
 MAX_ENTRIES = 5000
-MAX_TOTAL = 1 << 30  # 1 GB unpacked; a template is small
+MAX_FILE = 256 << 20
+MAX_TOTAL = 400 << 20
+PACK_FILE = 20 << 20
+PACK_TOTAL = 100 << 20
+PACKAGES = (".fuguepack", ".fugueapp", ".zip")
 
 
-def unzip_safely(archive, dest):
-    """Unpack into dest after checking every entry. Returns the single top folder's name."""
-    infos = archive.infolist()
-    if len(infos) > MAX_ENTRIES:
-        c.die(f"the package has {len(infos)} entries (at most {MAX_ENTRIES}).")
-    if sum(i.file_size for i in infos) > MAX_TOTAL:
-        c.die("the package is over 1 GB unpacked.")
-    tops = set()
-    for info in infos:
-        name = info.filename
-        parts = name.split("/")
-        if name.startswith("/") or "\\" in name or ":" in name or ".." in parts or "" in parts[:-1]:
-            c.die(f"the package has an entry outside its folder: {name!r}. Refused.")
-        if stat.S_ISLNK(info.external_attr >> 16):
-            c.die(f"the package holds a link: {name!r}. Refused.")
-        if any(p.startswith(".") for p in parts if p):
-            continue  # dot files are never taken (git and the feed skip them too)
-        tops.add(parts[0])
-    if len(tops) != 1:
-        c.die("a Fugue package holds one folder; this one does not look like one.")
-    top = tops.pop()
-    for info in infos:
-        parts = [p for p in info.filename.split("/") if p]
-        if not parts or any(p.startswith(".") for p in parts):
+def ignored(parts):
+    return bool(parts) and (parts[0] == "__MACOSX" or any(p.startswith(".") for p in parts))
+
+
+def unzip_safely(path, dest):
+    """Unpack into dest (which exists) after checking every entry. Returns the set of extracted files that had an executable bit."""
+    execs = set()
+    with zipfile.ZipFile(path) as archive:
+        infos = archive.infolist()
+        if len(infos) > MAX_ENTRIES:
+            c.die(f"the package has {len(infos)} entries (at most {MAX_ENTRIES}).")
+        total, seen = 0, set()
+        for info in infos:
+            name = info.filename
+            parts = name.split("/")
+            if name.startswith("/") or "\\" in name or ":" in name or ".." in parts or "" in parts[:-1]:
+                c.die(f"the package has an entry outside its folder: {c.safe(repr(name))}. Refused.")
+            if stat.S_ISLNK(info.external_attr >> 16):
+                c.die(f"the package holds a link: {c.safe(repr(name))}. Refused.")
+            if ignored([p for p in parts if p]):
+                continue
+            key = unicodedata.normalize("NFC", name.rstrip("/")).casefold()
+            if key in seen:
+                c.die(f"the package has two entries with one name (also by case or Unicode form): {c.safe(repr(name))}. Refused.")
+            seen.add(key)
+            if info.file_size > MAX_FILE:
+                c.die(f"{c.safe(repr(name))} is over {MAX_FILE >> 20} MB. Refused.")
+            total += info.file_size
+        if total > MAX_TOTAL:
+            c.die(f"the package is over {MAX_TOTAL >> 20} MB unpacked. Refused.")
+        written = 0
+        for info in infos:
+            parts = [p for p in info.filename.split("/") if p]
+            if not parts or ignored(parts):
+                continue
+            target = os.path.join(dest, *parts)
+            if os.path.commonpath([dest, os.path.realpath(os.path.dirname(target))]) != dest:
+                c.die(f"the package has an entry outside its folder: {c.safe(repr(info.filename))}. Refused.")
+            if info.is_dir():
+                os.makedirs(target, exist_ok=True)
+                continue
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with archive.open(info) as src, open(target, "xb") as out:
+                left = MAX_FILE
+                while chunk := src.read(1 << 20):
+                    left -= len(chunk)
+                    written += len(chunk)
+                    if left < 0 or written > MAX_TOTAL:
+                        c.die("a file is larger than its entry says. Refused.")
+                    out.write(chunk)
+            if info.external_attr >> 16 & 0o111:
+                execs.add(target)
+    return execs
+
+
+def locate(dest, execs, scratches, nested_ok=True):
+    """The folder that holds workflow.fugue: dest itself (a flat package), its one folder, or the one package inside (one level)."""
+    def has(folder):
+        return os.path.isfile(os.path.join(folder, "workflow.fugue"))
+
+    if has(dest):
+        return dest, execs
+    entries = sorted(os.listdir(dest))
+    dirs = [os.path.join(dest, e) for e in entries if os.path.isdir(os.path.join(dest, e))]
+    if len(dirs) == 1 and has(dirs[0]):
+        return dirs[0], execs
+    if nested_ok:
+        search = [dest] + (dirs if len(dirs) == 1 else [])
+        inner = [os.path.join(s, e) for s in search for e in sorted(os.listdir(s))
+                 if os.path.isfile(os.path.join(s, e)) and e.lower().endswith(PACKAGES) and zipfile.is_zipfile(os.path.join(s, e))]
+        if len(inner) == 1:
+            scratch = os.path.realpath(tempfile.mkdtemp(prefix="import-fuguepack-"))
+            scratches.append(scratch)
+            return locate(scratch, unzip_safely(inner[0], scratch), scratches, nested_ok=False)
+    c.die("no workflow.fugue in the package (at its top, in its one folder, or in one package inside it): this does not look like a Fugue package.")
+
+
+def text_file(path):
+    with open(path, "rb") as f:
+        return b"\0" not in f.read(8192)
+
+
+def copy_packs(source, folder, execs):
+    """packs/<id>/ from the package, with a list of every file. Returns report lines."""
+    lines, total = [], 0
+    base = os.path.join(source, "packs")
+    for pack in sorted(os.listdir(base)):
+        root = os.path.join(base, pack)
+        if not os.path.isdir(root):
             continue
-        target = os.path.join(dest, *parts)
-        if os.path.commonpath([dest, os.path.realpath(os.path.dirname(target))]) != dest:
-            c.die(f"the package has an entry outside its folder: {info.filename!r}. Refused.")
-        if info.is_dir():
-            os.makedirs(target, exist_ok=True)
-            continue
-        os.makedirs(os.path.dirname(target), exist_ok=True)
-        with archive.open(info) as src, open(target, "wb") as out:
-            shutil.copyfileobj(src, out)
-        if info.external_attr >> 16 & 0o111:
-            os.chmod(target, 0o755)  # a pack's run.sh
-    return top
+        runs = set()  # the run scripts the pack's node.json files name
+        for here, _dirs, files in os.walk(root):
+            if "node.json" in files:
+                try:
+                    with open(os.path.join(here, "node.json"), encoding="utf-8") as f:
+                        entry = json.load(f).get("runtime", {}).get("entry")
+                except (OSError, ValueError, AttributeError):
+                    entry = None
+                if isinstance(entry, str):
+                    runs.add(os.path.realpath(os.path.join(here, entry)))
+        print(f"  pack {c.safe(pack)}:")
+        for here, dirs, files in os.walk(root):
+            dirs[:] = sorted(d for d in dirs if d not in ("tests", "__pycache__", "venv", "node_modules") and not d.startswith("."))
+            for name in sorted(files):
+                if name.startswith("."):
+                    continue
+                src = os.path.join(here, name)
+                rel = os.path.relpath(src, root)
+                size = os.path.getsize(src)
+                if size > PACK_FILE:
+                    c.die(f"packs/{c.safe(pack)}/{c.safe(rel)} is over {PACK_FILE >> 20} MB. Refused.")
+                total += size
+                if total > PACK_TOTAL:
+                    c.die(f"the packs are over {PACK_TOTAL >> 20} MB. Refused.")
+                dst = os.path.join(folder, "packs", pack, rel)
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copyfile(src, dst)
+                flags = []
+                if not text_file(src):
+                    flags.append("NOT TEXT")
+                if os.path.realpath(src) in runs:
+                    os.chmod(dst, 0o755)
+                    flags.append("run script, kept executable")
+                elif src in execs:
+                    flags.append("had an executable bit, dropped")
+                print(f"    {c.safe(rel)} ({size} bytes){' [' + ', '.join(flags) + ']' if flags else ''}")
+        lines.append(f"packs/{c.safe(pack)}/ was copied without tests: read every file listed above, and keep requires.packs at the same version")
+    return lines
 
 
 def main():
@@ -69,51 +172,55 @@ def main():
     ap.add_argument("id")
     ap.add_argument("--category")
     ap.add_argument("--title")
+    ap.add_argument("--allow-packs", action="store_true", help="also take the packs the package carries (a maintainer, after reading them)")
     args = ap.parse_args()
 
     folder = c.check_id(args.id)
     c.check_category(args.category)
     if not zipfile.is_zipfile(args.package):
-        c.die(f"{args.package} is not a Fugue package (it is not a zip file).")
+        c.die(f"{c.safe(args.package)} is not a Fugue package (it is not a zip file).")
 
-    scratch = os.path.realpath(tempfile.mkdtemp(prefix="import-fuguepack-"))
+    scratches = [os.path.realpath(tempfile.mkdtemp(prefix="import-fuguepack-"))]
+    made = False
     try:
-        with zipfile.ZipFile(args.package) as archive:
-            top = unzip_safely(archive, scratch)
-        source = os.path.join(scratch, top)
-        flow_path = os.path.join(source, "workflow.fugue")
-        if not os.path.isfile(flow_path):
-            c.die(f"no {top}/workflow.fugue in the package.")
-        with open(flow_path, encoding="utf-8") as f:
-            workflow = json.load(f)
         try:
-            with open(os.path.join(source, "template.json"), encoding="utf-8") as f:
-                packaged = json.load(f)
-        except (OSError, ValueError):
-            packaged = {}
-        block = workflow.get("app") if isinstance(workflow.get("app"), dict) else {}
+            source, execs = locate(scratches[0], unzip_safely(args.package, scratches[0]), scratches)
+            if os.path.isdir(os.path.join(source, "packs")) and not args.allow_packs:
+                c.die("the package carries packs/. A pack's files run on every user's machine, so a maintainer reads them first: "
+                      "run again with --allow-packs to list and copy them.")
+            with open(os.path.join(source, "workflow.fugue"), encoding="utf-8") as f:
+                workflow = json.load(f)
+            if not isinstance(workflow, dict):
+                c.die("workflow.fugue is not a Fugue workflow.")
+            try:
+                with open(os.path.join(source, "template.json"), encoding="utf-8") as f:
+                    packaged = json.load(f)
+            except (OSError, ValueError):
+                packaged = {}
+            packaged = packaged if isinstance(packaged, dict) else {}
+            block = workflow.get("app") if isinstance(workflow.get("app"), dict) else {}
 
-        os.makedirs(folder)
-        try:
+            os.makedirs(folder)
+            made = True
+
             def find(value):
-                path = os.path.join(source, *value.split("/"))
-                return path if os.path.commonpath([source, os.path.realpath(path)]) == source and os.path.isfile(path) else None
+                path = os.path.join(source, *[p for p in value.split("/") if p])
+                real = os.path.realpath(path)
+                return path if not value.startswith("/") and ".." not in value.split("/") and \
+                    os.path.commonpath([source, real]) == source and os.path.isfile(path) else None
 
             notes, missing = c.gather_inputs(workflow, folder, find)
-            title = args.title or block.get("title") or (packaged.get("title") if packaged.get("title") != "workflow" else None) or args.id
-            description = block.get("description") or packaged.get("description") or "TODO: what it makes, and what it needs, in two sentences"
+            packed = packaged.get("title") if packaged.get("title") != "workflow" else None
+            title = args.title or c.text_of(block.get("title"), None) or c.text_of(packed, None) or args.id
+            description = c.text_of(block.get("description"), None) or c.text_of(packaged.get("description"), "TODO: what it makes, and what it needs, in two sentences")
+            extra = [f"not in the package, put it in inputs/ yourself: {m}" for m in missing]
+            extra += c.finish_paths(workflow)
             c.write_template(folder, workflow, title, description, args.category)
 
-            extra = [f"not in the package, put it in inputs/ yourself: {m}" for m in missing]
-            carried = os.path.join(source, "packs")
-            if os.path.isdir(carried):
-                for pack in sorted(os.listdir(carried)):
-                    src = os.path.join(carried, pack)
-                    if os.path.isdir(src):
-                        shutil.copytree(src, os.path.join(folder, "packs", pack),
-                                        ignore=shutil.ignore_patterns("tests", ".*", "__pycache__", "venv", "node_modules"))
-                        notes.append(f"packs/{pack}/ (without tests); check requires.packs has the same version")
-            picture = next((os.path.join(source, n) for n in os.listdir(source) if n.startswith("preview.")), None)
+            if os.path.isdir(os.path.join(source, "packs")):
+                extra += copy_packs(source, folder, execs)
+            picture = next((os.path.join(source, n) for n in sorted(os.listdir(source))
+                            if n.startswith("preview.") and os.path.isfile(os.path.join(source, n))), None)
             if picture:
                 line = c.make_preview(folder, picture)
                 if line:
@@ -121,14 +228,20 @@ def main():
             else:
                 extra.append("preview.webp: the package has no result picture. Run the workflow once before exporting, or make a picture "
                              "of what it makes, about 768 px wide, at most 300 KB")
-        except BaseException:
-            shutil.rmtree(folder, ignore_errors=True)
+            for note in notes:
+                print(f"  put in {note}")
+            c.report(args.id, c.todo(folder, extra))
+        except SystemExit:
             raise
-        for note in notes:
-            print(f"  put in {note}")
-        c.report(args.id, c.todo(folder, extra))
+        except BaseException as e:
+            c.die(f"could not read this package: {c.safe(type(e).__name__)}: {c.safe(e)}")
+    except SystemExit:
+        if made:
+            shutil.rmtree(folder, ignore_errors=True)
+        raise
     finally:
-        shutil.rmtree(scratch, ignore_errors=True)
+        for s in scratches:
+            shutil.rmtree(s, ignore_errors=True)
 
 
 if __name__ == "__main__":
