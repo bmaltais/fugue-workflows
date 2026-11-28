@@ -137,10 +137,10 @@ for name in sorted(os.listdir(ROOT)):
         problems.append(f"{name}/workflow.fugue: a path on a local machine, {path[:60]!r} (use inputs/<name>)")
     if isinstance(about, dict) and "community" in about:
         community = about["community"]
-        if not isinstance(community, dict) or set(community) != {"author", "issue"}:
-            problems.append(f"{name}/template.json: community is {{\"author\": text, \"issue\": number}}")
+        if not isinstance(community, dict) or set(community) not in ({"author"}, {"author", "issue"}):
+            problems.append(f"{name}/template.json: community is {{\"author\": text}} with an optional \"issue\": number")
         else:
-            who, issue = community["author"], community["issue"]
+            who, issue = community["author"], community.get("issue", 1)
             if not isinstance(who, str) or not who.strip() or len(who) > 80 or c.DANGEROUS.search(who):
                 problems.append(f"{name}/template.json: community.author is plain text, at most 80 characters")
             if not isinstance(issue, int) or isinstance(issue, bool) or issue < 1:

@@ -22,12 +22,11 @@ A merged template reaches every Fugue user within hours (see the README), so a m
 
 1. Fork this repo and clone it.
 2. Start the folder, one of two ways:
-   - From a package you exported: `bin/import-fuguepack my-template.fuguepack my-id --category edit --author <your GitHub login> --issue <number>`
+   - From a package you exported: `bin/import-fuguepack my-template.fuguepack my-id --category edit --author <your GitHub login>`
    - From a workflow you saved: `bin/new-template my-id --from my.fugue --category edit`
      (without `--from` you get an empty folder to fill)
 
-   `--issue` is the issue the template came from (open a short one first if you have none), and marks it as a community
-   template (below). `new-template` leaves the marking to a maintainer.
+   `--author` marks it as a community template (below); `--issue <number>` is optional. `new-template` takes the same two flags.
 
    Both copy the pictures your Load nodes use into `my-id/inputs/` and point the nodes at `inputs/<name>`. They
    print what is still missing.
@@ -69,7 +68,7 @@ my-id/packs/<pack id>/ a pack it needs, copied in (optional)
 ### Community templates
 
 A template that comes from a contributor is marked in `template.json`:
-`"community": {"author": "<GitHub login or name>", "issue": 12}`. `bin/import-fuguepack` writes it. In Fugue the card shows a
+`"community": {"author": "<GitHub login or name>", "issue": 12}` (`issue` is optional). `bin/import-fuguepack` writes it. In Fugue the card shows a
 "Community · by <author>" badge (Fugue is still to show it; the file is already read and ignored without a warning).
 What it means:
 
@@ -79,7 +78,7 @@ What it means:
 - `bin/check` fails a community template that has a pack node or a `packs/` folder. With a Fugue binary
   (`bin/check-all`) a node is built in when `fugue node list` lists it, or the workflow defines it as an embedded group;
   without a binary only the `fugue/` prefix is checked.
-- `author` is plain text, `issue` a positive number.
+- `author` is plain text, `issue` (optional) a positive number.
 
 ### Preview
 

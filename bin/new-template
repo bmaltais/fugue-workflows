@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""bin/new-template <id> [--from my.fugue] [--category C] [--title T]
+"""bin/new-template <id> [--from my.fugue] [--category C] [--title T] [--author A [--issue N]]
 
 Starts a template folder. With --from, the saved workflow is copied in as workflow.fugue and the pictures
 its Load Image nodes name (an absolute path, or a path beside the file) go to <id>/inputs/ with the
@@ -23,10 +23,20 @@ def main():
     ap.add_argument("--from", dest="source", metavar="FILE.fugue")
     ap.add_argument("--category")
     ap.add_argument("--title")
+    ap.add_argument("--author", help="marks the template community, by this GitHub login or name")
+    ap.add_argument("--issue", type=int, help="the issue it came from, if any (with --author)")
     args = ap.parse_args()
 
     folder = c.check_id(args.id)
     c.check_category(args.category)
+    community = None
+    if args.author or args.issue is not None:
+        if not args.author or c.DANGEROUS.search(args.author) or not args.author.strip() or len(args.author) > 80 or (args.issue is not None and args.issue < 1):
+            c.die("--author is plain text (at most 80 characters), required with --issue, and --issue a positive number.")
+        community = {"author": args.author.strip()}
+        if args.issue is not None:
+            community["issue"] = args.issue
+    about = {"community": community} if community else None
     title = args.title or args.id.replace("-", " ").capitalize()
     description = "TODO: what it makes, and what it needs, in two sentences"
     workflow, notes, extra = None, [], []
@@ -52,14 +62,14 @@ def main():
             block = workflow.get("app") if isinstance(workflow.get("app"), dict) else {}
             title = args.title or c.text_of(block.get("title"), title)
             description = c.text_of(block.get("description"), description)
-            c.write_template(folder, workflow, title, description, args.category)
+            c.write_template(folder, workflow, title, description, args.category, about)
             items = c.todo(folder, extra)
         except BaseException:
             shutil.rmtree(folder, ignore_errors=True)
             raise
     else:
         os.makedirs(folder)
-        c.write_template(folder, {}, title, description, args.category)
+        c.write_template(folder, {}, title, description, args.category, about)
         os.remove(os.path.join(folder, "workflow.fugue"))
         extra.append("workflow.fugue: put your saved workflow here as workflow.fugue, or start again with --from")
         items = c.todo(folder, extra)

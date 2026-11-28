@@ -80,7 +80,7 @@ with tempfile.TemporaryDirectory() as tmp:
         pkg = os.path.join(tmp, name)
         zip_of(pkg, entries)
         shutil.rmtree(os.path.join(root, ID), ignore_errors=True)
-        extra = ["--author", "someone", "--issue", "12"] if author else []
+        extra = ["--author", "someone", "--issue", "12"] if author is True else ["--author", "someone"] if author == "noissue" else []
         code, out = run("import-fuguepack", pkg, ID, "--category", "edit", *extra, *flags, env=env)
         folder = os.path.join(root, ID)
         if code == 0:  # what an import writes must parse, and never says "unreadable"
@@ -101,8 +101,13 @@ with tempfile.TemporaryDirectory() as tmp:
            and about.get("community") == {"author": "someone", "issue": 12}, out)
     code2, out2 = run("check-all", env=env)
     expect("bin/check-all passes on an imported folder", code2 == 0, out2)
+    code, out, folder = importing("noissue.fuguepack", {**base, "p/preview.png": PNG}, author="noissue")
+    expect("--issue is optional", code == 0 and json.load(open(folder + "/template.json"))["community"] == {"author": "someone"}, out)
+    code, out = run("check-all", env=env)
+    expect("a community template with no issue passes bin/check-all", code == 0, out)
+    shutil.rmtree(folder)
     code, out = run("import-fuguepack", os.path.join(tmp, "ok.fuguepack"), "zz-other", "--category", "edit", env=env)
-    expect("--author and --issue are required", code != 0 and "--author" in out and not os.path.exists(os.path.join(root, "zz-other")), out)
+    expect("--author is required", code != 0 and "--author" in out and not os.path.exists(os.path.join(root, "zz-other")), out)
 
     code, out, folder = importing("mvg.fuguepack", {**base, "p/preview.mvg": b"push graphic-context\nimage over 0,0 0,0 'text:@/etc/hostname'\n"})
     expect("an .mvg preview is not copied or converted", code == 0 and not [f for f in os.listdir(folder) if f.startswith("preview")] and "ImageMagick" in out, out)

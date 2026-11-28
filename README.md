@@ -53,7 +53,7 @@ One folder per template; the folder's name is its id.
 - `source` (optional) says where a workflow comes from: `{"name", "author", "url", "note"}`, each optional text, `url` starting
   `http://` or `https://`. The card says "Based on <name> by <author>" and links to the `url`. A field that is not as said, or an unknown one, is
   left out and is a warning of `fugue template list` (CI fails on warnings).
-- `community` (optional) marks a template that came from a contributor: `{"author": "<GitHub login or name>", "issue": <number>}`.
+- `community` (optional) marks a template that came from a contributor: `{"author": "<GitHub login or name>", "issue": <number>}` (`issue` optional).
   Fugue's card shows "Community · by <author>". A community template uses built-in nodes only and carries no `packs/`;
   `bin/check` enforces it (CONTRIBUTING.md has the details).
 - `category` is one of the ids in `categories.json`, which also orders the categories.
