@@ -101,8 +101,9 @@ def check_category(category):
 # What a file's first bytes say it is. Nothing here decodes a file.
 MAX_SIDE = 4096  # per side, for a preview and for a sample
 MAX_PIXELS = 16 << 20  # 16 megapixels of area
-MAX_SOS = 16  # scans in one JPEG
+MAX_SOS = 64  # scans in one JPEG (a progressive JPEG has about 10; 64 is generous)
 MAX_FRAMES = 64  # frames in one animated WebP
+MAX_ANIM_PIXELS = 64 << 20  # all the frames of an animated WebP together
 PICTURE_EXTS = ("png", "jpg", "webp")
 
 
@@ -169,18 +170,20 @@ def community_problems(workflow, builtin=None):
     return out
 
 
-CUBE_LINE = re.compile(r'^(#[ -~]*|TITLE "[ -~]*"|LUT_(1D|3D)_SIZE [0-9]{1,4}|DOMAIN_(MIN|MAX)( [-+0-9.eE]+){3}|[-+0-9.eE]+( [-+0-9.eE]+){2}|)$')
+NUM = r"[-+0-9.eE]+"
+CUBE_LINE = re.compile(rf'^(#[ -~\t]*|TITLE[ \t]+"[ -~]*"|LUT_(1D|3D)_SIZE[ \t]+[0-9]{{1,4}}|(DOMAIN_(MIN|MAX)|LUT_(1D|3D)_INPUT_RANGE)([ \t]+{NUM}){{2,3}}|{NUM}([ \t]+{NUM}){{2}})?$')
 
 
 def cube_problem(path):
-    """A .cube colour look-up table is plain text: only the lines of the format (title, size, domain, numbers, comments). None when sound."""
+    """A .cube colour look-up table is plain ASCII text of the format's lines only (title, size, domain or input range, numbers,
+    comments; spaces and tabs between fields). The patterns have no overlapping repeats, so reading is linear. None when sound."""
     try:
         with open(path, "rb") as f:
             text = f.read().decode("ascii")
     except (OSError, UnicodeDecodeError):
         return "a .cube file must be plain ASCII text"
     for line in text.splitlines():
-        if not CUBE_LINE.match(line.rstrip()):
+        if not CUBE_LINE.match(line.strip(" \t")):
             return "a .cube file with a line that is not part of the format"
     return None
 
@@ -203,6 +206,7 @@ def _dims_problem(kind, width, height):
 PNG_CRITICAL = (b"IHDR", b"PLTE", b"IDAT", b"IEND")
 # Ancillary chunks a preview or sample may carry. Anything else (a private chunk, APNG's acTL, fcTL and fdAT) is refused.
 PNG_ANCILLARY = (b"tEXt", b"iTXt", b"zTXt", b"gAMA", b"cHRM", b"sRGB", b"iCCP", b"pHYs", b"tIME", b"bKGD", b"tRNS", b"sBIT")
+PNG_PROFILE = 1 << 20  # iCCP, deflated
 PNG_COMPRESSED_TEXT = 64 * 1024  # zTXt and iTXt stay small: they are deflated, and a reader may inflate them
 
 
@@ -213,6 +217,8 @@ def _png_problem(data):
         end = pos + 12 + length
         if end > len(data):
             return "a PNG chunk runs past the end of the file"
+        if kind == b"IHDR" and not first:
+            return "a PNG with a second IHDR"
         if first:
             if kind != b"IHDR" or length != 13:
                 return "a PNG must start with its IHDR"
@@ -221,6 +227,8 @@ def _png_problem(data):
             if problem:
                 return problem
             first = False
+        if kind == b"iCCP" and length > PNG_PROFILE:
+            return f"a PNG with a colour profile over {PNG_PROFILE >> 20} MB"
         if kind not in PNG_CRITICAL and kind not in PNG_ANCILLARY:
             return f"a PNG with a {kind.decode('latin-1')!r} chunk (private, unknown or animated: only {', '.join(k.decode() for k in PNG_ANCILLARY)} are allowed)"
         if kind in (b"zTXt", b"iTXt") and length > PNG_COMPRESSED_TEXT:
@@ -275,7 +283,7 @@ def _webp_problem(data):
         if first != b"VP8X" or len(head) < 10:
             return "a WebP must start with a VP8, VP8L or VP8X chunk"
         problem = _dims_problem("WebP", int.from_bytes(head[4:7], "little") + 1, int.from_bytes(head[7:10], "little") + 1)
-        pictures = frames = 0
+        pictures = frames = area = 0
         for kind, body in items[1:]:
             if problem:
                 return problem
@@ -288,7 +296,11 @@ def _webp_problem(data):
                     return f"a WebP with more than {MAX_FRAMES} frames"
                 if len(body) < 16:
                     return "a WebP with a broken ANMF frame"
-                problem = _dims_problem("WebP frame", int.from_bytes(body[6:9], "little") + 1, int.from_bytes(body[9:12], "little") + 1)
+                fw, fh = int.from_bytes(body[6:9], "little") + 1, int.from_bytes(body[9:12], "little") + 1
+                problem = _dims_problem("WebP frame", fw, fh)
+                area += fw * fh
+                if area > MAX_ANIM_PIXELS:
+                    return f"an animated WebP of more than {MAX_ANIM_PIXELS >> 20} megapixels in all its frames"
                 inner = _riff_chunks(body, 16, len(body))
                 if not inner or inner[-1][0] not in (b"VP8 ", b"VP8L") or any(k not in (b"ALPH", b"VP8 ", b"VP8L") for k, _ in inner):
                     return "a WebP frame with no VP8 or VP8L picture data"
@@ -399,7 +411,7 @@ def file_inputs(workflow):
                     yield inputs, key, node
 
 
-def gather_inputs(workflow, folder, find, show_real=False):
+def gather_inputs(workflow, folder, find, show_real=False, images_only=False):
     """Copy the files that load nodes name into folder/inputs/ and point the nodes at `inputs/<name>`.
 
     `find(value)` returns the path of the file a node names, or None when it is not there. Only a file whose first bytes
@@ -423,6 +435,9 @@ def gather_inputs(workflow, folder, find, show_real=False):
         real = os.path.realpath(source)
         if real not in done:
             found, ext = sniff(real)
+            if images_only and wanted != "image":
+                missing.append(f"{safe(value)} is not a picture: a community template's samples are pictures only (a maintainer adds audio and video by hand)")
+                continue
             if found != wanted:
                 missing.append(f"{safe(value)} is not a {wanted} file by its first bytes: not copied")
                 continue

@@ -288,8 +288,8 @@ with tempfile.TemporaryDirectory() as tmp:
     picture_ok("a JPEG with FF00 stuffing and a restart marker in its scan passes", "inputs/a.jpg", stuffed, True)
     picture_ok("a JPEG with an end marker inside its scan data and bytes after it is refused", "inputs/a.jpg", jpeg(tail=b"\xff\xd9" + b"payload" + b"\xff\xd9"), False)
     picture_ok("a JPEG whose scan runs to no end marker is refused", "inputs/a.jpg", jpeg(tail=b"\x12"), False)
-    picture_ok("a JPEG with 17 scans is refused", "inputs/a.jpg", b"\xff\xd8" + SOF + (SOS + b"\x12") * 17 + b"\xff\xd9", False)
-    picture_ok("a JPEG with 16 scans passes", "inputs/a.jpg", b"\xff\xd8" + SOF + (SOS + b"\x12") * 16 + b"\xff\xd9", True)
+    picture_ok("a JPEG with 65 scans is refused", "inputs/a.jpg", b"\xff\xd8" + SOF + (SOS + b"\x12") * 65 + b"\xff\xd9", False)
+    picture_ok("a JPEG with 64 scans passes", "inputs/a.jpg", b"\xff\xd8" + SOF + (SOS + b"\x12") * 64 + b"\xff\xd9", True)
     picture_ok("a JPEG with a frame but no scan is refused", "inputs/a.jpg", b"\xff\xd8" + SOF + b"\xff\xd9", False)
 
     picture_ok("a simple WebP (VP8L) passes", "inputs/a.webp", webp(VP8L), True)
@@ -399,40 +399,85 @@ with tempfile.TemporaryDirectory() as tmp:
     code, out = run("check", env={"FUGUE_TEMPLATES_ROOT": os.path.join(tmp, "nowhere"), "FUGUE_TEMPLATES_TEST_ROOT": ""})
     expect("the old FUGUE_TEMPLATES_ROOT variable is no longer read", "nowhere" not in out, out)
 
-    # ---- bin/check-pr-scope (8) ----
+    # ---- bin/check-pr-scope (8): run from the base's copy, against the pull request's repo, with the author's login ----
     def git(cwd, *args):
         done = subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false", *args], cwd=cwd, capture_output=True, text=True)
         assert done.returncode == 0, done.stderr
         return done.stdout.strip()
 
     repo = os.path.join(tmp, "scope")
-    os.makedirs(repo + "/old")
-    json.dump({"title": "o", "description": "d", "category": "edit"}, open(repo + "/old/template.json", "w"))
+    for who, folder in (("alice", "alices"), ("bob", "bobs"), (None, "old")):
+        os.makedirs(f"{repo}/{folder}")
+        json.dump({"title": "o", "description": "d", "category": "edit", **({"community": {"author": who}} if who else {})}, open(f"{repo}/{folder}/template.json", "w"))
     open(repo + "/README.md", "w").write("x")
     git(repo, "init", "-q", "-b", "main")
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "base")
     base_sha = git(repo, "rev-parse", "HEAD")
 
-    def scope(label, ok, mutate):
+    def scope(label, ok, mutate, author="alice"):
         git(repo, "checkout", "-q", "-B", "pr", base_sha)
         mutate()
         git(repo, "add", "-A")
         git(repo, "commit", "-q", "--allow-empty", "-m", "pr")
-        done = subprocess.run([sys.executable, os.path.join(BIN, "check-pr-scope"), base_sha, "HEAD"], cwd=repo, capture_output=True, text=True)
-        expect(label, (done.returncode == 0) == ok, done.stdout + done.stderr)
+        done = subprocess.run([sys.executable, "-I", os.path.join(BIN, "check-pr-scope"), "--repo", repo, "--author", author, base_sha, "HEAD"], capture_output=True, text=True)
+        expect(label, (done.returncode == 0) == ok and "Traceback" not in done.stderr, done.stdout + done.stderr)
 
     def add(name, **about_):
         os.makedirs(f"{repo}/{name}", exist_ok=True)
         json.dump({"title": "n", "description": "d", "category": "edit", **about_}, open(f"{repo}/{name}/template.json", "w"))
 
-    scope("a pull request from outside that adds a community template passes", True, lambda: add("new-one", community={"author": "x"}))
+    scope("a pull request from outside that adds a community template of its own author passes", True, lambda: add("new-one", community={"author": "alice"}))
+    scope("the author is compared without regard to case", True, lambda: add("new-one", community={"author": "ALICE"}))
+    scope("a new community template whose author is someone else is refused", False, lambda: add("new-one", community={"author": "bob"}))
     scope("a pull request from outside that adds a template without community is refused", False, lambda: add("new-two"))
     scope("a pull request from outside that edits a maintainer's template is refused", False, lambda: open(repo + "/old/workflow.fugue", "w").write("{}"))
-    scope("a pull request from outside that deletes a template is refused", False, lambda: shutil.rmtree(repo + "/old"))
+    scope("a pull request that marks a maintainer's template as its own community template is refused (takeover)", False, lambda: add("old", community={"author": "alice"}))
+    scope("a pull request that edits another contributor's community template is refused", False, lambda: open(repo + "/bobs/workflow.fugue", "w").write("{}"))
+    scope("a pull request that rewrites another contributor's template to name itself as the author is refused (takeover)", False, lambda: add("bobs", community={"author": "alice"}))
+    scope("a pull request that edits its own community template passes", True, lambda: open(repo + "/alices/workflow.fugue", "w").write("{}"))
+    scope("a pull request that drops the community mark of its own template is refused", False, lambda: add("alices"))
+    scope("a pull request from outside that deletes a template is refused", False, lambda: shutil.rmtree(repo + "/alices"))
     scope("a pull request from outside that edits bin/ or the README is refused", False, lambda: open(repo + "/README.md", "w").write("changed"))
     scope("a pull request from outside that adds a community template and touches the README is refused", False,
-          lambda: (add("new-three", community={"author": "x"}), open(repo + "/README.md", "w").write("changed")))
+          lambda: (add("new-three", community={"author": "alice"}), open(repo + "/README.md", "w").write("changed")))
+    scope("a deeply nested template.json fails closed with a message, not a traceback", False,
+          lambda: (os.makedirs(repo + "/deep"), open(repo + "/deep/template.json", "w").write("[" * 200000)))
+    scope("a template.json whose community author is not text fails closed", False, lambda: add("new-one", community={"author": ["alice"]}))
+
+    # ---- the base branch's scripts judge another root (2) ----
+    other = os.path.join(tmp, "other-root")
+    os.makedirs(other + "/zz-other-one")
+    shutil.copy(os.path.join(REPO, "categories.json"), other)
+    json.dump({"title": "t", "description": "d", "category": "edit"}, open(other + "/zz-other-one/template.json", "w"))
+    json.dump({"fugue": 1, "graph": {"nodes": {}}}, open(other + "/zz-other-one/workflow.fugue", "w"))
+    open(other + "/zz-other-one/preview.png", "wb").write(PNG)
+    done = subprocess.run([sys.executable, "-I", os.path.join(BIN, "check"), "--root", other], capture_output=True, text=True)
+    expect("bin/check --root checks another folder with this copy of the script", done.returncode == 0 and "1 templates, 0 problems" in done.stdout, done.stdout + done.stderr)
+    os.remove(other + "/zz-other-one/preview.png")
+    done = subprocess.run([sys.executable, "-I", os.path.join(BIN, "check"), "--root", other], capture_output=True, text=True)
+    expect("bin/check --root reports what is wrong in that folder", done.returncode != 0 and "needs a preview" in done.stderr, done.stderr)
+    done = subprocess.run(["bash", os.path.join(BIN, "check-all"), "--root", other], capture_output=True, text=True, env={**os.environ, "FUGUE": "", "PATH": "/usr/bin:/bin"})
+    expect("bin/check-all --root names the root it checks", f"Checking the templates in {other}" in done.stdout, done.stdout + done.stderr)
+
+    # ---- the publish job's guards on the copied folder (5), the same lines as the workflow ----
+    guard = 'source=$1; [[ -d $source ]] && [[ -z $(find "$source" ! -type f ! -type d -print -quit) ]] && [[ -z $(find "$source" -name ".*" -print -quit) ]]'
+    gd = os.path.join(tmp, "guard", "ok-id")
+    os.makedirs(gd + "/inputs")
+    open(gd + "/inputs/a.png", "wb").write(PNG)
+    expect("the publish job's guard accepts plain files", subprocess.run(["bash", "-c", guard, "x", gd]).returncode == 0)
+    open(gd + "/inputs/.hidden", "w").write("x")
+    expect("the publish job's guard refuses a name that starts with a dot", subprocess.run(["bash", "-c", guard, "x", gd]).returncode != 0)
+    os.remove(gd + "/inputs/.hidden")
+    os.symlink("/etc/passwd", gd + "/inputs/l.png")
+    expect("the publish job's guard refuses a link", subprocess.run(["bash", "-c", guard, "x", gd]).returncode != 0)
+    os.remove(gd + "/inputs/l.png")
+    scratch_root = os.path.join(tmp, "scratch-root")
+    os.makedirs(scratch_root)
+    shutil.copy(os.path.join(REPO, "categories.json"), scratch_root)
+    shutil.copytree(other + "/zz-other-one", scratch_root + "/zz-other-one")
+    done = subprocess.run([sys.executable, "-I", os.path.join(BIN, "check"), "--root", scratch_root], capture_output=True, text=True)
+    expect("the re-check on a scratch root holding only the copied folder fails when the folder is not sound (no preview here)", done.returncode != 0, done.stderr)
 
     # ---- bin/parse-submission, bin/submission-report, bin/fetch-attachment ----
     URL = "https://github.com/user-attachments/files/12345678/my-template.zip"
@@ -508,6 +553,118 @@ with tempfile.TemporaryDirectory() as tmp:
     code, out = run("submission-report", "linked", "--issue", "7", "--pr", "https://evil.example/x", "--checks", "pass")
     expect("the link comment refuses an address that is not a pull request", code != 0, out)
 
+
+    shutil.rmtree(os.path.join(root, ID), ignore_errors=True)
+
+    # ---- AI review filter (1) ----
+    key = "sk-ant-api03-" + "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789"
+    import base64 as b64
+    for label, text in (("the plain key", f"the env says {key} ok"), ("the key reversed", key[::-1]), ("the key in base64", b64.b64encode(key.encode()).decode()),
+                        ("the key in base64 inside a longer text", b64.b64encode(b"prefix:" + key.encode() + b" and more").decode()),
+                        ("the key in hex", key.encode().hex()), ("the key split by spaces", " ".join(key[i:i + 4] for i in range(0, len(key), 4))),
+                        ("some other sk-ant- text", "sk-ant-oat01-something"), ("a GitHub token", "ghp_" + "a" * 36)):
+        open(os.path.join(tmp, "rev.md"), "w").write("Verdict: ok\n" + text)
+        done = subprocess.run([sys.executable, "-I", os.path.join(BIN, "filter-review"), os.path.join(tmp, "rev.md"), os.path.join(tmp, "rev-out.md")],
+                              capture_output=True, text=True, env={"REVIEW_SECRETS": key + "\n"})
+        kept = open(os.path.join(tmp, "rev-out.md")).read()
+        expect(f"a review with {label} is dropped", done.returncode == 0 and "dropped" in done.stdout and key[:20] not in kept and "contained a secret" in kept, kept)
+    open(os.path.join(tmp, "rev.md"), "w").write("Verdict: concerns\n- the description says portraits; the nodes edit backgrounds. Model: huggingface.co/a/b\n")
+    done = subprocess.run([sys.executable, "-I", os.path.join(BIN, "filter-review"), os.path.join(tmp, "rev.md"), os.path.join(tmp, "rev-out.md")], capture_output=True, text=True, env={"REVIEW_SECRETS": key})
+    expect("a clean review is kept as it is", "kept" in done.stdout and open(os.path.join(tmp, "rev-out.md")).read() == open(os.path.join(tmp, "rev.md")).read(), done.stdout)
+
+    # ---- community: pictures only (10) ----
+    def community_inputs(label, name, data, ok, flow_extra=None):
+        folder = os.path.join(root, "zz-ci")
+        shutil.rmtree(folder, ignore_errors=True)
+        os.makedirs(folder + "/inputs")
+        json.dump({"title": "t", "description": "d", "category": "edit", "community": {"author": "a"}, **(flow_extra or {})}, open(folder + "/template.json", "w"))
+        json.dump({"fugue": 1, "graph": {"nodes": {}}}, open(folder + "/workflow.fugue", "w"))
+        open(folder + "/preview.png", "wb").write(PNG)
+        open(os.path.join(folder, "inputs", name), "wb").write(data)
+        code, out = run("check", env=env)
+        shutil.rmtree(folder)
+        expect(label, (code == 0) == ok, out)
+
+    community_inputs("a community template may have a picture sample", "a.png", PNG, True)
+    community_inputs("a community template may not have an audio sample", "a.flac", b"fLaC\0\0\0\0", False)
+    community_inputs("a community template may not have a video sample", "a.webm", b"\x1a\x45\xdf\xa3", False)
+    community_inputs("a community template may not have a .cube table", "a.cube", b"LUT_3D_SIZE 2\n0 0 0\n", False)
+    shutil.rmtree(os.path.join(root, ID), ignore_errors=True)
+    code, out, folder = importing("audio.fuguepack", {"p/workflow.fugue": json.dumps({"fugue": 1, "graph": {"nodes": {"a": {"type": "fugue/load-audio", "inputs": {"file": "inputs/a.flac"}}}}}),
+                                                       "p/inputs/a.flac": b"fLaC\0\0\0\0"})
+    expect("the importer does not copy an audio sample into a community template", code == 0 and not os.path.exists(folder + "/inputs/a.flac") and "pictures only" in out, out)
+
+    shutil.rmtree(os.path.join(root, ID), ignore_errors=True)
+
+    # ---- .cube for a maintainer's template (11) ----
+    def cube(label, data, ok):
+        picture_ok(label, "inputs/a.cube", data, ok)
+
+    cube("a .cube table with tabs and repeated spaces passes", b'TITLE\t"x"\nLUT_3D_SIZE   2\nDOMAIN_MIN 0 0 0\nDOMAIN_MAX\t1  1\t1\n0.0\t0.0   0.0\n  1 1 1  \n# note\n\n', True)
+    cube("a .cube table with LUT_3D_INPUT_RANGE passes", b"LUT_3D_SIZE 2\nLUT_3D_INPUT_RANGE 0.0 1.0\n0 0 0\n", True)
+    cube("a .cube table with LUT_1D_INPUT_RANGE passes", b"LUT_1D_SIZE 2\nLUT_1D_INPUT_RANGE 0.0 1.0\n0 0 0\n", True)
+    cube("a .cube table of 1.5 MB passes (the cap is 2 MB)", b"LUT_3D_SIZE 2\n" + b"0.123456 0.123456 0.123456\n" * 55000, True)
+    cube("a .cube table over 2 MB is refused", b"LUT_3D_SIZE 2\n" + b"0.123456 0.123456 0.123456\n" * 80000, False)
+    cube("a .cube table with a non-ASCII byte is refused", b"LUT_3D_SIZE 2\n\xc3\xa9\n", False)
+    cube("a .cube table with an unknown keyword is refused", b"EXEC rm -rf\n", False)
+    import time as _t
+    began = _t.time()
+    cube("a .cube line of a million spaces and digits is read in linear time", b"0" + b" 0" * 400000 + b" x\n", False)
+    expect("... and quickly", _t.time() - began < 5, "slow")
+
+    # ---- fail closed (12) ----
+    def odd(label, template, flowdoc, ok=False, raw=None):
+        folder = os.path.join(root, "zz-odd")
+        shutil.rmtree(folder, ignore_errors=True)
+        os.makedirs(folder)
+        open(folder + "/template.json", "w").write(raw[0] if raw else json.dumps(template))
+        open(folder + "/workflow.fugue", "w").write(raw[1] if raw else json.dumps(flowdoc))
+        open(folder + "/preview.png", "wb").write(PNG)
+        done = subprocess.run([sys.executable, "-I", os.path.join(BIN, "check")], env={**os.environ, **env}, capture_output=True, text=True)
+        shutil.rmtree(folder)
+        expect(label, (done.returncode == 0) == ok and "Traceback" not in done.stderr, done.stderr[-500:])
+
+    odd("a category that is a list fails with a message", {"title": "t", "description": "d", "category": ["edit"]}, ok)
+    odd("a category that is an object fails with a message", {"title": "t", "description": "d", "category": {"a": 1}}, ok)
+    odd("a model source that is a number fails with a message", {"title": "t", "description": "d", "category": "edit"}, with_model(5))
+    odd("a model source that is a list fails with a message", {"title": "t", "description": "d", "category": "edit"}, with_model(["x"]))
+    odd("a community model source that is a number fails with a message", about, with_model(5))
+    odd("JSON nested 200000 deep fails with a message", None, None, raw=(json.dumps({"title": "t", "description": "d", "category": "edit"}), "[" * 200000 + "]" * 200000))
+    deep = {"fugue": 1, "graph": {"nodes": {}}}
+    cur = deep["graph"]
+    for _ in range(900):
+        cur["x"] = {}
+        cur = cur["x"]
+    odd("JSON nested 900 deep fails closed or passes, never a traceback", {"title": "t", "description": "d", "category": "edit"}, deep, ok=True)
+    odd("a template.json that is a list fails with a message", None, ok, raw=("[]", json.dumps(ok)))
+
+    shutil.rmtree(os.path.join(root, ID), ignore_errors=True)
+
+    # ---- more picture limits (13) ----
+    picture_ok("a PNG with a second IHDR is refused", "inputs/a.png", png_with((b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 0, 0, 0, 0))), False)
+    picture_ok("a PNG with an iCCP chunk over 1 MB is refused", "inputs/a.png", png_with((b"iCCP", b"p\0\0" + b"\0" * (1 << 20))), False)
+    picture_ok("a PNG with a small iCCP chunk passes", "inputs/a.png", png_with((b"iCCP", b"p\0\0" + b"\0" * 100)), True)
+    big = (b"ANMF", b"\0" * 6 + (4095).to_bytes(3, "little") + (4095).to_bytes(3, "little") + b"\0" * 4 + b"VP8L" + struct.pack("<I", 5) + b"/\0\0\0\0" + b"\0")
+    picture_ok("an animated WebP of 4 frames of 16 megapixels (64 MP) passes", "inputs/a.webp", webp(*[big] * 4, vp8x=VP8X), True)
+    picture_ok("an animated WebP of 5 frames of 16 megapixels (80 MP) is refused", "inputs/a.webp", webp(*[big] * 5, vp8x=VP8X), False)
+
+    # ---- the body cap and a first character of '-' (14, 7) ----
+    parse("an issue body over 70000 bytes is refused", issue_body(description="x" * 1000, extra="\n\n" + "y" * 70000), False)
+    code, out, folder = importing("dash.fuguepack", {**base, "p/preview.png": PNG}, "--title=-dash", "--description=-also a dash")
+    about_d = json.load(open(folder + "/template.json")) if code == 0 else {}
+    expect("a title and a description that start with a dash are taken with the = form", code == 0 and about_d.get("title") == "-dash" and about_d.get("description") == "-also a dash", out)
+
+    shutil.rmtree(os.path.join(root, ID), ignore_errors=True)
+
+    # ---- the report keeps the package's size and hash (4), and says when the check could not run (8) ----
+    open(os.path.join(tmp, "rep", "package.log"), "w").write("package: 5 bytes, sha256 " + "ab" * 32)
+    code, out = run("submission-report", "pr", "--dir", os.path.join(tmp, "rep"), "--issue", "7", "--id", "my-template", "--checks", "pass", "--recheck", os.path.join(tmp, "rep", "check.log"))
+    expect("the pull request body holds the zip's sha256 and the re-check", code == 0 and "sha256 " + "ab" * 32 in out and "Re-check in the publish job" in out, out)
+    code, out = run("submission-report", "no-check", "--issue", "7")
+    expect("the no-check comment blames the runner, not the package", code == 0 and "failed to build" in out and "not a problem with your package" in out, out)
+    os.makedirs(os.path.join(tmp, "norep"), exist_ok=True)
+    code, out = run("submission-report", "failure", "--dir", os.path.join(tmp, "norep"), "--issue", "7")
+    expect("a failure with no log is a runner problem, not the package's", code == 0 and "not with your package" in out, out)
 
 print(f"{len(failures)} failed" if failures else "all passed")
 sys.exit(1 if failures else 0)

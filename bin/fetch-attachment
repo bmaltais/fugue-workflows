@@ -4,8 +4,9 @@
 The URL must be https://github.com/user-attachments/files/<number>/<name>.zip. GitHub answers with one redirect to a signed
 address on github.com or githubusercontent.com; that is the only hop followed, and only to such a host. The download is capped
 at 400 MB (curl's --max-filesize, and a hard file size limit on the curl process) and must start with the zip signature.
-The signed address is never printed. Needs curl. Python 3 standard library only.
+The signed address is never printed. It prints the package's size and sha256 (the report keeps them, so a person can compare the file on the pull request). Needs curl. Python 3 standard library only.
 """
+import hashlib
 import os
 import re
 import resource
@@ -51,7 +52,11 @@ def main():
         if f.read(4) not in (b"PK\x03\x04", b"PK\x05\x06"):
             os.remove(target)
             sys.exit("error: the attachment is not a zip file")
-    print(f"downloaded {os.path.getsize(target)} bytes")
+    digest = hashlib.sha256()
+    with open(target, "rb") as f:
+        while block := f.read(1 << 20):
+            digest.update(block)
+    print(f"package: {os.path.getsize(target)} bytes, sha256 {digest.hexdigest()}")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@
   linked   --issue N --pr URL --checks pass|fail                          the comment on the issue when the pull request is open
   no-pr    --issue N --id ID                                              the comment when the pull request could not be made
   failure  --dir D --issue N                                              the comment when the package could not be imported
+  no-check --issue N                                                      the comment when Fugue could not be built, so the checks did not run
 
 Anything that came from the package, the issue or the AI review (a log, a review) goes in a fenced block, longer than any run of
 backticks inside it, after every control and invisible character is escaped (_contrib.safe): it does not render, link or mention.
@@ -39,13 +40,14 @@ def fenced(path, empty="(nothing)"):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("kind", choices=("pr", "linked", "no-pr", "failure"))
+    ap.add_argument("kind", choices=("pr", "linked", "no-pr", "failure", "no-check"))
     ap.add_argument("--dir")
     ap.add_argument("--issue", type=int, required=True)
     ap.add_argument("--id")
     ap.add_argument("--pr")
     ap.add_argument("--checks", choices=("pass", "fail"))
     ap.add_argument("--review")
+    ap.add_argument("--recheck", help="the log of the trusted re-check the publish job ran on the copied folder")
     a = ap.parse_args()
     if a.id is not None and not c.ID_RE.match(a.id):
         sys.exit("error: not an id")
@@ -59,6 +61,10 @@ def main():
                 "**CI did not run on this pull request** (a pull request made with the workflow's token starts no workflows). The `import` job of the "
                 "Action ran the same `bin/check-all` against Fugue's main branch, below. Push a commit, or close and reopen, to run CI.", "",
                 f"The folder is `{a.id}/`. To change the id, rename the folder in this pull request: an id is permanent once merged.", ""]
+        out += ["## The attachment", "", "Size and sha256 of the zip the Action downloaded. Compare it with the file attached to the issue before you merge "
+                "(a contributor can replace an attachment by editing the issue).", "", fenced(os.path.join(d, "package.log")), ""]
+        if a.recheck:
+            out += ["## Re-check in the publish job", "", "The trusted `bin/check` ran again on the copied folder alone.", "", fenced(a.recheck), ""]
         if a.checks == "fail":
             out += ["## Checks: FAILED", "", "`bin/check-all` found problems. Fix them here (or ask the contributor), then merge.", ""]
         else:
@@ -70,11 +76,18 @@ def main():
     elif a.kind == "linked":
         out += [f"Thank you. A maintainer's Action turned your package into a pull request: {a.pr}", "",
                 "A person reads it before it is merged. You can comment there." + (" The automatic checks found problems; the pull request says which." if a.checks == "fail" else "")]
+    elif a.kind == "no-check":
+        out += ["The package was imported, but the check could not run (Fugue failed to build on the runner). This is not a problem with your "
+                "package: a maintainer will retry."]
     elif a.kind == "no-pr":
         out += [f"The package was imported as `{a.id}/` and checked, but the Action could not open the pull request (the repository setting "
                 "\"Allow GitHub Actions to create and approve pull requests\" may be off). The branch `submission/" + f"{a.issue}-{a.id}` was pushed when it could. A maintainer will take it from here."]
     else:
-        out += ["The Action could not turn this package into a template. It says:", "", fenced(os.path.join(a.dir, "failure.log")), "",
+        log = os.path.join(a.dir, "failure.log")
+        if not os.path.isfile(log) or not os.path.getsize(log):
+            print("The Action stopped before it could read this package (a problem on the runner, not with your package). A maintainer will retry.")
+            return
+        out += ["The Action could not turn this package into a template. It says:", "", fenced(log), "",
                 "What to change: fix what it says (for example, a package from File > Export for sharing…, renamed to `.zip`, without a `packs/` folder; "
                 "pictures that are real PNG, JPEG or WebP files up to 4096 x 4096; a title that is not used yet). Then edit this issue or open a new one, "
                 "and ask a maintainer to add the `import` label again."]

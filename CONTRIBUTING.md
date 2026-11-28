@@ -84,8 +84,10 @@ What it means:
   is a `.safetensors` or a `.gguf`.
 - A Save node's `name` and `folder` hold no `..` and do not start with `/`, `\` or `~` (Fugue refuses a `..` in a name, and a
   relative folder that leads out of the output folder, itself; an absolute folder is allowed there only by the write roots).
-- A pull request from someone without write access (CI: `bin/check-pr-scope`) may only add or change community templates,
-  and touch nothing else.
+- A pull request from someone without write access (CI: `bin/check-pr-scope`) may only add a community template whose `author` is
+  the pull request's author, or change one that already is theirs (same author at the base). Anything else, a deletion and a change
+  outside the template folders included, is a maintainer's. CI judges it with the base branch's copy of the scripts, not the pull
+  request's own.
 
 ### Preview
 
@@ -104,9 +106,10 @@ What it means:
 - Each file in `inputs/` is at most **600 KB**. Small JPEGs are best. Pictures must be real PNG, JPEG or WebP files, at most
   4096 x 4096 (and 16 megapixels), named by what they are (`.png` for a PNG): `bin/check` reads their structure (it never decodes them) and
   the import scripts copy only files that pass. A PNG has image data and only the usual chunks (text, gamma, colour profile, size,
-  time, background, transparency; no private chunks, no APNG), a JPEG ends at its first end marker, a WebP is a plain VP8, VP8L or
-  VP8X file with at most 64 frames. Every file under `inputs/` (sub-folders too) is a picture, a known audio or video kind
-  by its bytes, or a `.cube` colour table, named by what it is; no GIF, SVG or unknown kind. No local paths in the workflow: a Load node names `inputs/<name>`.
+  time, background, transparency; no private chunks, no APNG), a JPEG ends at its first end marker (at most 64 scans), a WebP is a plain VP8, VP8L or
+  VP8X file with at most 64 frames (64 megapixels in all). Every file under `inputs/` (sub-folders too) is a picture, a known audio or video kind
+  by its bytes, or a `.cube` colour table (ASCII, at most 2 MB), named by what it is; no GIF, SVG or unknown kind.
+  A **community** template's samples are pictures only: a maintainer adds audio, video or a `.cube` by hand. No local paths in the workflow: a Load node names `inputs/<name>`.
 - Make them with Fugue, or use a picture you have the right to share. No photos of other people without their
   consent, and no private pictures.
 - If a node has a painted mask, its file goes in `inputs/` too (an 8-bit gray PNG, white is redrawn).
@@ -157,3 +160,11 @@ and is released under it. If part of it comes from someone else, name them in `s
   `fugue template list` (no warnings), `fugue validate` on every workflow, and every app block.
 - A human look, because a merge reaches every user: does it run as described, are the models and licences honest,
   are the samples fine to publish, is the id one we want to keep for good.
+
+### For maintainers: the import label
+
+Adding the `import` label to a submission issue runs the Action. Before you add it, read the issue and open the zip yourself if
+anything looks odd: the label is the only gate. The pull request records the zip's size and **sha256**; on the pull request, download
+the attachment again from the issue and compare, because a contributor can edit the issue and swap the file after the Action ran.
+The AI review is advisory and is dropped if it holds anything key-like. If the label is added again, the Action pushes a new branch
+(`submission/<issue>-<id>-2`) and opens a new pull request; it never overwrites a branch.

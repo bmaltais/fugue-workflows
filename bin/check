@@ -11,6 +11,12 @@ import re
 import sys
 import unicodedata
 
+# bin/check [--root DIR] [--nodes FILE]: DIR is the templates folder to check (default: the repo this script is in). CI runs the
+# trusted copy of this script from the base branch against a pull request's folder.
+if len(sys.argv) >= 3 and sys.argv[1] == "--root":
+    os.environ["FUGUE_TEMPLATES_TEST_ROOT"] = os.path.realpath(sys.argv[2])
+    del sys.argv[1:3]
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True
 import _contrib as c  # noqa: E402  (safe(), the picture checks, the local path and built-in node rules)
@@ -20,6 +26,7 @@ SHA = re.compile(r"^sha256:[0-9a-f]{64}$")
 PREVIEWS = ("preview.webp", "preview.png", "preview.jpg")
 MAX_PREVIEW = 300 * 1024
 MAX_INPUT = 600 * 1024
+MAX_CUBE = 2 << 20  # a .cube colour table
 MAX_CLIP = 600 * 1024  # a moving preview (preview.webm) and its poster
 problems = []
 
@@ -37,8 +44,8 @@ if len(sys.argv) == 3 and sys.argv[1] == "--nodes":
 def load(path):
     try:
         return c.json_load(path)  # a repeated key in one object is refused
-    except (OSError, ValueError) as e:
-        problems.append(f"{os.path.relpath(path, ROOT)}: {e}")
+    except (OSError, ValueError, RecursionError) as e:
+        problems.append(f"{os.path.relpath(path, ROOT)}: {type(e).__name__ if isinstance(e, RecursionError) else e}")
         return None
 
 
@@ -56,12 +63,7 @@ def handles(value, out):
 categories = load(os.path.join(ROOT, "categories.json")) or {}
 known = {c.get("id") for c in categories.get("categories", [])}
 
-count = 0
-for name in sorted(os.listdir(ROOT)):
-    folder = os.path.join(ROOT, name)
-    if name.startswith(".") or not os.path.isdir(folder) or name == "bin":
-        continue
-    count += 1
+def check_template(name, folder):
     if not re.match(r"^[a-z0-9][a-z0-9-]*$", name):
         problems.append(f"{name}: a template's folder name is lowercase letters, digits and dashes")
     about = load(os.path.join(folder, "template.json"))
@@ -75,10 +77,11 @@ for name in sorted(os.listdir(ROOT)):
                 problems.append(f"{name}/template.json: needs a {key}")
             elif "TODO" in about[key]:
                 problems.append(f"{name}/template.json: the {key} is still a TODO")
-        if about.get("category") not in known:
+        if not isinstance(about.get("category"), str) or about.get("category") not in known:
             problems.append(f"{name}/template.json: category {about.get('category')!r} is not in categories.json")
         if not isinstance(about.get("tags", []), list):
             problems.append(f"{name}/template.json: tags is a list")
+    community = isinstance(about, dict) and "community" in about
     preview = next((p for p in PREVIEWS if os.path.isfile(os.path.join(folder, p))), None)
     if not preview:
         problems.append(f"{name}: needs a preview ({', '.join(PREVIEWS)})")
@@ -146,10 +149,14 @@ for name in sorted(os.listdir(ROOT)):
                 elif f not in ("template.json", "workflow.fugue"):
                     problems.append(f"{name}/{f}: not a file a template has (template.json, workflow.fugue, a preview, what template.json names, inputs/, packs/)")
             elif parts[0] == "inputs":
-                if size > MAX_INPUT:
-                    problems.append(f"{name}/{rel}: over {MAX_INPUT // 1024} KB")
                 kind, found = c.sniff(path)
                 ext = os.path.splitext(f)[1].lower().lstrip(".")
+                limit = MAX_CUBE if ext == "cube" and not kind else MAX_INPUT
+                if size > limit:
+                    problems.append(f"{name}/{rel}: over {limit // 1024} KB")
+                if community and kind != "image":
+                    problems.append(f"{name}/{rel}: a community template's samples are PNG, JPEG or WebP pictures only (a maintainer adds audio, video or a .cube by hand)")
+                    continue
                 if not kind and ext == "cube":
                     problem = c.cube_problem(path)
                     if problem:
@@ -167,7 +174,7 @@ for name in sorted(os.listdir(ROOT)):
     if not isinstance(flow, dict):
         if flow is not None:
             problems.append(f"{name}/workflow.fugue: is not a workflow (a JSON object)")
-        continue
+        return
     for path in c.local_path_values(flow)[:3]:
         problems.append(f"{name}/workflow.fugue: a path on a local machine, {path[:60]!r} (use inputs/<name>)")
     if isinstance(about, dict) and "community" in about:
@@ -202,8 +209,22 @@ for name in sorted(os.listdir(ROOT)):
             problems.append(f"{name}: {label} has no size (its bytes) in requires.models")
         if not source:
             problems.append(f"{name}: {label} has no source in requires.models")
-        elif not source.startswith("https://"):
+        elif not isinstance(source, str) or not source.startswith("https://"):
             problems.append(f"{name}: {label}'s source is not https")
+
+
+count = 0
+for name in sorted(os.listdir(ROOT)):
+    folder = os.path.join(ROOT, name)
+    if name.startswith(".") or not os.path.isdir(folder) or name == "bin":
+        continue
+    count += 1
+    try:
+        check_template(name, folder)
+    except RecursionError:
+        problems.append(f"{name}: nested too deeply to check (a JSON file or a folder tree that is hundreds of levels deep)")
+    except Exception as e:  # fail closed: whatever a stranger's file does to the checks, it is a problem, never a traceback
+        problems.append(f"{name}: could not be checked ({type(e).__name__}: {e})")
 
 if count == 0:
     problems.append("no templates")

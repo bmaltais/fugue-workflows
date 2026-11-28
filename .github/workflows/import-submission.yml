@@ -66,13 +66,13 @@ jobs:
       - name: Read the issue
         id: parse
         env:
-          ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_LOGIN: ${{ github.event.issue.user.login }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
           mkdir -p work/sub
-          printf '%s' "$ISSUE_BODY" > work/body.md
+          # The body comes from the event file, not from an environment variable (a huge body cannot stop the step); the parser caps its size.
+          python3 -I -c 'import json, os; open("work/body.md", "w", encoding="utf-8").write(json.load(open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8"))["issue"].get("body") or "")'
           python3 -I templates/bin/parse-submission --body-file work/body.md --login "$ISSUE_LOGIN" --issue "$ISSUE_NUMBER" \
             --root templates --out work/sub 2>&1 | tee -a work/failure.log
           id=$(cat work/sub/id)
@@ -82,21 +82,7 @@ jobs:
       - name: Download the package
         run: |
           set -euo pipefail
-          python3 -I templates/bin/fetch-attachment "$(cat work/sub/url)" work/package.zip 2>&1 | tee -a work/failure.log
-
-      - name: Check out Fugue's main branch
-        run: git clone --depth 1 https://github.com/bmaltais/fugue.git fugue
-
-      - name: Install Fugue's build dependencies
-        run: |
-          source fugue/packaging/PKGBUILD
-          deps=("${depends[@]}" "${makedepends[@]}")
-          wanted=()
-          for dep in "${deps[@]%%[<>=]*}"; do [[ $dep == cuda ]] || wanted+=("$dep"); done
-          pacman -S --noconfirm --needed base-devel cmake "${wanted[@]}"
-
-      - name: Build fugue
-        run: fugue/bin/build fugue
+          python3 -I templates/bin/fetch-attachment "$(cat work/sub/url)" work/package.zip 2>&1 | tee work/package.log | tee -a work/failure.log
 
       - name: Import the package
         env:
@@ -105,16 +91,42 @@ jobs:
           set -euo pipefail
           id=$(cat work/sub/id)
           python3 -I templates/bin/import-fuguepack work/package.zip "$id" \
-            --author "$(cat work/sub/author)" --issue "$ISSUE_NUMBER" --category "$(cat work/sub/category)" \
-            --title "$(cat work/sub/title)" --description "$(cat work/sub/description)" 2>&1 | tee work/import.log | tee -a work/failure.log
+            --author="$(cat work/sub/author)" --issue="$ISSUE_NUMBER" --category="$(cat work/sub/category)" \
+            --title="$(cat work/sub/title)" --description="$(cat work/sub/description)" 2>&1 | tee work/import.log | tee -a work/failure.log
           mkdir -p work/out
           cp -a "templates/$id" work/out/
+
+      # Building Fugue is the runner's work, not the contributor's: when it fails the check is "unrun" and the issue is told so.
+      - name: Build Fugue from main
+        id: build
+        run: |
+          set +e
+          {
+            git clone --depth 1 https://github.com/bmaltais/fugue.git fugue &&
+            source fugue/packaging/PKGBUILD &&
+            deps=("${depends[@]}" "${makedepends[@]}") &&
+            wanted=() &&
+            for dep in "${deps[@]%%[<>=]*}"; do [[ $dep == cuda ]] || wanted+=("$dep"); done &&
+            pacman -S --noconfirm --needed base-devel cmake "${wanted[@]}" &&
+            fugue/bin/build fugue
+          } > work/build-full.log 2>&1
+          code=$?
+          tail -n 200 work/build-full.log > work/build.log
+          rm -f work/build-full.log
+          if [[ $code == 0 ]]; then echo "built=ok" >> "$GITHUB_OUTPUT"; else echo "built=fail" >> "$GITHUB_OUTPUT"; tail -n 30 work/build.log; fi
+          exit 0
 
       # A check that fails is not a failed import: the pull request opens as a draft with the report.
       - name: Check every template
         id: check
+        env:
+          BUILT: ${{ steps.build.outputs.built }}
         run: |
           set +e
+          if [[ $BUILT != ok ]]; then
+            echo "checks=unrun" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           templates/bin/check-all "$GITHUB_WORKSPACE/fugue/build/fugue" > work/check.log 2>&1
           code=$?
           cat work/check.log
@@ -137,7 +149,7 @@ jobs:
   review:
     name: AI review (advisory)
     needs: import
-    if: needs.import.result == 'success'
+    if: needs.import.result == 'success' && needs.import.outputs.checks != 'unrun'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -147,6 +159,11 @@ jobs:
       HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
     steps:
       # actions/download-artifact v8.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        if: env.HAS_KEY == 'true'
+        with:
+          persist-credentials: false
+
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         if: env.HAS_KEY == 'true'
         with:
@@ -162,11 +179,17 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
           display_report: "false"
+          # The model's process holds the API key in its environment, so reading is limited to ./submission by path rules
+          # (and /proc, /sys, /etc and the home folders are denied outright), and the review text is checked for the key afterwards
+          # (bin/filter-review). `--permission-mode default`: the action's default is auto mode, where a safety review may allow
+          # calls that no rule covers; in default mode a call no rule allows is denied, since nobody is there to approve it.
           claude_args: >-
             --model sonnet
             --max-turns 20
-            --allowedTools "Read,Glob,Grep"
-            --disallowedTools "Bash,Write,Edit,NotebookEdit,WebFetch,WebSearch,Task"
+            --permission-mode default
+            --tools "Read,Glob,Grep"
+            --allowedTools "Read(./submission/**),Glob(./submission/**),Grep(./submission/**)"
+            --disallowedTools "Bash,Write,Edit,NotebookEdit,WebFetch,WebSearch,Task,Read(//proc/**),Read(//sys/**),Read(//etc/**),Read(//home/**),Read(//root/**),Read(//run/**),Read(//tmp/**),Read(~/**),Grep(//proc/**),Glob(//proc/**)"
           prompt: |
             You review a template submitted by a stranger to a public library of workflows for Fugue, a node-based tool for local
             AI image, video and audio generation. A merge reaches every Fugue user, and a person reads your report before merging.
@@ -198,6 +221,7 @@ jobs:
         if: env.HAS_KEY == 'true' && steps.claude.outputs.execution_file != ''
         env:
           EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+          REVIEW_SECRETS: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           mkdir -p review
           python3 -I - <<'PY'
@@ -206,8 +230,13 @@ jobs:
           items = data if isinstance(data, list) else [data]
           text = next((i["result"] for i in reversed(items) if isinstance(i, dict) and i.get("type") == "result" and isinstance(i.get("result"), str)), "")
           if text.strip():
-              open("review/review.md", "w", encoding="utf-8").write(text)
+              open("review/raw.md", "w", encoding="utf-8").write(text)
           PY
+          # A review that holds the key (or any token-like text) is replaced by one line, before anything is uploaded or posted.
+          if [[ -f review/raw.md ]]; then
+            python3 -I bin/filter-review review/raw.md review/review.md
+            rm -f review/raw.md
+          fi
 
       - name: Keep the review
         if: env.HAS_KEY == 'true'
@@ -247,7 +276,7 @@ jobs:
           path: review
 
       - name: Open the pull request
-        if: needs.import.result == 'success'
+        if: needs.import.result == 'success' && needs.import.outputs.checks != 'unrun'
         env:
           ID: ${{ needs.import.outputs.id }}
           CHECKS: ${{ needs.import.outputs.checks }}
@@ -256,31 +285,46 @@ jobs:
           [[ $ID =~ ^[a-z0-9][a-z0-9-]*$ ]]
           [[ $CHECKS == pass || $CHECKS == fail ]]
           source="submission/out/$ID"
-          # Plain files and folders only, and a folder that is not there yet: nothing of the package is run, only copied.
-          [[ -d $source && -z $(find "$source" ! -type f ! -type d -print -quit) && ! -e $ID ]]
+          # Plain files and folders only, no name that starts with a dot, and a folder that is not there yet: nothing of the
+          # package is run, only copied.
+          [[ -d $source && ! -e $ID ]]
+          [[ -z $(find "$source" ! -type f ! -type d -print -quit) ]]
+          [[ -z $(find "$source" -name '.*' -print -quit) ]]
+          # The trusted bin/check (this checkout is main's) runs once more on a scratch templates folder that holds only the copy.
+          scratch=$(mktemp -d)
+          cp categories.json "$scratch/"
+          cp -a "$source" "$scratch/$ID"
+          if python3 -I bin/check --root "$scratch" > recheck.log 2>&1; then :; else CHECKS=fail; fi
           cp -a "$source" "./$ID"
           branch="submission/$ISSUE_NUMBER-$ID"
+          # Never force-push over a maintainer's commits: when the branch exists (the label was added again), use the next free name.
+          n=1
+          while git ls-remote --exit-code --heads origin "$branch" > /dev/null 2>&1; do
+            n=$((n + 1))
+            branch="submission/$ISSUE_NUMBER-$ID-$n"
+          done
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
           git add -- "$ID"
           git commit -q -m "Add template $ID from #$ISSUE_NUMBER"
-          git push --force origin "$branch"
+          git push origin "$branch"
           review=()
           [[ -f review/review.md ]] && review=(--review review/review.md)
-          python3 -I bin/submission-report pr --dir submission --issue "$ISSUE_NUMBER" --id "$ID" --checks "$CHECKS" "${review[@]}" > pr-body.md
+          python3 -I bin/submission-report pr --dir submission --issue "$ISSUE_NUMBER" --id "$ID" --checks "$CHECKS" --recheck recheck.log "${review[@]}" > pr-body.md
           draft=()
           [[ $CHECKS == fail ]] && draft=(--draft)
-          url=$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty')
-          if [[ -z $url ]]; then
-            url=$(gh pr create --base main --head "$branch" --title "Template: $(cat submission/sub/title)" --body-file pr-body.md "${draft[@]}") || url=
-          fi
+          url=$(gh pr create --base main --head "$branch" --title "Template: $(cat submission/sub/title)" --body-file pr-body.md "${draft[@]}") || url=
           if [[ -z $url ]]; then
             python3 -I bin/submission-report no-pr --issue "$ISSUE_NUMBER" --id "$ID" | gh issue comment "$ISSUE_NUMBER" --body-file -
             echo "::error::the pull request could not be created (is Allow GitHub Actions to create and approve pull requests on?)"
             exit 1
           fi
           python3 -I bin/submission-report linked --issue "$ISSUE_NUMBER" --pr "$url" --checks "$CHECKS" | gh issue comment "$ISSUE_NUMBER" --body-file -
+
+      - name: Tell the contributor the check could not run
+        if: needs.import.result == 'success' && needs.import.outputs.checks == 'unrun'
+        run: python3 -I bin/submission-report no-check --issue "$ISSUE_NUMBER" | gh issue comment "$ISSUE_NUMBER" --body-file -
 
       - name: Tell the contributor what failed
         if: needs.import.result != 'success'

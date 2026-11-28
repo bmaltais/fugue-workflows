@@ -9,10 +9,16 @@
 #
 # The Fugue binary is the argument, else $FUGUE, else `fugue` on the PATH, else ../fugue/build/fugue.
 # With none, only steps 1 and 2 run, and a community template's nodes are judged by their `fugue/` prefix; CI runs the rest.
+# bin/check-all --root DIR [fugue binary] checks the templates in DIR with this copy of the scripts.
 # $FUGUE_TEMPLATES_TEST_ROOT names another templates folder to check (bin/test-import uses it).
 set -euo pipefail
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 root=${FUGUE_TEMPLATES_TEST_ROOT:-$here}
+if [[ ${1:-} == --root ]]; then  # CI runs this script from the base branch against a pull request's folder
+  [[ -d ${2:-} ]] || { echo "error: --root needs a folder." >&2; exit 1; }
+  root=$(cd "$2" && pwd)
+  shift 2
+fi
 export FUGUE_TEMPLATES_TEST_ROOT=$root
 
 fugue=${1:-${FUGUE:-}}

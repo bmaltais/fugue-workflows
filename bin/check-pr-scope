@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
-"""bin/check-pr-scope <base> <head>: what a pull request from someone without write access may change.
+"""bin/check-pr-scope [--repo DIR] --author LOGIN <base> <head>: what a pull request from someone without write access may change.
 
-CI runs it (only for such a pull request): the files that differ between <base> and <head> may be only inside template
-folders, and each of those folders, as it is at <head>, must be a community template (template.json has `community`).
-A folder the pull request deletes, or any file outside a template folder (bin/, .github/, categories.json, the README),
-is a maintainer's change and fails here. Python 3 standard library only; reads git, writes nothing.
+CI runs this script from the BASE branch (never the pull request's own copy) against the pull request's checkout (--repo), only for
+a pull request whose author has no write access. The files that differ between <base> and <head> may be only inside template
+folders, and each such folder:
+- must not be deleted;
+- must be a community template at <head> (template.json has `community`), whose `author` is the pull request's author (a login,
+  compared without regard to case);
+- if it already exists at <base>, must already be a community template at <base> with that same author. Nobody takes over, edits or
+  replaces another person's template, or a maintainer's, from outside.
+A change outside the template folders (bin/, .github/, categories.json, the README) is a maintainer's change and fails.
+Fails closed, with a message and never a traceback. Python 3 standard library only; reads git, writes nothing.
 """
+import argparse
 import json
 import os
 import re
@@ -19,44 +26,70 @@ import _contrib as c  # noqa: E402
 ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
-def git(*args):
-    done = subprocess.run(["git", *args], capture_output=True)
+def git(repo, *args):
+    done = subprocess.run(["git", "-C", repo, "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", *args], capture_output=True)
     return done.returncode, done.stdout
 
 
-def main():
-    if len(sys.argv) != 3:
-        sys.exit(__doc__)
-    base, head = sys.argv[1:]
-    code, out = git("diff", "--name-status", "--no-renames", "-z", base, head)
+def community_author(repo, rev, folder):
+    """(problem or None, author or None) of the community template `folder` at `rev`; (None, None) when the folder is not there."""
+    code, listing = git(repo, "ls-tree", "--name-only", rev, folder + "/")
+    if code or not listing.strip():
+        return None, None
+    code, text = git(repo, "show", f"{rev}:{folder}/template.json")
+    try:
+        about = json.loads(text) if not code else None
+    except (ValueError, RecursionError):
+        about = None
+    community = about.get("community") if isinstance(about, dict) else None
+    if not isinstance(community, dict) or not isinstance(community.get("author"), str):
+        return "not a community template", None
+    return None, community["author"].strip()
+
+
+def run(args):
+    code, out = git(args.repo, "diff", "--name-status", "--no-renames", "-z", args.base, args.head)
     if code:
-        sys.exit("cannot read the difference between the two commits")
+        return ["cannot read the difference between the two commits"], 0
     fields = out.decode("utf-8", "surrogateescape").split("\0")[:-1]
-    changes = list(zip(fields[0::2], fields[1::2]))
-    problems, folders = [], {}
-    for status, path in changes:
+    problems, folders = [], set()
+    for status, path in zip(fields[0::2], fields[1::2]):
         top = path.split("/")[0]
         if "/" not in path or not ID.match(top) or top == "bin":
             problems.append(f"{path}: a change outside the template folders; only a maintainer changes this")
         else:
-            folders.setdefault(top, []).append(status)
+            folders.add(top)
+    me = args.author.strip().casefold()
     for folder in sorted(folders):
-        code, listing = git("ls-tree", "--name-only", head, folder + "/")
-        if code or not listing.strip():
+        problem_now, now = community_author(args.repo, args.head, folder)
+        if now is None and problem_now is None:
             problems.append(f"{folder}/: this pull request deletes a template; only a maintainer does that")
             continue
-        code, text = git("show", f"{head}:{folder}/template.json")
-        try:
-            about = json.loads(text) if not code else None
-        except ValueError:
-            about = None
-        if not isinstance(about, dict) or "community" not in about:
-            problems.append(f"{folder}/template.json: a pull request from someone without write access may only add or change community "
-                            "templates. Add \"community\": {\"author\": \"<your GitHub login>\"} (bin/import-fuguepack --author does it); "
-                            "a maintainer takes over changes to the other templates")
+        if now is None or now.casefold() != me:
+            problems.append(f"{folder}/template.json: a pull request from someone without write access may only add or change community templates "
+                            f"of its own author. Add \"community\": {{\"author\": \"{args.author}\"}} (bin/import-fuguepack --author does it); "
+                            "the author must be the pull request's author")
+            continue
+        problem_then, then = community_author(args.repo, args.base, folder)
+        if problem_then or (then is not None and then.casefold() != me):
+            problems.append(f"{folder}/: this template exists already and is not a community template of {args.author}; only a maintainer, or its own author, changes it")
+    return problems, len(folders)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--repo", default=".")
+    ap.add_argument("--author", required=True)
+    ap.add_argument("base")
+    ap.add_argument("head")
+    args = ap.parse_args()
+    try:
+        problems, count = run(args)
+    except Exception as e:  # fail closed
+        problems, count = [f"could not check the pull request ({type(e).__name__})"], 0
     for problem in problems:
         print(c.safe(problem), file=sys.stderr)
-    print(f"{len(folders)} template folders changed, {len(problems)} problems")
+    print(f"{count} template folders changed, {len(problems)} problems")
     sys.exit(1 if problems else 0)
 
 

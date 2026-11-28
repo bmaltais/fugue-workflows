@@ -235,7 +235,7 @@ def main():
                 return path if not value.startswith("/") and ".." not in value.split("/") and \
                     os.path.commonpath([source, real]) == source and os.path.isfile(path) else None
 
-            notes, missing = c.gather_inputs(workflow, folder, find)
+            notes, missing = c.gather_inputs(workflow, folder, find, images_only=bool(community))
             packed = packaged.get("title") if packaged.get("title") != "workflow" else None
             title = args.title or c.text_of(block.get("title"), None) or c.text_of(packed, None) or args.id
             description = c.text_of(args.description, None) or c.text_of(block.get("description"), None) or c.text_of(packaged.get("description"), "TODO: what it makes, and what it needs, in two sentences")

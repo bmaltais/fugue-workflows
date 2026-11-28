@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""bin/filter-review <in> <out>: drop an AI review that holds a secret.
+
+The review is posted on a public pull request, and the model's process holds the API key in its environment. The secrets are read
+from the environment variable REVIEW_SECRETS (one per line, never printed). The review is replaced by a one-line notice when it holds
+a secret, in the plain, reversed, base64, hex or percent-encoded form, or the text `sk-ant-` or `ghp_`/`github_pat_`/`ghs_`-like tokens.
+Nothing else is changed. Python 3 standard library only.
+"""
+import base64
+import os
+import re
+import sys
+import urllib.parse
+
+DROPPED = "Review dropped: it contained a secret. Nothing from it is shown."
+PATTERN = re.compile(r"sk-ant-|sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_|-----BEGIN [A-Z ]*PRIVATE KEY")
+
+
+def leaks(text, secrets):
+    squashed = re.sub(r"[\s`*_'\"\\-]+", "", text)  # a key split by spaces, dashes or markup
+    if PATTERN.search(text) or re.search(r"sk-?ant", squashed, re.IGNORECASE):
+        return True
+    for secret in secrets:
+        raw = secret.encode()
+        forms = {secret, secret[::-1], raw.hex(), raw.hex().upper(), urllib.parse.quote(secret, safe=""), base64.b64encode(raw).decode().rstrip("="),
+                 base64.urlsafe_b64encode(raw).decode().rstrip("=")}
+        for form in forms:
+            if form and (form in text or form in squashed):
+                return True
+        # base64 of the key at the three alignments inside a longer encoded text
+        for shift in (0, 1, 2):
+            piece = base64.b64encode(b"x" * shift + raw).decode().rstrip("=")[(4 if shift else 0):-2]
+            if len(piece) >= 8 and piece in text:
+                return True
+    return False
+
+
+def main():
+    if len(sys.argv) != 3:
+        sys.exit(__doc__)
+    secrets = [s.strip() for s in os.environ.get("REVIEW_SECRETS", "").splitlines() if len(s.strip()) >= 8]
+    with open(sys.argv[1], encoding="utf-8", errors="replace") as f:
+        text = f.read()
+    dropped = leaks(text, secrets)
+    with open(sys.argv[2], "w", encoding="utf-8") as f:
+        f.write(DROPPED + "\n" if dropped else text)
+    print("dropped" if dropped else "kept")
+
+
+if __name__ == "__main__":
+    main()

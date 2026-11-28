@@ -8,6 +8,7 @@ shell reads it with "$(cat DIR/title)" and never evaluates it. Nothing here is t
 - The form's headings must each appear once and in order (a heading typed inside a text box would otherwise start a fake section).
 - title (at most 80 characters) and description (at most 1000) have their white space collapsed and may hold no control or invisible character.
 - category is the id in the parentheses of the chosen option, and must be in categories.json.
+- the body is at most 70000 bytes.
 - url is the first https://github.com/user-attachments/files/<number>/<name>.zip link of the package section.
 - id is a slug of the title (lowercase letters, digits and dashes). It must not exist in --root (default: this repo).
 Exit 1 with a plain message on stderr when the issue cannot be used. Python 3 standard library only.
@@ -27,6 +28,7 @@ REQUIRED = ("The package", "Title", "Description", "Category")
 ATTACHMENT = re.compile(r"https://github\.com/user-attachments/files/[0-9]+/[A-Za-z0-9._%+-]+\.zip(?![A-Za-z0-9._%+-])", re.IGNORECASE)
 LOGIN = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$")
 NO_RESPONSE = "_No response_"
+MAX_BODY = 70000  # bytes; GitHub itself stops at 65536 characters
 
 
 def fail(message):
@@ -82,6 +84,8 @@ def main():
     args = ap.parse_args()
     if not LOGIN.match(args.login) or args.issue < 1:
         fail("the issue's author is not a plain GitHub login.")
+    if os.path.getsize(args.body_file) > MAX_BODY:
+        fail(f"the issue is over {MAX_BODY // 1024} KB: it is not a form someone filled in.")
     with open(args.body_file, encoding="utf-8", errors="replace") as f:
         body = f.read().replace("\r\n", "\n").replace("\r", "\n")
     form = sections(body)
