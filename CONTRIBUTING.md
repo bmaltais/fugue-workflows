@@ -73,7 +73,7 @@ A template that comes from a contributor is marked in `template.json`:
 What it means:
 
 - It may use **built-in Fugue nodes only**: no pack, no `packs/` folder. Packs run code on every user's machine, so
-  a template with a pack is added only by the maintainer, as the maintainer's own, with `bin/import-fuguepack --allow-packs`
+  a template with a pack is added only by the maintainer, as the maintainer's own, with `bin/import-fuguepack --own-with-packs`
   (which marks nothing as community).
 - `bin/check` fails a community template that has a pack node or a `packs/` folder. With a Fugue binary
   (`bin/check-all`) a node is built in when `fugue node list` lists it, or the workflow defines it as an embedded group;
@@ -124,7 +124,7 @@ the `description`. Do not add a template for a model you may not point people to
 A template that needs a pack carries a copy as `my-id/packs/<pack id>/` (the pack folder without its tests), so
 Fugue can offer to install it. Keep `requires.packs` in the workflow at the same version. Nothing of the pack runs
 before the person says Install and Trust. A `.fugueapp` export carries its packs. `bin/import-fuguepack` refuses a package with packs unless a maintainer passes
-`--allow-packs`, then lists every file so it can be read before the pack is published. Otherwise copy
+`--own-with-packs`, then lists every file so it can be read before the pack is published. Otherwise copy
 the pack folder from its repo or from `examples/packs/` in the fugue repo.
 
 ### Apps and canvas actions

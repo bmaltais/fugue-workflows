@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""bin/import-fuguepack <file.fuguepack> <id> --author A [--issue N] [--category C] [--title T] [--allow-packs]
+"""bin/import-fuguepack <file.fuguepack> <id> --author A [--issue N] [--category C] [--title T] [--own-with-packs]
 
 Turns a package made with File > Export for sharing... (a .fuguepack or .fugueapp, a zip) into the template folder
 <id>/: workflow.fugue, inputs/, a template.json skeleton and, when the package has a result picture, the preview.
@@ -9,8 +9,8 @@ The package comes from a stranger, so it is never trusted:
 - names outside the folder, links, duplicate names (also by case or Unicode form), 256 MB files and 400 MB in all are refused;
   `__MACOSX/` and dot files are ignored;
 - no file is decoded or converted: a preview is copied only when its first bytes say PNG, JPEG or WebP and it is at most 300 KB;
-- a package with packs/ is refused unless you pass --allow-packs, which lists every file and drops every executable
-  bit except the run script a node.json names. --allow-packs is for a maintainer's own template: nothing is marked
+- a package with packs/ is refused unless you pass --own-with-packs, which lists every file and drops every executable
+  bit except the run script a node.json names. --own-with-packs is for a maintainer's own template: nothing is marked
   community then. Without it --author is required (--issue is optional) and `"community": {"author", "issue"}` goes in template.json;
 - everything the package says that is printed is escaped first.
 The package is unpacked under the temporary folder ($TMPDIR, often /tmp, which can be RAM) and removed at the end.
@@ -180,15 +180,17 @@ def main():
     ap.add_argument("--title")
     ap.add_argument("--author", help="who made it: a GitHub login or a name (marks the template as a community one)")
     ap.add_argument("--issue", type=int, help="the number of the issue it came from, if any")
-    ap.add_argument("--allow-packs", action="store_true",
+    ap.add_argument("--own-with-packs", action="store_true",
                     help="a maintainer's own template: also take the packs the package carries, and mark nothing as community")
     args = ap.parse_args()
 
     community = None
-    if not args.allow_packs:
+    if args.own_with_packs and (args.author or args.issue is not None):
+        c.die("--own-with-packs is for a maintainer's own template and cannot be combined with --author or --issue (a contributor's template is never imported with packs).")
+    if not args.own_with_packs:
         if not args.author:
             c.die("--author is required: a template imported from a contributor is marked community. "
-                  "A maintainer's own template with packs: --allow-packs.")
+                  "A maintainer's own template with packs: --own-with-packs.")
         if c.DANGEROUS.search(args.author) or not args.author.strip() or len(args.author) > 80 or (args.issue is not None and args.issue < 1):
             c.die("--author is plain text (at most 80 characters) and --issue, when given, a positive number.")
         community = {"author": args.author.strip()}
@@ -204,9 +206,8 @@ def main():
     try:
         try:
             source, execs = locate(scratches[0], unzip_safely(args.package, scratches[0]), scratches)
-            if os.path.isdir(os.path.join(source, "packs")) and not args.allow_packs:
-                c.die("the package carries packs/. A pack's files run on every user's machine, so a maintainer reads them first: "
-                      "run again with --allow-packs to list and copy them.")
+            if os.path.isdir(os.path.join(source, "packs")) and community:
+                c.die("a community template carries no packs: ask the contributor to use built-in nodes only.")
             with open(os.path.join(source, "workflow.fugue"), encoding="utf-8") as f:
                 workflow = json.load(f)
             if not isinstance(workflow, dict):
@@ -234,8 +235,6 @@ def main():
             description = c.text_of(block.get("description"), None) or c.text_of(packaged.get("description"), "TODO: what it makes, and what it needs, in two sentences")
             extra = [f"not in the package, put it in inputs/ yourself: {m}" for m in missing]
             extra += c.finish_paths(workflow)
-            if os.path.isdir(os.path.join(source, "packs")) and community:
-                c.die("a community template carries no packs.")
             c.write_template(folder, workflow, title, description, args.category, {"community": community} if community else None)
 
             if os.path.isdir(os.path.join(source, "packs")):

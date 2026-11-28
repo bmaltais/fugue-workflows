@@ -141,10 +141,12 @@ with tempfile.TemporaryDirectory() as tmp:
     packs = {**base, "p/packs/my.pack/pack.json": "{}", "p/packs/my.pack/run.sh": (b"#!/bin/sh\n", 0o100755), "p/packs/my.pack/bin": (b"\0\1\2", 0o100755),
              "p/packs/my.pack/tests/t.py": "x", "p/packs/my.pack/n/node.json": '{"runtime": {"entry": "./go.sh"}}', "p/packs/my.pack/n/go.sh": (b"#!/bin/sh\n", 0o100755)}
     code, out, folder = importing("packs.fuguepack", packs)
-    expect("a package with packs is refused", code != 0 and "--allow-packs" in out and not os.path.exists(folder), out)
-    code, out, folder = importing("packs.fuguepack", packs, "--allow-packs", author=False)
+    expect("a community import of a package with packs is refused, and the flag is not suggested", code != 0 and "built-in nodes only" in out and "own-with-packs" not in out and not os.path.exists(folder), out)
+    code, out, folder = importing("packs.fuguepack", packs, "--own-with-packs")
+    expect("--own-with-packs together with --author is refused", code != 0 and "cannot be combined" in out and not os.path.exists(folder), out)
+    code, out, folder = importing("packs.fuguepack", packs, "--own-with-packs", author=False)
     pack = folder + "/packs/my.pack"
-    expect("--allow-packs lists files, keeps only the named run script executable, drops tests, marks nothing community",
+    expect("--own-with-packs lists files, keeps only the named run script executable, drops tests, marks nothing community",
            code == 0 and "NOT TEXT" in out and os.access(pack + "/n/go.sh", os.X_OK) and not os.access(pack + "/run.sh", os.X_OK)
            and not os.access(pack + "/bin", os.X_OK) and not os.path.exists(pack + "/tests") and "community" not in json.load(open(folder + "/template.json")), out)
 
