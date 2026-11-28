@@ -572,6 +572,26 @@ with tempfile.TemporaryDirectory() as tmp:
     done = subprocess.run([sys.executable, "-I", os.path.join(BIN, "filter-review"), os.path.join(tmp, "rev.md"), os.path.join(tmp, "rev-out.md")], capture_output=True, text=True, env={"REVIEW_SECRETS": key})
     expect("a clean review is kept as it is", "kept" in done.stdout and open(os.path.join(tmp, "rev-out.md")).read() == open(os.path.join(tmp, "rev.md")).read(), done.stdout)
 
+    # ---- the run's init message (round 2) ----
+    def init_case(label, init, ok):
+        ex = os.path.join(tmp, "exec.json")
+        json.dump([init, {"type": "result", "result": "Verdict: ok"}] if init else [{"type": "result", "result": "x"}], open(ex, "w"))
+        open(os.path.join(tmp, "rev.md"), "w").write("Verdict: ok\n")
+        done = subprocess.run([sys.executable, "-I", os.path.join(BIN, "filter-review"), os.path.join(tmp, "rev.md"), os.path.join(tmp, "rev-out.md"), "--execution", ex],
+                              capture_output=True, text=True, env={"REVIEW_SECRETS": key})
+        expect(label, ("kept" in done.stdout) == ok and (ok or "expected restrictions" in open(os.path.join(tmp, "rev-out.md")).read()), done.stdout + done.stderr)
+
+    good = {"type": "system", "subtype": "init", "permissionMode": "default", "tools": ["Read", "Glob", "Grep"], "mcp_servers": []}
+    init_case("a review of a run with the expected restrictions is kept", good, True)
+    init_case("a run in auto mode is dropped", {**good, "permissionMode": "auto"}, False)
+    init_case("a run with a Bash tool is dropped", {**good, "tools": ["Read", "Bash"]}, False)
+    init_case("a run with an MCP server is dropped", {**good, "mcp_servers": [{"name": "x", "status": "connected"}]}, False)
+    init_case("a run with no init message is dropped", None, False)
+    code, out = run("submission-report", "no-pr", "--issue", "7", "--id", "my-template", "--branch", "submission/7-my-template-2")
+    expect("the no-pr comment names the real branch", code == 0 and "submission/7-my-template-2" in out, out)
+    scope("a pull request from outside that adds CLAUDE.md, .claude/ or .mcp.json is refused", False,
+          lambda: (open(repo + "/CLAUDE.md", "w").write("x"), os.makedirs(repo + "/.claude"), open(repo + "/.claude/s.json", "w").write("{}"), open(repo + "/.mcp.json", "w").write("{}")))
+
     # ---- community: pictures only (10) ----
     def community_inputs(label, name, data, ok, flow_extra=None):
         folder = os.path.join(root, "zz-ci")

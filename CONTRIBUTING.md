@@ -166,5 +166,6 @@ and is released under it. If part of it comes from someone else, name them in `s
 Adding the `import` label to a submission issue runs the Action. Before you add it, read the issue and open the zip yourself if
 anything looks odd: the label is the only gate. The pull request records the zip's size and **sha256**; on the pull request, download
 the attachment again from the issue and compare, because a contributor can edit the issue and swap the file after the Action ran.
+Do not add `CLAUDE.md`, `.claude/` or `.mcp.json` to the repo root: the review job refuses to run with them, and an outside pull request that adds them fails the scope check. A pull request from outside that touches `.github/` or `bin/` is closed, not reviewed for merge (a fork can edit `check.yml` and show a false green).
 The AI review is advisory and is dropped if it holds anything key-like. If the label is added again, the Action pushes a new branch
 (`submission/<issue>-<id>-2`) and opens a new pull request; it never overwrites a branch.

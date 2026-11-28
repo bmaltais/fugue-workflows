@@ -158,12 +158,20 @@ jobs:
     env:
       HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
     steps:
-      # actions/download-artifact v8.0.2
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         if: env.HAS_KEY == 'true'
         with:
           persist-credentials: false
 
+      # The model reads project config from the working folder: none may exist at the root of main.
+      - name: No project config for the model
+        if: env.HAS_KEY == 'true'
+        run: |
+          for f in CLAUDE.md .claude .mcp.json; do
+            if [[ -e $f || -L $f ]]; then echo "::error::$f exists at the repo root: the AI review does not run with project config"; exit 1; fi
+          done
+
+      # actions/download-artifact v8.0.2
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         if: env.HAS_KEY == 'true'
         with:
@@ -180,7 +188,8 @@ jobs:
           github_token: ${{ github.token }}
           display_report: "false"
           # The model's process holds the API key in its environment, so reading is limited to ./submission by path rules
-          # (and /proc, /sys, /etc and the home folders are denied outright), and the review text is checked for the key afterwards
+          # (and /proc, /sys, /etc, /root, /run, /tmp, the runner's _temp and the home dot-folders are denied outright; the workspace itself
+          # lives under /home/runner, so /home and ~ must not be denied as a whole: a deny rule wins over an allow rule), and the review text is checked for the key afterwards
           # (bin/filter-review). `--permission-mode default`: the action's default is auto mode, where a safety review may allow
           # calls that no rule covers; in default mode a call no rule allows is denied, since nobody is there to approve it.
           claude_args: >-
@@ -189,7 +198,7 @@ jobs:
             --permission-mode default
             --tools "Read,Glob,Grep"
             --allowedTools "Read(./submission/**),Glob(./submission/**),Grep(./submission/**)"
-            --disallowedTools "Bash,Write,Edit,NotebookEdit,WebFetch,WebSearch,Task,Read(//proc/**),Read(//sys/**),Read(//etc/**),Read(//home/**),Read(//root/**),Read(//run/**),Read(//tmp/**),Read(~/**),Grep(//proc/**),Glob(//proc/**)"
+            --disallowedTools "Bash,Write,Edit,NotebookEdit,WebFetch,WebSearch,Task,Read(//proc/**),Read(//sys/**),Read(//etc/**),Read(//root/**),Read(//run/**),Read(//tmp/**),Read(//home/runner/work/_temp/**),Read(~/.*/**),Grep(//proc/**),Glob(//proc/**)"
           prompt: |
             You review a template submitted by a stranger to a public library of workflows for Fugue, a node-based tool for local
             AI image, video and audio generation. A merge reaches every Fugue user, and a person reads your report before merging.
@@ -222,6 +231,7 @@ jobs:
         env:
           EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
           REVIEW_SECRETS: ${{ secrets.ANTHROPIC_API_KEY }}
+          # filter-review also checks the run's init message: permission mode, tools, no MCP servers
         run: |
           mkdir -p review
           python3 -I - <<'PY'
@@ -234,7 +244,7 @@ jobs:
           PY
           # A review that holds the key (or any token-like text) is replaced by one line, before anything is uploaded or posted.
           if [[ -f review/raw.md ]]; then
-            python3 -I bin/filter-review review/raw.md review/review.md
+            python3 -I bin/filter-review review/raw.md review/review.md --execution "$EXECUTION_FILE"
             rm -f review/raw.md
           fi
 
@@ -316,7 +326,7 @@ jobs:
           [[ $CHECKS == fail ]] && draft=(--draft)
           url=$(gh pr create --base main --head "$branch" --title "Template: $(cat submission/sub/title)" --body-file pr-body.md "${draft[@]}") || url=
           if [[ -z $url ]]; then
-            python3 -I bin/submission-report no-pr --issue "$ISSUE_NUMBER" --id "$ID" | gh issue comment "$ISSUE_NUMBER" --body-file -
+            python3 -I bin/submission-report no-pr --issue "$ISSUE_NUMBER" --id "$ID" --branch "$branch" | gh issue comment "$ISSUE_NUMBER" --body-file -
             echo "::error::the pull request could not be created (is Allow GitHub Actions to create and approve pull requests on?)"
             exit 1
           fi

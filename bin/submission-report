@@ -3,7 +3,7 @@
 
   pr       --dir D --issue N --id ID --checks pass|fail [--review FILE]   the pull request's body
   linked   --issue N --pr URL --checks pass|fail                          the comment on the issue when the pull request is open
-  no-pr    --issue N --id ID                                              the comment when the pull request could not be made
+  no-pr    --issue N --id ID --branch B                                             the comment when the pull request could not be made
   failure  --dir D --issue N                                              the comment when the package could not be imported
   no-check --issue N                                                      the comment when Fugue could not be built, so the checks did not run
 
@@ -46,6 +46,7 @@ def main():
     ap.add_argument("--id")
     ap.add_argument("--pr")
     ap.add_argument("--checks", choices=("pass", "fail"))
+    ap.add_argument("--branch")
     ap.add_argument("--review")
     ap.add_argument("--recheck", help="the log of the trusted re-check the publish job ran on the copied folder")
     a = ap.parse_args()
@@ -81,7 +82,7 @@ def main():
                 "package: a maintainer will retry."]
     elif a.kind == "no-pr":
         out += [f"The package was imported as `{a.id}/` and checked, but the Action could not open the pull request (the repository setting "
-                "\"Allow GitHub Actions to create and approve pull requests\" may be off). The branch `submission/" + f"{a.issue}-{a.id}` was pushed when it could. A maintainer will take it from here."]
+                "\"Allow GitHub Actions to create and approve pull requests\" may be off). " + (f"The branch `{a.branch}` was pushed. " if a.branch and re.match(r"^submission/[0-9]+-[a-z0-9-]+$", a.branch) else "") + "A maintainer will take it from here."]
     else:
         log = os.path.join(a.dir, "failure.log")
         if not os.path.isfile(log) or not os.path.getsize(log):

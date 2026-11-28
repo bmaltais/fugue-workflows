@@ -4,6 +4,7 @@ name: Check
 # branch. The checks are bin/check-all, the same script a contributor runs.
 on:
   pull_request:
+    branches: [main]
   push:
     branches: [main]
 
