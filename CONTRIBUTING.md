@@ -15,8 +15,9 @@ A merged template reaches every Fugue user within hours (see the README), so a m
 4. Open a [Submit a template](../../issues/new?template=submit-template.yml) issue. Drag the zip in. Fill in the
    title, a description, the category, and the models it uses with a link to each. Drag in a preview picture too
    (PNG or JPEG), if the package has none.
-5. A maintainer turns it into a folder with `bin/import-fuguepack` and opens the pull request. You can
-   comment there.
+5. A maintainer adds the `import` label. An Action (`.github/workflows/import-submission.yml`) downloads your zip, runs
+   `bin/import-fuguepack` and `bin/check-all`, asks a model for an advisory review (when the repo has a key for it) and opens
+   the pull request, or comments here with what to change. A person reads the pull request before it is merged. You can comment there.
 
 ## Way 2: a pull request
 
@@ -79,6 +80,12 @@ What it means:
   (`bin/check-all`) a node is built in when `fugue node list` lists it, or the workflow defines it as an embedded group;
   without a binary only the `fugue/` prefix is checked.
 - `author` is plain text, `issue` (optional) a positive number.
+- No `requires.packs`. Each model's `source` is `https://huggingface.co/<owner>/<repo>/resolve/<40-hex commit>/<path>` and the file
+  is a `.safetensors` or a `.gguf`.
+- A Save node's `name` and `folder` hold no `..` and do not start with `/`, `\` or `~` (Fugue refuses a `..` in a name, and a
+  relative folder that leads out of the output folder, itself; an absolute folder is allowed there only by the write roots).
+- A pull request from someone without write access (CI: `bin/check-pr-scope`) may only add or change community templates,
+  and touch nothing else.
 
 ### Preview
 
@@ -95,8 +102,11 @@ What it means:
 ### Sample inputs
 
 - Each file in `inputs/` is at most **600 KB**. Small JPEGs are best. Pictures must be real PNG, JPEG or WebP files, at most
-  8192 x 8192, named by what they are (`.png` for a PNG): `bin/check` reads their structure (it never decodes them) and
-  the import scripts copy only files that pass. No local paths in the workflow: a Load node names `inputs/<name>`.
+  4096 x 4096 (and 16 megapixels), named by what they are (`.png` for a PNG): `bin/check` reads their structure (it never decodes them) and
+  the import scripts copy only files that pass. A PNG has image data and only the usual chunks (text, gamma, colour profile, size,
+  time, background, transparency; no private chunks, no APNG), a JPEG ends at its first end marker, a WebP is a plain VP8, VP8L or
+  VP8X file with at most 64 frames. Every file under `inputs/` (sub-folders too) is a picture, a known audio or video kind
+  by its bytes, or a `.cube` colour table, named by what it is; no GIF, SVG or unknown kind. No local paths in the workflow: a Load node names `inputs/<name>`.
 - Make them with Fugue, or use a picture you have the right to share. No photos of other people without their
   consent, and no private pictures.
 - If a node has a painted mask, its file goes in `inputs/` too (an 8-bit gray PNG, white is redrawn).
@@ -141,6 +151,8 @@ and is released under it. If part of it comes from someone else, name them in `s
 
 ### What review checks
 
+- The import Action's pull request does not start CI (GitHub does not run workflows for a pull request made with the workflow's
+  token); its `import` job ran `bin/check-all` and put the report in the pull request.
 - CI: `bin/check-all` against Fugue's main branch. It runs `bin/check` (shape, sizes, models have a source and size),
   `fugue template list` (no warnings), `fugue validate` on every workflow, and every app block.
 - A human look, because a merge reaches every user: does it run as described, are the models and licences honest,

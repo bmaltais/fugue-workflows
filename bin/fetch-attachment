@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""bin/fetch-attachment <url> <file>: download a package attached to an issue, and nothing else.
+
+The URL must be https://github.com/user-attachments/files/<number>/<name>.zip. GitHub answers with one redirect to a signed
+address on github.com or githubusercontent.com; that is the only hop followed, and only to such a host. The download is capped
+at 400 MB (curl's --max-filesize, and a hard file size limit on the curl process) and must start with the zip signature.
+The signed address is never printed. Needs curl. Python 3 standard library only.
+"""
+import os
+import re
+import resource
+import subprocess
+import sys
+from urllib.parse import urlsplit
+
+MAX = 400 << 20
+URL = re.compile(r"^https://github\.com/user-attachments/files/[0-9]+/[A-Za-z0-9._%+-]+\.zip$", re.IGNORECASE)
+HOSTS = re.compile(r"(^|\.)(github\.com|githubusercontent\.com)$")
+
+
+def curl(*args):
+    limit = lambda: resource.setrlimit(resource.RLIMIT_FSIZE, (MAX + (1 << 20), MAX + (1 << 20)))  # noqa: E731
+    return subprocess.run(["curl", "-sS", "--proto", "=https", "--proto-redir", "=https", "--max-redirs", "0", *args],
+                          capture_output=True, text=True, preexec_fn=limit)
+
+
+def main():
+    if len(sys.argv) != 3:
+        sys.exit(__doc__)
+    url, target = sys.argv[1:]
+    if not URL.match(url):
+        sys.exit("error: not an attachment address (https://github.com/user-attachments/files/<number>/<name>.zip)")
+    first = curl("--max-time", "60", "-o", os.devnull, "-w", "%{http_code} %{redirect_url}", url)
+    code, _, redirect = first.stdout.partition(" ")
+    if first.returncode:
+        sys.exit("error: the attachment could not be reached")
+    final = url
+    if code.startswith("3"):
+        parts = urlsplit(redirect)
+        if parts.scheme != "https" or not parts.hostname or not HOSTS.search(parts.hostname.lower()) or parts.username:
+            sys.exit("error: the attachment redirects to an address that is not GitHub's")
+        final = redirect
+    elif code != "200":
+        sys.exit(f"error: the attachment answered with status {code[:3]}")
+    got = curl("--max-time", "900", "--max-filesize", str(MAX), "-o", target, "-w", "%{http_code}", final)
+    if got.returncode or got.stdout != "200":
+        if os.path.exists(target):
+            os.remove(target)
+        sys.exit("error: the download failed or is over 400 MB")
+    with open(target, "rb") as f:
+        if f.read(4) not in (b"PK\x03\x04", b"PK\x05\x06"):
+            os.remove(target)
+            sys.exit("error: the attachment is not a zip file")
+    print(f"downloaded {os.path.getsize(target)} bytes")
+
+
+if __name__ == "__main__":
+    main()

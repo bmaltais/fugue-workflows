@@ -15,8 +15,16 @@ jobs:
     name: Template shape
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # actions/checkout v7.0.1 (every third-party action is pinned to a commit)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 2  # the pull request's merge commit and its base, for bin/check-pr-scope
       - run: bin/check
+
+      # Someone without write access may only add or change community templates, and nothing else.
+      - name: A pull request from outside changes community templates only
+        if: github.event_name == 'pull_request' && !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
+        run: bin/check-pr-scope HEAD^1 HEAD
 
   fugue:
     name: Fugue reads every template
@@ -29,7 +37,7 @@ jobs:
       - name: Install git for the checkouts
         run: pacman -Syu --noconfirm --needed git python
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: templates
 

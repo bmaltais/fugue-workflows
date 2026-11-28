@@ -7,7 +7,6 @@ nodes pointed at `inputs/<name>`. Without it you get template.json and put workf
 For a workflow you exported with File > Export for sharing..., use bin/import-fuguepack.
 """
 import argparse
-import json
 import os
 import shutil
 import sys
@@ -42,8 +41,7 @@ def main():
     workflow, notes, extra = None, [], []
     if args.source:
         try:
-            with open(args.source, encoding="utf-8") as f:
-                workflow = json.load(f)
+            workflow = c.json_load(args.source)
         except (OSError, ValueError) as e:
             c.die(f"cannot read {c.safe(args.source)}: {c.safe(e)}")
         if not isinstance(workflow, dict):

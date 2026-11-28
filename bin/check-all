@@ -9,11 +9,11 @@
 #
 # The Fugue binary is the argument, else $FUGUE, else `fugue` on the PATH, else ../fugue/build/fugue.
 # With none, only steps 1 and 2 run, and a community template's nodes are judged by their `fugue/` prefix; CI runs the rest.
-# $FUGUE_TEMPLATES_ROOT names another templates folder to check (bin/test-import uses it).
+# $FUGUE_TEMPLATES_TEST_ROOT names another templates folder to check (bin/test-import uses it).
 set -euo pipefail
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-root=${FUGUE_TEMPLATES_ROOT:-$here}
-export FUGUE_TEMPLATES_ROOT=$root
+root=${FUGUE_TEMPLATES_TEST_ROOT:-$here}
+export FUGUE_TEMPLATES_TEST_ROOT=$root
 
 fugue=${1:-${FUGUE:-}}
 if [[ -z $fugue ]]; then
@@ -28,6 +28,7 @@ if [[ -n $fugue && ( $fugue != */* || ! -f $fugue || ! -x $fugue ) ]]; then
   exit 1
 fi
 
+echo "Checking the templates in $root"
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 # What Fugue says may come from a stranger's package (a node or model name): it is escaped before it is shown.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""bin/import-fuguepack <file.fuguepack> <id> --author A [--issue N] [--category C] [--title T] [--own-with-packs]
+"""bin/import-fuguepack <file.fuguepack> <id> --author A [--issue N] [--category C] [--title T] [--description D] [--own-with-packs]
 
 Turns a package made with File > Export for sharing... (a .fuguepack or .fugueapp, a zip) into the template folder
 <id>/: workflow.fugue, inputs/, a template.json skeleton and, when the package has a result picture, the preview.
@@ -178,6 +178,7 @@ def main():
     ap.add_argument("id")
     ap.add_argument("--category")
     ap.add_argument("--title")
+    ap.add_argument("--description", help="what it makes (else the package's own, else a TODO)")
     ap.add_argument("--author", help="who made it: a GitHub login or a name (marks the template as a community one)")
     ap.add_argument("--issue", type=int, help="the number of the issue it came from, if any")
     ap.add_argument("--own-with-packs", action="store_true",
@@ -208,15 +209,20 @@ def main():
             source, execs = locate(scratches[0], unzip_safely(args.package, scratches[0]), scratches)
             if os.path.isdir(os.path.join(source, "packs")) and community:
                 c.die("a community template carries no packs: ask the contributor to use built-in nodes only.")
-            with open(os.path.join(source, "workflow.fugue"), encoding="utf-8") as f:
-                workflow = json.load(f)
+            try:
+                workflow = c.json_load(os.path.join(source, "workflow.fugue"))  # a repeated key in one object is refused
+            except (OSError, ValueError) as e:
+                c.die(f"workflow.fugue cannot be read: {c.safe(e)}")
             if not isinstance(workflow, dict):
                 c.die("workflow.fugue is not a Fugue workflow.")
+            if community and isinstance(workflow.get("requires"), dict) and workflow["requires"].get("packs"):
+                c.die("a community template needs no pack (requires.packs): ask the contributor to use built-in nodes only.")
             try:
-                with open(os.path.join(source, "template.json"), encoding="utf-8") as f:
-                    packaged = json.load(f)
-            except (OSError, ValueError):
+                packaged = c.json_load(os.path.join(source, "template.json"))
+            except OSError:
                 packaged = {}
+            except ValueError as e:
+                c.die(f"the package's template.json cannot be read: {c.safe(e)}")
             packaged = packaged if isinstance(packaged, dict) else {}
             block = workflow.get("app") if isinstance(workflow.get("app"), dict) else {}
 
@@ -232,7 +238,7 @@ def main():
             notes, missing = c.gather_inputs(workflow, folder, find)
             packed = packaged.get("title") if packaged.get("title") != "workflow" else None
             title = args.title or c.text_of(block.get("title"), None) or c.text_of(packed, None) or args.id
-            description = c.text_of(block.get("description"), None) or c.text_of(packaged.get("description"), "TODO: what it makes, and what it needs, in two sentences")
+            description = c.text_of(args.description, None) or c.text_of(block.get("description"), None) or c.text_of(packaged.get("description"), "TODO: what it makes, and what it needs, in two sentences")
             extra = [f"not in the package, put it in inputs/ yourself: {m}" for m in missing]
             extra += c.finish_paths(workflow)
             c.write_template(folder, workflow, title, description, args.category, {"community": community} if community else None)
