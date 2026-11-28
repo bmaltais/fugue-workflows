@@ -14,7 +14,6 @@ import re
 import shutil
 import struct
 import sys
-import unicodedata
 import zlib
 
 ROOT = os.environ.get("FUGUE_TEMPLATES_TEST_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # the env var is for bin/test-import only
